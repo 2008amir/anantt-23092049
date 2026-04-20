@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Truck, ShieldCheck, ShoppingBag, Flame, Star, Award, Loader2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useStore, useProducts } from "@/lib/store";
 import { useAICategories } from "@/hooks/use-ai-categories";
-import { Recommend } from "@/components/Recommend";
+import { personalizedFeed } from "@/lib/ai.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -28,18 +28,36 @@ function Index() {
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("all");
   const [cat, setCat] = useState<string>("All");
   const { categories: aiCategories } = useAICategories();
+  const [personalizedOrder, setPersonalizedOrder] = useState<string[] | null>(null);
+
+  // Personalized 40%-biased ordering when signed in
+  useEffect(() => {
+    if (!user || products.length === 0) return;
+    const allIds = products.map((p) => p.id);
+    personalizedFeed({ data: { allIds } })
+      .then((res) => setPersonalizedOrder(res.orderedIds))
+      .catch((e) => console.error("personalized", e));
+  }, [user, products]);
 
   const list = useMemo(() => {
     let l = [...products];
+    // Apply personalized order before other filters
+    if (personalizedOrder && personalizedOrder.length > 0) {
+      const map = new Map(products.map((p) => [p.id, p]));
+      l = personalizedOrder.map((id) => map.get(id)).filter(Boolean) as typeof products;
+    } else if (user) {
+      // While loading, randomize for variety
+      l = [...products];
+    }
     if (cat !== "All") {
       const match = aiCategories.find((c) => c.name === cat);
       if (match) l = l.filter((p) => match.productIds.includes(p.id));
     }
     if (tab === "rated") l = l.filter((p) => p.rating >= 4.7);
-    if (tab === "best") l = l.sort((a, b) => b.reviewCount - a.reviewCount);
-    if (tab === "deals") l = l.sort((a, b) => b.price - a.price);
+    if (tab === "best") l = [...l].sort((a, b) => b.reviewCount - a.reviewCount);
+    if (tab === "deals") l = [...l].sort((a, b) => b.price - a.price);
     return l;
-  }, [tab, cat, aiCategories, products]);
+  }, [tab, cat, aiCategories, products, personalizedOrder, user]);
 
   return (
     <div className="bg-background pb-12">
@@ -136,7 +154,6 @@ function Index() {
         </section>
       )}
 
-      <Recommend />
     </div>
   );
 }

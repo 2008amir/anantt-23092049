@@ -176,7 +176,6 @@ function Shop() {
           )}
         </div>
       </div>
-      <Recommend />
     </div>
   );
 }
