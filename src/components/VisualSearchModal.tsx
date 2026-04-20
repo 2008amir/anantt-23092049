@@ -119,10 +119,7 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
     <div className="fixed inset-0 z-[60] flex flex-col bg-background">
       {/* Header bar */}
       <div className="flex items-center justify-between border-b border-border/60 bg-background/95 px-4 py-3 backdrop-blur-xl">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" />
-          <p className="font-serif text-sm text-foreground">Visual AI Search</p>
-        </div>
+        <p className="font-serif text-sm text-foreground">Search</p>
         <button
           type="button"
           onClick={onClose}
@@ -136,15 +133,7 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
       <div className="flex-1 overflow-y-auto">
         {stage === "choose" && (
           <div className="mx-auto flex h-full max-w-md flex-col items-center justify-center gap-6 p-6 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gold-gradient">
-              <Sparkles className="h-7 w-7 text-primary-foreground" />
-            </div>
-            <div>
-              <h2 className="font-serif text-xl text-foreground">Find by image</h2>
-              <p className="mt-2 text-xs text-muted-foreground">
-                Snap a photo or upload one — our AI will match it to pieces in the atelier by look, function, and color.
-              </p>
-            </div>
+            <h2 className="font-serif text-xl text-foreground">Search by image</h2>
             <div className="grid w-full grid-cols-2 gap-3">
               <button
                 type="button"
@@ -152,8 +141,7 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
                 className="flex flex-col items-center gap-2 rounded-lg border border-primary/40 bg-card p-5 transition-smooth hover:border-primary"
               >
                 <Camera className="h-7 w-7 text-primary" />
-                <span className="text-xs font-medium text-foreground">Take photo</span>
-                <span className="text-[10px] text-muted-foreground">Use device camera</span>
+                <span className="text-xs font-medium text-foreground">Take image</span>
               </button>
               <button
                 type="button"
@@ -162,7 +150,6 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
               >
                 <Upload className="h-7 w-7 text-primary" />
                 <span className="text-xs font-medium text-foreground">Upload image</span>
-                <span className="text-[10px] text-muted-foreground">From your library</span>
               </button>
             </div>
             <input
