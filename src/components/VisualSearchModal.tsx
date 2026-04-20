@@ -4,7 +4,7 @@ import { Camera, Upload, X, Loader2, RefreshCw, ImagePlus } from "lucide-react";
 import { visualSearch } from "@/lib/visual-search.functions";
 import { PRODUCTS } from "@/lib/products";
 
-type Stage = "choose" | "camera" | "preview" | "loading" | "results" | "error";
+type Stage = "choose" | "camera" | "loading" | "results" | "error";
 
 type Match = { id: string; reason: string; score: number };
 
@@ -272,9 +272,6 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
                     >
                       <div className="relative aspect-square overflow-hidden">
                         <img src={p.image} alt={p.name} className="h-full w-full object-cover transition-smooth group-hover:scale-105" />
-                        <span className="absolute left-1.5 top-1.5 bg-gold-gradient px-1.5 py-0.5 text-[8px] uppercase tracking-[0.15em] text-primary-foreground">
-                          {Math.round(m.score * 100)}% match
-                        </span>
                       </div>
                       <div className="space-y-1 p-2">
                         <p className="line-clamp-2 text-[11px] leading-tight text-foreground">{p.name}</p>
