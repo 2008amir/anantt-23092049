@@ -26,9 +26,7 @@ const TABS: { id: "all" | "deals" | "rated" | "best"; label: string; icon?: type
 ];
 
 function Index() {
-  const navigate = useNavigate();
   const { addToCart, user } = useStore();
-  const [query, setQuery] = useState("");
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("all");
   const [cat, setCat] = useState<Category | "All">("All");
 
@@ -40,11 +38,6 @@ function Index() {
     if (tab === "deals") l = l.sort((a, b) => b.price - a.price);
     return l;
   }, [tab, cat]);
-
-  const submitSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    navigate({ to: "/shop", search: { q: query || undefined } });
-  };
 
   return (
     <div className="bg-background pb-12">
