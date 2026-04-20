@@ -75,7 +75,7 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
     const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
     stopCamera();
     setImageDataUrl(dataUrl);
-    setStage("preview");
+    void runSearch(dataUrl);
   };
 
   const onUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,17 +88,19 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
     }
     const reader = new FileReader();
     reader.onload = () => {
-      setImageDataUrl(reader.result as string);
-      setStage("preview");
+      const dataUrl = reader.result as string;
+      setImageDataUrl(dataUrl);
+      void runSearch(dataUrl);
     };
     reader.readAsDataURL(file);
   };
 
-  const runSearch = async () => {
-    if (!imageDataUrl) return;
+  const runSearch = async (dataUrl?: string) => {
+    const img = dataUrl ?? imageDataUrl;
+    if (!img) return;
     setStage("loading");
     try {
-      const res = await visualSearch({ data: { imageDataUrl } });
+      const res = await visualSearch({ data: { imageDataUrl: img } });
       setMatches(res.matches);
       setDescription(res.description);
       setStage("results");
