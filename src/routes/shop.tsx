@@ -40,7 +40,7 @@ function Shop() {
       const haystack = [p.name, p.brand, p.category, p.description, ...(p.details ?? [])]
         .join(" ")
         .toLowerCase();
-      return terms.every((t) => haystack.includes(t));
+      return terms.every((t: string) => haystack.includes(t));
     });
   }, [q]);
 
