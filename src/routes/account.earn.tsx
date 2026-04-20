@@ -24,11 +24,12 @@ function EarnFreePage() {
 
   useEffect(() => {
     let cancelled = false;
-    supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any)
       .from("rewards")
       .select("id, title, description, image, points, is_free")
       .order("created_at", { ascending: false })
-      .then(({ data, error }) => {
+      .then(({ data, error }: { data: Reward[] | null; error: unknown }) => {
         if (cancelled) return;
         if (error) console.error(error);
         setRewards((data ?? []) as Reward[]);
