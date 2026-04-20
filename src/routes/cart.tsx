@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Minus, Plus, X } from "lucide-react";
-import { PRODUCTS } from "@/lib/products";
-import { useStore, useCartTotal } from "@/lib/store";
+import { useStore, useCartTotal, useProducts } from "@/lib/store";
+import { Recommend } from "@/components/Recommend";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({ meta: [{ title: "Cart — Maison Luxe" }] }),
@@ -10,23 +10,20 @@ export const Route = createFileRoute("/cart")({
 
 function CartPage() {
   const { updateCartQty, removeFromCart } = useStore();
-  const { items, subtotal, shipping, tax, total } = useCartTotal(PRODUCTS);
+  const { products } = useProducts();
+  const { items, subtotal, shipping, tax, total } = useCartTotal(products);
 
   if (items.length === 0) {
     return (
-      <div className="container mx-auto flex min-h-[60vh] flex-col items-center justify-center px-6 py-24 text-center">
-        <p className="text-xs uppercase tracking-[0.3em] text-primary">Your Cart</p>
-        <h1 className="mt-4 font-serif text-5xl">Awaiting curation.</h1>
-        <p className="mt-4 max-w-md text-muted-foreground">
-          Begin assembling your collection from our curated atelier.
-        </p>
-        <Link
-          to="/shop"
-          className="mt-10 inline-flex bg-gold-gradient px-8 py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground"
-        >
-          Explore Collection
-        </Link>
-      </div>
+      <>
+        <div className="container mx-auto flex min-h-[60vh] flex-col items-center justify-center px-6 py-24 text-center">
+          <p className="text-xs uppercase tracking-[0.3em] text-primary">Your Cart</p>
+          <h1 className="mt-4 font-serif text-5xl">Awaiting curation.</h1>
+          <p className="mt-4 max-w-md text-muted-foreground">Begin assembling your collection from our curated atelier.</p>
+          <Link to="/shop" className="mt-10 inline-flex bg-gold-gradient px-8 py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground">Explore Collection</Link>
+        </div>
+        <Recommend />
+      </>
     );
   }
 
@@ -48,42 +45,19 @@ function CartPage() {
                 <div className="flex justify-between">
                   <div>
                     <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">{product.brand}</p>
-                    <Link to="/product/$id" params={{ id: product.id }} className="mt-1 block font-serif text-xl text-foreground hover:text-primary">
-                      {product.name}
-                    </Link>
+                    <Link to="/product/$id" params={{ id: product.id }} className="mt-1 block font-serif text-xl text-foreground hover:text-primary">{product.name}</Link>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => removeFromCart(product.id)}
-                    className="text-muted-foreground transition-smooth hover:text-destructive"
-                    aria-label="Remove"
-                  >
+                  <button type="button" onClick={() => void removeFromCart(product.id)} className="text-muted-foreground transition-smooth hover:text-destructive" aria-label="Remove">
                     <X className="h-4 w-4" />
                   </button>
                 </div>
                 <div className="mt-auto flex items-end justify-between pt-4">
                   <div className="flex items-center border border-border">
-                    <button
-                      type="button"
-                      onClick={() => updateCartQty(product.id, quantity - 1)}
-                      className="p-2 text-muted-foreground hover:text-primary"
-                      aria-label="Decrease"
-                    >
-                      <Minus className="h-3 w-3" />
-                    </button>
+                    <button type="button" onClick={() => void updateCartQty(product.id, quantity - 1)} className="p-2 text-muted-foreground hover:text-primary" aria-label="Decrease"><Minus className="h-3 w-3" /></button>
                     <span className="w-10 text-center text-sm">{quantity}</span>
-                    <button
-                      type="button"
-                      onClick={() => updateCartQty(product.id, quantity + 1)}
-                      className="p-2 text-muted-foreground hover:text-primary"
-                      aria-label="Increase"
-                    >
-                      <Plus className="h-3 w-3" />
-                    </button>
+                    <button type="button" onClick={() => void updateCartQty(product.id, quantity + 1)} className="p-2 text-muted-foreground hover:text-primary" aria-label="Increase"><Plus className="h-3 w-3" /></button>
                   </div>
-                  <p className="font-serif text-xl text-primary">
-                    ${(product.price * quantity).toLocaleString()}
-                  </p>
+                  <p className="font-serif text-xl text-primary">${(product.price * quantity).toLocaleString()}</p>
                 </div>
               </div>
             </div>
@@ -101,18 +75,8 @@ function CartPage() {
             <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Total</span>
             <span className="font-serif text-2xl text-gold-gradient">${total.toFixed(2)}</span>
           </div>
-          <Link
-            to="/checkout"
-            className="mt-8 block w-full bg-gold-gradient py-4 text-center text-xs uppercase tracking-[0.25em] text-primary-foreground transition-smooth hover:opacity-90"
-          >
-            Proceed to Checkout
-          </Link>
-          <Link
-            to="/shop"
-            className="mt-3 block w-full border border-border py-4 text-center text-xs uppercase tracking-[0.25em] text-foreground transition-smooth hover:border-primary hover:text-primary"
-          >
-            Continue Shopping
-          </Link>
+          <Link to="/checkout" className="mt-8 block w-full bg-gold-gradient py-4 text-center text-xs uppercase tracking-[0.25em] text-primary-foreground transition-smooth hover:opacity-90">Proceed to Checkout</Link>
+          <Link to="/shop" className="mt-3 block w-full border border-border py-4 text-center text-xs uppercase tracking-[0.25em] text-foreground transition-smooth hover:border-primary hover:text-primary">Continue Shopping</Link>
         </aside>
       </div>
     </div>
@@ -120,10 +84,5 @@ function CartPage() {
 }
 
 function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="text-foreground">{value}</span>
-    </div>
-  );
+  return <div className="flex justify-between"><span className="text-muted-foreground">{label}</span><span className="text-foreground">{value}</span></div>;
 }

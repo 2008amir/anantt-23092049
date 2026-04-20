@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/account/")({
@@ -6,8 +8,25 @@ export const Route = createFileRoute("/account/")({
 });
 
 function ProfilePanel() {
-  const { user, orders, wishlist } = useStore();
+  const { user, profile, wishlist } = useStore();
+  const [orderCount, setOrderCount] = useState(0);
+  const [lifetime, setLifetime] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    void supabase
+      .from("orders")
+      .select("total")
+      .eq("user_id", user.id)
+      .then(({ data }) => {
+        if (!data) return;
+        setOrderCount(data.length);
+        setLifetime(data.reduce((s: number, o: { total: number | string }) => s + Number(o.total), 0));
+      });
+  }, [user]);
+
   if (!user) return null;
+  const name = profile?.display_name ?? user.email?.split("@")[0] ?? "Guest";
 
   return (
     <div>
@@ -15,16 +34,16 @@ function ProfilePanel() {
       <p className="mt-2 text-sm text-muted-foreground">Your personal details and activity.</p>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
-        <Field label="Name" value={user.name} />
-        <Field label="Email" value={user.email} />
-        <Field label="Member Since" value={new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })} />
+        <Field label="Name" value={name} />
+        <Field label="Email" value={user.email ?? ""} />
+        <Field label="Member Since" value={new Date(user.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })} />
         <Field label="Tier" value="Connoisseur" />
       </div>
 
       <div className="mt-12 grid gap-4 sm:grid-cols-3">
-        <Stat label="Orders" value={orders.length} />
+        <Stat label="Orders" value={orderCount} />
         <Stat label="Saved Pieces" value={wishlist.length} />
-        <Stat label="Lifetime" value={`$${orders.reduce((s, o) => s + o.total, 0).toFixed(0)}`} />
+        <Stat label="Lifetime" value={`$${lifetime.toFixed(0)}`} />
       </div>
     </div>
   );

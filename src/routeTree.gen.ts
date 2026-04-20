@@ -22,7 +22,6 @@ import { Route as ProductIdRouteImport } from './routes/product.$id'
 import { Route as OrdersIdRouteImport } from './routes/orders.$id'
 import { Route as AccountWishlistRouteImport } from './routes/account.wishlist'
 import { Route as AccountSettingsRouteImport } from './routes/account.settings'
-import { Route as AccountPaymentRouteImport } from './routes/account.payment'
 import { Route as AccountOrdersRouteImport } from './routes/account.orders'
 import { Route as AccountNotificationsRouteImport } from './routes/account.notifications'
 import { Route as AccountAddressesRouteImport } from './routes/account.addresses'
@@ -92,11 +91,6 @@ const AccountSettingsRoute = AccountSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AccountRoute,
 } as any)
-const AccountPaymentRoute = AccountPaymentRouteImport.update({
-  id: '/payment',
-  path: '/payment',
-  getParentRoute: () => AccountRoute,
-} as any)
 const AccountOrdersRoute = AccountOrdersRouteImport.update({
   id: '/orders',
   path: '/orders',
@@ -124,7 +118,6 @@ export interface FileRoutesByFullPath {
   '/account/addresses': typeof AccountAddressesRoute
   '/account/notifications': typeof AccountNotificationsRoute
   '/account/orders': typeof AccountOrdersRoute
-  '/account/payment': typeof AccountPaymentRoute
   '/account/settings': typeof AccountSettingsRoute
   '/account/wishlist': typeof AccountWishlistRoute
   '/orders/$id': typeof OrdersIdRoute
@@ -142,7 +135,6 @@ export interface FileRoutesByTo {
   '/account/addresses': typeof AccountAddressesRoute
   '/account/notifications': typeof AccountNotificationsRoute
   '/account/orders': typeof AccountOrdersRoute
-  '/account/payment': typeof AccountPaymentRoute
   '/account/settings': typeof AccountSettingsRoute
   '/account/wishlist': typeof AccountWishlistRoute
   '/orders/$id': typeof OrdersIdRoute
@@ -162,7 +154,6 @@ export interface FileRoutesById {
   '/account/addresses': typeof AccountAddressesRoute
   '/account/notifications': typeof AccountNotificationsRoute
   '/account/orders': typeof AccountOrdersRoute
-  '/account/payment': typeof AccountPaymentRoute
   '/account/settings': typeof AccountSettingsRoute
   '/account/wishlist': typeof AccountWishlistRoute
   '/orders/$id': typeof OrdersIdRoute
@@ -183,7 +174,6 @@ export interface FileRouteTypes {
     | '/account/addresses'
     | '/account/notifications'
     | '/account/orders'
-    | '/account/payment'
     | '/account/settings'
     | '/account/wishlist'
     | '/orders/$id'
@@ -201,7 +191,6 @@ export interface FileRouteTypes {
     | '/account/addresses'
     | '/account/notifications'
     | '/account/orders'
-    | '/account/payment'
     | '/account/settings'
     | '/account/wishlist'
     | '/orders/$id'
@@ -220,7 +209,6 @@ export interface FileRouteTypes {
     | '/account/addresses'
     | '/account/notifications'
     | '/account/orders'
-    | '/account/payment'
     | '/account/settings'
     | '/account/wishlist'
     | '/orders/$id'
@@ -335,13 +323,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountSettingsRouteImport
       parentRoute: typeof AccountRoute
     }
-    '/account/payment': {
-      id: '/account/payment'
-      path: '/payment'
-      fullPath: '/account/payment'
-      preLoaderRoute: typeof AccountPaymentRouteImport
-      parentRoute: typeof AccountRoute
-    }
     '/account/orders': {
       id: '/account/orders'
       path: '/orders'
@@ -370,7 +351,6 @@ interface AccountRouteChildren {
   AccountAddressesRoute: typeof AccountAddressesRoute
   AccountNotificationsRoute: typeof AccountNotificationsRoute
   AccountOrdersRoute: typeof AccountOrdersRoute
-  AccountPaymentRoute: typeof AccountPaymentRoute
   AccountSettingsRoute: typeof AccountSettingsRoute
   AccountWishlistRoute: typeof AccountWishlistRoute
   AccountIndexRoute: typeof AccountIndexRoute
@@ -380,7 +360,6 @@ const AccountRouteChildren: AccountRouteChildren = {
   AccountAddressesRoute: AccountAddressesRoute,
   AccountNotificationsRoute: AccountNotificationsRoute,
   AccountOrdersRoute: AccountOrdersRoute,
-  AccountPaymentRoute: AccountPaymentRoute,
   AccountSettingsRoute: AccountSettingsRoute,
   AccountWishlistRoute: AccountWishlistRoute,
   AccountIndexRoute: AccountIndexRoute,
@@ -404,12 +383,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

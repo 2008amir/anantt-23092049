@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "@tanstack/react-router";
 import { Camera, Upload, X, Loader2, ImagePlus } from "lucide-react";
-import { visualSearch } from "@/lib/visual-search.functions";
-import { PRODUCTS } from "@/lib/products";
+import { visualSearch } from "@/lib/ai.functions";
+import { fetchProductsByIds, type Product } from "@/lib/products";
 
 type Stage = "choose" | "camera" | "loading" | "results" | "error";
 

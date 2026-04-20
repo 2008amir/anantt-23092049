@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/login")({
@@ -8,20 +8,44 @@ export const Route = createFileRoute("/login")({
 });
 
 function Login() {
-  const { login } = useStore();
+  const { user, signIn, signUp } = useStore();
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  const submit = (e: FormEvent) => {
+  useEffect(() => {
+    if (user) navigate({ to: "/account" });
+  }, [user, navigate]);
+
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
+    setError("");
     if (!/^\S+@\S+\.\S+$/.test(email)) return setError("Please enter a valid email");
     if (password.length < 6) return setError("Password must be at least 6 characters");
-    login(email, mode === "signup" ? name : undefined);
-    navigate({ to: "/account" });
+    setBusy(true);
+    try {
+      if (mode === "signup") {
+        await signUp(email, password, name || undefined);
+      } else {
+        await signIn(email, password);
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Authentication failed";
+      // Friendlier error
+      if (msg.toLowerCase().includes("already registered") || msg.toLowerCase().includes("user already")) {
+        setError("An account with that email already exists. Try signing in.");
+      } else if (msg.toLowerCase().includes("invalid login")) {
+        setError("Invalid email or password.");
+      } else {
+        setError(msg);
+      }
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -35,17 +59,16 @@ function Login() {
         </h1>
 
         <form onSubmit={submit} className="mt-8 space-y-4">
-          {mode === "signup" && (
-            <Input label="Name" value={name} onChange={setName} />
-          )}
+          {mode === "signup" && <Input label="Name" value={name} onChange={setName} />}
           <Input label="Email" type="email" value={email} onChange={setEmail} />
           <Input label="Password" type="password" value={password} onChange={setPassword} />
           {error && <p className="text-xs text-destructive">{error}</p>}
           <button
             type="submit"
-            className="w-full bg-gold-gradient py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold transition-smooth hover:opacity-90"
+            disabled={busy}
+            className="w-full bg-gold-gradient py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold transition-smooth hover:opacity-90 disabled:opacity-60"
           >
-            {mode === "signin" ? "Sign In" : "Create Account"}
+            {busy ? "Please wait…" : mode === "signin" ? "Sign In" : "Create Account"}
           </button>
         </form>
 
@@ -79,5 +102,5 @@ function Input({ label, value, onChange, type = "text" }: { label: string; value
         className="mt-2 w-full border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-smooth focus:border-primary"
       />
     </label>
-    );
+  );
 }
