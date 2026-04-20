@@ -222,37 +222,10 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
           </div>
         )}
 
-        {stage === "preview" && imageDataUrl && (
-          <div className="mx-auto flex max-w-md flex-col gap-4 p-4">
-            <div className="overflow-hidden rounded-lg border border-border bg-card">
-              <img src={imageDataUrl} alt="Preview" className="h-72 w-full object-cover" />
-            </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={reset}
-                className="flex flex-1 items-center justify-center gap-2 rounded-full border border-border bg-card px-4 py-3 text-sm text-foreground hover:border-primary"
-              >
-                <RefreshCw className="h-4 w-4" />
-                Retake
-              </button>
-              <button
-                type="button"
-                onClick={runSearch}
-                className="flex flex-[2] items-center justify-center gap-2 rounded-full bg-gold-gradient px-4 py-3 text-sm font-medium text-primary-foreground"
-              >
-                <Sparkles className="h-4 w-4" />
-                Search with AI
-              </button>
-            </div>
-          </div>
-        )}
-
         {stage === "loading" && (
           <div className="flex h-full flex-col items-center justify-center gap-4 p-8">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <p className="font-serif text-sm text-foreground">Analyzing your image…</p>
-            <p className="text-xs text-muted-foreground">Matching against the Maison atelier</p>
+            <p className="font-serif text-sm text-foreground">Searching…</p>
           </div>
         )}
 
@@ -262,7 +235,6 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
               <div className="mb-4 flex items-center gap-3 rounded-lg border border-border bg-card p-3">
                 <img src={imageDataUrl} alt="Your image" className="h-14 w-14 rounded object-cover" />
                 <div className="flex-1">
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">AI sees</p>
                   <p className="text-xs text-foreground">{description || "Your image"}</p>
                 </div>
                 <button
