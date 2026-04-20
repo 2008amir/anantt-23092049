@@ -3,6 +3,7 @@ import { Package, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/lib/store";
+import { Recommend } from "@/components/Recommend";
 
 type OrderRow = {
   id: string;

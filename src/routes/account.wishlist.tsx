@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
 import { useStore, useProductsByIds } from "@/lib/store";
+import { Recommend } from "@/components/Recommend";
 
 export const Route = createFileRoute("/account/wishlist")({
   component: AccountWishlist,

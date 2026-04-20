@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Check, Truck, Package, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Recommend } from "@/components/Recommend";
 
 type OrderItem = { product_image: string; product_name: string; price: number | string; quantity: number };
 type Shipping = { name: string; address: string; city: string; zip: string; country: string };

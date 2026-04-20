@@ -115,7 +115,7 @@ function ProfileHome() {
 
       <div className="mx-5 mt-4 grid grid-cols-4 border border-border bg-card/40 py-5">
         <Tile to="/account/orders" icon={<History className="h-6 w-6" strokeWidth={1.5} />} label="History" />
-        <Tile to="/account/settings" icon={<Gift className="h-6 w-6" strokeWidth={1.5} />} label="Earn & Free" dot />
+        <Tile to="/account/earn" icon={<Gift className="h-6 w-6" strokeWidth={1.5} />} label="Earn & Free" dot />
         <Tile to="/account/addresses" icon={<MapPin className="h-6 w-6" strokeWidth={1.5} />} label="Addresses" />
         <Tile to="/account/wishlist" icon={<Heart className="h-6 w-6" strokeWidth={1.5} />} label="Following" />
       </div>

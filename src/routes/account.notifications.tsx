@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { Recommend } from "@/components/Recommend";
 
 export const Route = createFileRoute("/account/notifications")({
   component: Notifications,
@@ -8,7 +9,7 @@ export const Route = createFileRoute("/account/notifications")({
 function Notifications() {
   const [prefs, setPrefs] = useState({ orders: true, drops: true, editorial: false, sms: false });
   return (
-    <div>
+    <><div>
       <h2 className="font-serif text-3xl">Notifications</h2>
       <p className="mt-2 text-sm text-muted-foreground">Choose what you'd like to hear about.</p>
       <div className="mt-8 divide-y divide-border border-y border-border">
@@ -32,6 +33,6 @@ function Notifications() {
           </label>
         ))}
       </div>
-    </div>
+    </div><Recommend /></>
   );
 }

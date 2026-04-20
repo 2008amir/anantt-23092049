@@ -5,7 +5,7 @@ import { type Product } from "@/lib/products";
 import { textSearch } from "@/lib/ai.functions";
 import { useAICategories } from "@/hooks/use-ai-categories";
 import { useProducts } from "@/lib/store";
-import { Recommend } from "@/components/Recommend";
+
 
 type ShopSearch = { category?: string; q?: string };
 
