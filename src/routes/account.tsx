@@ -111,28 +111,7 @@ function ProfileHome() {
         </button>
       </div>
 
-      {/* List */}
-      <div className="mx-5 mt-4 divide-y divide-border border border-border bg-card/40">
-        <Row
-          to="/account/orders"
-          icon={<Package className="h-5 w-5" strokeWidth={1.5} />}
-          label="Your Orders"
-          badge={orders.length > 0 ? String(orders.length) : undefined}
-        />
-        <Row
-          to="/account/notifications"
-          icon={<MessageSquare className="h-5 w-5" strokeWidth={1.5} />}
-          label="Messages"
-          badgeStrong="99+"
-        />
-        <Row
-          to="/account/wishlist"
-          icon={<Star className="h-5 w-5" strokeWidth={1.5} />}
-          label="Reviews"
-        />
-      </div>
-
-      {/* 4-icon row */}
+      {/* 4-icon row — horizontal tiles right after the stat cards */}
       <div className="mx-5 mt-4 grid grid-cols-4 border border-border bg-card/40 py-5">
         <Tile
           to="/account/orders"
@@ -154,6 +133,27 @@ function ProfileHome() {
           to="/account/wishlist"
           icon={<Heart className="h-6 w-6" strokeWidth={1.5} />}
           label="Following"
+        />
+      </div>
+
+      {/* Vertical list — Orders, Messages, Reviews */}
+      <div className="mx-5 mt-4 divide-y divide-border border border-border bg-card/40">
+        <Row
+          to="/account/orders"
+          icon={<Package className="h-5 w-5" strokeWidth={1.5} />}
+          label="Your Orders"
+          badge={orders.length > 0 ? String(orders.length) : undefined}
+        />
+        <Row
+          to="/account/notifications"
+          icon={<MessageSquare className="h-5 w-5" strokeWidth={1.5} />}
+          label="Messages"
+          badgeStrong="99+"
+        />
+        <Row
+          to="/account/wishlist"
+          icon={<Star className="h-5 w-5" strokeWidth={1.5} />}
+          label="Reviews"
         />
       </div>
 

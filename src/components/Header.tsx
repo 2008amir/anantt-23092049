@@ -31,8 +31,8 @@ export function Header() {
     navigate({ to: "/shop", search: { q: query || undefined } });
   };
 
-  // Hide on login page for cleaner flow
-  if (location.pathname === "/login") return null;
+  // Hide on login and account pages for cleaner flow
+  if (location.pathname === "/login" || location.pathname.startsWith("/account")) return null;
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/50 bg-background/95 px-4 py-3 backdrop-blur-xl">
