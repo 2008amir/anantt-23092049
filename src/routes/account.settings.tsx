@@ -1,14 +1,24 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { CreditCard, Plus, Trash2 } from "lucide-react";
+import { CreditCard, Loader2, Plus, Trash2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/lib/store";
+import { initPaystack, verifyPaystack } from "@/lib/paystack.functions";
+import { openPaystackPopup } from "@/lib/paystack-popup";
 
 export const Route = createFileRoute("/account/settings")({
   component: SettingsPanel,
 });
 
-type SavedCard = { id: string; brand: string; last4: string; exp: string };
+type SavedCard = {
+  id: string;
+  brand: string;
+  last4: string;
+  exp_month: string;
+  exp_year: string;
+  card_holder: string;
+  is_default: boolean;
+};
 
 function SettingsPanel() {
   const { user, profile, signOut, refresh } = useStore();
@@ -16,35 +26,35 @@ function SettingsPanel() {
   const [name, setName] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
   const [cards, setCards] = useState<SavedCard[]>([]);
-  const [showAddCard, setShowAddCard] = useState(false);
-
-  // Card form
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardName, setCardName] = useState("");
-  const [cardExp, setCardExp] = useState("");
-  const [cardCvc, setCardCvc] = useState("");
+  const [loadingCards, setLoadingCards] = useState(true);
+  const [verifying, setVerifying] = useState(false);
+  const [cardError, setCardError] = useState<string | null>(null);
+  const [cardSuccess, setCardSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     if (profile?.display_name) setName(profile.display_name);
   }, [profile]);
 
-  // Local-only payment list (cards are NEVER saved to DB for security)
   useEffect(() => {
     if (!user) return;
-    try {
-      const raw = localStorage.getItem(`lux_cards_${user.id}`);
-      if (raw) setCards(JSON.parse(raw));
-    } catch {
-      // ignore
-    }
+    void loadCards();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  if (!user) return null;
+  async function loadCards() {
+    if (!user) return;
+    setLoadingCards(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase as any)
+      .from("payment_methods")
+      .select("id, brand, last4, exp_month, exp_year, card_holder, is_default")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    setCards((data ?? []) as SavedCard[]);
+    setLoadingCards(false);
+  }
 
-  const persistCards = (list: SavedCard[]) => {
-    setCards(list);
-    try { localStorage.setItem(`lux_cards_${user.id}`, JSON.stringify(list)); } catch { /* ignore */ }
-  };
+  if (!user) return null;
 
   const saveProfile = async () => {
     setSavingProfile(true);
@@ -54,19 +64,63 @@ function SettingsPanel() {
     else await refresh();
   };
 
-  const addCard = () => {
-    const digits = cardNumber.replace(/\s/g, "");
-    if (digits.length < 13 || !cardName || !cardExp || cardCvc.length < 3) return;
-    const brand = digits.startsWith("4") ? "Visa" : digits.startsWith("5") ? "Mastercard" : "Card";
-    persistCards([
-      ...cards,
-      { id: crypto.randomUUID(), brand, last4: digits.slice(-4), exp: cardExp },
-    ]);
-    setCardNumber(""); setCardName(""); setCardExp(""); setCardCvc("");
-    setShowAddCard(false);
+  // Real card verification via a ₦50 Paystack charge — proves the card is valid
+  // and gives us a reusable authorization token for future payments.
+  const addCard = async () => {
+    if (!user?.email) return;
+    setCardError(null);
+    setCardSuccess(null);
+    setVerifying(true);
+    try {
+      const init = await initPaystack({
+        data: {
+          amount: 50, // ₦50 verification charge
+          email: user.email,
+          channels: ["card"],
+          callbackUrl: window.location.origin + "/account/settings",
+          metadata: { purpose: "card_verification" },
+        },
+      });
+      if (init.mode !== "redirect") throw new Error("Unexpected response");
+      const result = await openPaystackPopup({
+        email: user.email,
+        amount: 50,
+        reference: init.reference,
+        channels: ["card"],
+        metadata: { purpose: "card_verification" },
+      });
+      if (!result) {
+        setCardError("Card verification cancelled.");
+        return;
+      }
+      const verified = await verifyPaystack({ data: { reference: result.reference, saveCard: true } });
+      if (!verified.success) {
+        setCardError("Card could not be verified. Please try a different card.");
+        return;
+      }
+      setCardSuccess("Card verified and saved.");
+      await loadCards();
+    } catch (e) {
+      console.error(e);
+      setCardError(e instanceof Error ? e.message : "Failed to verify card");
+    } finally {
+      setVerifying(false);
+    }
   };
 
-  const removeCard = (id: string) => persistCards(cards.filter((c) => c.id !== id));
+  const removeCard = async (id: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).from("payment_methods").delete().eq("id", id);
+    await loadCards();
+  };
+
+  const setDefault = async (id: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = supabase as any;
+    await sb.from("payment_methods").update({ is_default: false }).eq("user_id", user.id);
+    await sb.from("payment_methods").update({ is_default: true }).eq("id", id);
+    await loadCards();
+  };
 
   return (
     <div>
@@ -74,15 +128,13 @@ function SettingsPanel() {
       <p className="mt-2 text-sm text-muted-foreground">Manage your account, preferences and payment methods.</p>
 
       <div className="mt-8 space-y-6">
-        {/* Personal */}
         <Section title="Personal Information">
           <Field label="Name" value={name} onChange={setName} />
           <Field label="Email" value={user.email ?? ""} readOnly />
         </Section>
 
-        {/* Preferences (with Payment inside) */}
         <Section title="Preferences">
-          <Select label="Currency" options={["USD ($)", "EUR (€)", "GBP (£)"]} />
+          <Select label="Currency" options={["NGN (₦)", "USD ($)", "EUR (€)", "GBP (£)"]} />
           <Select label="Language" options={["English", "Français", "Italiano"]} />
 
           <div className="sm:col-span-2 mt-4 border-t border-border pt-4">
@@ -90,14 +142,32 @@ function SettingsPanel() {
               <p className="text-xs uppercase tracking-[0.25em] text-primary">Payment Methods</p>
               <button
                 type="button"
-                onClick={() => setShowAddCard((v) => !v)}
-                className="flex items-center gap-1 text-xs text-primary hover:underline"
+                onClick={() => void addCard()}
+                disabled={verifying}
+                className="flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50"
               >
-                <Plus className="h-3.5 w-3.5" /> {showAddCard ? "Cancel" : "Add card"}
+                {verifying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                {verifying ? "Verifying…" : "Add card"}
               </button>
             </div>
 
-            {cards.length === 0 && !showAddCard ? (
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              We securely verify your card with Paystack. A small ₦50 authorization charge confirms the card is real.
+              We never store your card number or CVV.
+            </p>
+
+            {cardError && <p className="mt-2 text-xs text-destructive">{cardError}</p>}
+            {cardSuccess && (
+              <p className="mt-2 flex items-center gap-1 text-xs text-primary">
+                <CheckCircle2 className="h-3.5 w-3.5" /> {cardSuccess}
+              </p>
+            )}
+
+            {loadingCards ? (
+              <div className="mt-3 flex justify-center py-4">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            ) : cards.length === 0 ? (
               <p className="mt-3 text-sm text-muted-foreground">No payment methods saved.</p>
             ) : (
               <div className="mt-3 space-y-2">
@@ -105,38 +175,46 @@ function SettingsPanel() {
                   <div key={c.id} className="flex items-center justify-between border border-border bg-background px-4 py-3">
                     <div className="flex items-center gap-3">
                       <CreditCard className="h-4 w-4 text-primary" />
-                      <p className="text-sm text-foreground">{c.brand} •••• {c.last4}</p>
-                      <p className="text-xs text-muted-foreground">Exp {c.exp}</p>
+                      <div>
+                        <p className="text-sm text-foreground">
+                          {c.brand} •••• {c.last4}{" "}
+                          {c.is_default && (
+                            <span className="ml-2 rounded-sm bg-primary/10 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.2em] text-primary">
+                              Default
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {c.card_holder} · Exp {c.exp_month}/{c.exp_year}
+                        </p>
+                      </div>
                     </div>
-                    <button type="button" onClick={() => removeCard(c.id)} aria-label="Remove" className="text-muted-foreground hover:text-destructive">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center gap-3">
+                      {!c.is_default && (
+                        <button
+                          type="button"
+                          onClick={() => void setDefault(c.id)}
+                          className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:text-primary"
+                        >
+                          Make default
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => void removeCard(c.id)}
+                        aria-label="Remove"
+                        className="text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 ))}
-              </div>
-            )}
-
-            {showAddCard && (
-              <div className="mt-4 grid gap-3 border border-border bg-background p-4 sm:grid-cols-2">
-                <div className="sm:col-span-2">
-                  <Field label="Card Number" value={cardNumber} onChange={setCardNumber} placeholder="1234 5678 9012 3456" />
-                </div>
-                <div className="sm:col-span-2">
-                  <Field label="Cardholder Name" value={cardName} onChange={setCardName} />
-                </div>
-                <Field label="Expiry (MM/YY)" value={cardExp} onChange={setCardExp} placeholder="12/27" />
-                <Field label="CVC" value={cardCvc} onChange={setCardCvc} placeholder="123" />
-                <div className="sm:col-span-2">
-                  <button type="button" onClick={addCard} className="w-full bg-gold-gradient py-3 text-xs uppercase tracking-[0.25em] text-primary-foreground">
-                    Save Card
-                  </button>
-                </div>
               </div>
             )}
           </div>
         </Section>
 
-        {/* Security */}
         <Section title="Security">
           <Field label="New Password" type="password" />
           <Field label="Confirm Password" type="password" />
@@ -153,7 +231,10 @@ function SettingsPanel() {
           </button>
           <button
             type="button"
-            onClick={async () => { await signOut(); navigate({ to: "/" }); }}
+            onClick={async () => {
+              await signOut();
+              navigate({ to: "/" });
+            }}
             className="border border-destructive/40 px-8 py-3 text-xs uppercase tracking-[0.25em] text-destructive hover:bg-destructive/10"
           >
             Sign Out
@@ -174,9 +255,19 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function Field({
-  label, value, onChange, type = "text", placeholder, readOnly,
+  label,
+  value,
+  onChange,
+  type = "text",
+  placeholder,
+  readOnly,
 }: {
-  label: string; value?: string; onChange?: (v: string) => void; type?: string; placeholder?: string; readOnly?: boolean;
+  label: string;
+  value?: string;
+  onChange?: (v: string) => void;
+  type?: string;
+  placeholder?: string;
+  readOnly?: boolean;
 }) {
   return (
     <label className="block">
@@ -198,7 +289,9 @@ function Select({ label, options }: { label: string; options: string[] }) {
     <label className="block">
       <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">{label}</span>
       <select className="mt-2 w-full border border-border bg-background px-4 py-3 text-sm text-foreground outline-none focus:border-primary">
-        {options.map((o) => <option key={o}>{o}</option>)}
+        {options.map((o) => (
+          <option key={o}>{o}</option>
+        ))}
       </select>
     </label>
   );
