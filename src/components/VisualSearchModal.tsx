@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Camera, Upload, X, Loader2, Sparkles, RefreshCw, ImagePlus } from "lucide-react";
+import { Camera, Upload, X, Loader2, RefreshCw, ImagePlus } from "lucide-react";
 import { visualSearch } from "@/lib/visual-search.functions";
 import { PRODUCTS } from "@/lib/products";
 
