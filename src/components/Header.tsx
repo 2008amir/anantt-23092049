@@ -1,6 +1,7 @@
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { Search, Camera } from "lucide-react";
 import { useEffect, useState } from "react";
+import { VisualSearchModal } from "@/components/VisualSearchModal";
 
 const KEY = "lux_search_v1";
 
@@ -8,6 +9,7 @@ export function Header() {
   const navigate = useNavigate();
   const { location } = useRouterState();
   const [query, setQuery] = useState("");
+  const [visualOpen, setVisualOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -49,7 +51,8 @@ export function Header() {
         />
         <button
           type="button"
-          aria-label="Visual search"
+          aria-label="Visual AI search"
+          onClick={() => setVisualOpen(true)}
           className="text-muted-foreground transition-smooth hover:text-primary"
         >
           <Camera className="h-4 w-4" />
@@ -62,6 +65,7 @@ export function Header() {
           <Search className="h-4 w-4" />
         </button>
       </form>
+      <VisualSearchModal open={visualOpen} onClose={() => setVisualOpen(false)} />
     </header>
   );
 }
