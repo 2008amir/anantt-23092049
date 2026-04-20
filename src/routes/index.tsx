@@ -48,24 +48,6 @@ function Index() {
 
   return (
     <div className="bg-background pb-12">
-      {/* Search bar */}
-      <div className="sticky top-20 z-30 border-b border-border/40 bg-background/95 px-4 py-3 backdrop-blur">
-        <form onSubmit={submitSearch} className="mx-auto flex max-w-3xl items-center gap-2 rounded-full border border-border bg-card px-5 py-2 shadow-luxury">
-          <Search className="h-4 w-4 text-muted-foreground" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search Maison Luxe"
-            className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
-          />
-          <button type="button" aria-label="Visual search" className="text-muted-foreground transition-smooth hover:text-primary">
-            <Camera className="h-4 w-4" />
-          </button>
-          <button type="submit" aria-label="Search" className="flex h-8 w-8 items-center justify-center rounded-full bg-gold-gradient text-primary-foreground">
-            <Search className="h-4 w-4" />
-          </button>
-        </form>
-      </div>
 
       {/* Top category strip */}
       <div className="border-b border-border/40">
