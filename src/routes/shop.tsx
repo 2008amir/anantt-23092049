@@ -29,13 +29,19 @@ function Shop() {
     let list = [...PRODUCTS];
     if (category) list = list.filter((p) => p.category === category);
     if (q) {
-      const lower = q.toLowerCase();
-      list = list.filter(
-        (p) =>
-          p.name.toLowerCase().includes(lower) ||
-          p.brand.toLowerCase().includes(lower) ||
-          p.category.toLowerCase().includes(lower),
-      );
+      const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
+      list = list.filter((p) => {
+        const haystack = [
+          p.name,
+          p.brand,
+          p.category,
+          p.description,
+          ...(p.details ?? []),
+        ]
+          .join(" ")
+          .toLowerCase();
+        return terms.every((t: string) => haystack.includes(t));
+      });
     }
     return list;
   }, [category, q]);
