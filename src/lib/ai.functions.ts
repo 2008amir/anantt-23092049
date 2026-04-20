@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type AICategory = { name: string; productIds: string[] };
 type SimilarResult = { ids: string[] };
@@ -91,7 +92,7 @@ async function callAI(systemPrompt: string, userPrompt: string, toolName: string
   }
 }
 
-// ─── Categories (auto from DB, cached) ──────────────────────────────
+// ─── Categories ─────────────────────────────────────────────────────
 export const generateCategories = createServerFn({ method: "GET" }).handler(
   async (): Promise<{ categories: AICategory[] }> => {
     const cacheKey = "categories:v2";
@@ -258,7 +259,7 @@ ${text}`;
     }
   });
 
-// ─── Similar products (cached per product) ──────────────────────────
+// ─── Similar products ───────────────────────────────────────────────
 export const similarProducts = createServerFn({ method: "POST" })
   .inputValidator((input: { productId: string }) => {
     if (!input?.productId) throw new Error("productId required");
@@ -297,7 +298,7 @@ ${text}`;
     return result;
   });
 
-// ─── Global daily recommendations ───────────────────────────────────
+// ─── Daily recommendations ──────────────────────────────────────────
 export const recommendations = createServerFn({ method: "GET" }).handler(
   async (): Promise<RecommendResult> => {
     const today = new Date().toISOString().slice(0, 10);
@@ -331,3 +332,120 @@ ${text}`;
     return result;
   },
 );
+
+// ─── Log user interest (view / search) ─────────────────────────────
+export const logInterest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { kind: "view" | "search"; productId?: string; query?: string }) => {
+    if (input.kind !== "view" && input.kind !== "search") throw new Error("invalid kind");
+    if (input.kind === "view" && !input.productId) throw new Error("productId required for view");
+    if (input.kind === "search" && !input.query) throw new Error("query required for search");
+    if (input.query && input.query.length > 200) throw new Error("query too long");
+    return input;
+  })
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    await supabase.from("user_interests").insert({
+      kind: data.kind,
+      product_id: data.productId ?? null,
+      query: data.query ?? null,
+    });
+    return { ok: true };
+  });
+
+// ─── Personalized feed: 40% biased toward user's interests ─────────
+export const personalizedFeed = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { allIds: string[] }) => {
+    if (!Array.isArray(input?.allIds)) throw new Error("allIds required");
+    return input;
+  })
+  .handler(async ({ data, context }): Promise<{ orderedIds: string[]; biasedIds: string[] }> => {
+    const { supabase, userId } = context;
+    const { data: rows } = await supabase
+      .from("user_interests")
+      .select("product_id, query, kind, created_at")
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    const interestList = rows ?? [];
+    if (interestList.length === 0) {
+      // Random shuffle if no history
+      const shuffled = shuffle(data.allIds);
+      return { orderedIds: shuffled, biasedIds: [] };
+    }
+
+    // Get viewed product types
+    const viewedIds = interestList
+      .filter((r) => r.kind === "view" && r.product_id)
+      .map((r) => r.product_id as string);
+    const queries = interestList
+      .filter((r) => r.kind === "search" && r.query)
+      .map((r) => r.query as string);
+
+    const catalog = await loadCatalog();
+    const summary = catalog
+      .filter((p) => data.allIds.includes(p.id))
+      .map((p) => `- ${p.id}: ${p.name} (${p.category}) — ${p.description}`)
+      .join("\n");
+
+    const viewedSummary = catalog
+      .filter((p) => viewedIds.includes(p.id))
+      .map((p) => `- ${p.name} (${p.category})`)
+      .join("\n");
+
+    const systemPrompt = `Pick which products from the CATALOG best match a user's recent interests. Prefer products of the same TYPE/FUNCTION as ones they've viewed and matching their recent searches. Return up to 12 ids ranked by relevance.
+
+USER VIEWED:
+${viewedSummary || "(none)"}
+
+USER SEARCHED:
+${queries.join(", ") || "(none)"}
+
+CATALOG:
+${summary}`;
+
+    const parsed = await callAI(systemPrompt, "Rank products for this user.", "rank_products", {
+      type: "object",
+      properties: { ids: { type: "array", items: { type: "string" } } },
+      required: ["ids"],
+      additionalProperties: false,
+    });
+
+    const validSet = new Set(data.allIds);
+    const biasedIds = ((parsed?.ids ?? []) as string[]).filter((id) => validSet.has(id)).slice(0, 12);
+
+    // Build 40% biased list: interleave biased into a shuffled base
+    const biasedSet = new Set(biasedIds);
+    const rest = shuffle(data.allIds.filter((id) => !biasedSet.has(id)));
+    const total = data.allIds.length;
+    const targetBiased = Math.min(biasedIds.length, Math.floor(total * 0.4));
+    const ordered: string[] = [];
+    let bi = 0;
+    let ri = 0;
+    // Place biased every ~2-3 spots in the first portion
+    for (let i = 0; i < total; i++) {
+      const placeBiased = bi < targetBiased && (i % Math.max(1, Math.floor(total / Math.max(1, targetBiased))) === 0);
+      if (placeBiased) {
+        ordered.push(biasedIds[bi++]);
+      } else if (ri < rest.length) {
+        ordered.push(rest[ri++]);
+      } else if (bi < biasedIds.length) {
+        ordered.push(biasedIds[bi++]);
+      }
+    }
+    // Fill any gaps
+    while (ordered.length < total && bi < biasedIds.length) ordered.push(biasedIds[bi++]);
+    while (ordered.length < total && ri < rest.length) ordered.push(rest[ri++]);
+
+    return { orderedIds: ordered, biasedIds };
+  });
+
+function shuffle<T>(arr: T[]): T[] {
+  const out = [...arr];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}

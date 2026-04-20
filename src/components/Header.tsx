@@ -1,7 +1,6 @@
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { Search, Camera } from "lucide-react";
 import { useEffect, useState } from "react";
-import { VisualSearchModal } from "@/components/VisualSearchModal";
 
 const KEY = "lux_search_v1";
 
@@ -9,7 +8,6 @@ export function Header() {
   const navigate = useNavigate();
   const { location } = useRouterState();
   const [query, setQuery] = useState("");
-  const [visualOpen, setVisualOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -30,11 +28,15 @@ export function Header() {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    navigate({ to: "/shop", search: { q: query || undefined } });
+    navigate({ to: "/search", search: { q: query || undefined, tab: "text" } });
   };
 
-  // Hide on login and account pages for cleaner flow
-  if (location.pathname === "/login" || location.pathname.startsWith("/account")) return null;
+  // Hide on login, account, and search pages for cleaner flow
+  if (
+    location.pathname === "/login" ||
+    location.pathname.startsWith("/account") ||
+    location.pathname === "/search"
+  ) return null;
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/50 bg-background/95 px-3 py-2.5 backdrop-blur-xl">
@@ -52,7 +54,7 @@ export function Header() {
         <button
           type="button"
           aria-label="Visual AI search"
-          onClick={() => setVisualOpen(true)}
+          onClick={() => navigate({ to: "/search", search: { tab: "image" } })}
           className="text-muted-foreground transition-smooth hover:text-primary"
         >
           <Camera className="h-4 w-4" />
@@ -65,7 +67,6 @@ export function Header() {
           <Search className="h-4 w-4" />
         </button>
       </form>
-      <VisualSearchModal open={visualOpen} onClose={() => setVisualOpen(false)} />
     </header>
   );
 }
