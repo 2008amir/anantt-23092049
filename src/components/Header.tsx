@@ -35,10 +35,10 @@ export function Header() {
   if (location.pathname === "/login" || location.pathname.startsWith("/account")) return null;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/50 bg-background/95 px-4 py-3 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 w-full border-b border-border/50 bg-background/95 px-3 py-2.5 backdrop-blur-xl">
       <form
         onSubmit={submit}
-        className="mx-auto flex max-w-3xl items-center gap-2 rounded-full border border-border bg-card px-5 py-2 shadow-luxury"
+        className="flex w-full items-center gap-2 rounded-full border border-border bg-card px-4 py-2 shadow-luxury"
       >
         <Search className="h-4 w-4 text-muted-foreground" />
         <input
