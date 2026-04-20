@@ -36,7 +36,7 @@ function AccountOrders() {
   }, [user]);
 
   return (
-    <div>
+    <><div>
       <h2 className="font-serif text-3xl">Order History</h2>
       <p className="mt-2 text-sm text-muted-foreground">A record of every piece in your collection.</p>
 
@@ -62,6 +62,6 @@ function AccountOrders() {
           ))}
         </div>
       )}
-    </div>
+    </div><Recommend /></>
   );
 }

@@ -118,6 +118,7 @@ function OrderDetail() {
           </div>
         </aside>
       </div>
+      <Recommend />
     </div>
   );
 }

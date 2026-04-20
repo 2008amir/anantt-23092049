@@ -12,7 +12,7 @@ function AccountWishlist() {
   const { products: items, loading } = useProductsByIds(wishlist);
 
   return (
-    <div>
+    <><div>
       <h2 className="font-serif text-3xl">Saved Pieces</h2>
       {loading ? (
         <div className="mt-12 flex justify-center"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
@@ -41,6 +41,6 @@ function AccountWishlist() {
           ))}
         </div>
       )}
-    </div>
+    </div><Recommend /></>
   );
 }

@@ -93,6 +93,7 @@ function OrdersPage() {
           ))}
         </div>
       )}
+      <Recommend />
     </div>
   );
 }
