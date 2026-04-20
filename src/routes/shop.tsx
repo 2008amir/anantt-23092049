@@ -34,11 +34,11 @@ function Shop() {
 
   const localFiltered = useMemo<Product[]>(() => {
     if (!q) return [];
-    const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
+    const terms = q.toLowerCase().split(/\s+/).filter((t: string) => Boolean(t));
     return products.filter((p) => {
       const haystack = [p.name, p.brand, p.category, p.description, ...(p.details ?? [])]
         .join(" ").toLowerCase();
-      return terms.every((t) => haystack.includes(t));
+      return terms.every((t: string) => haystack.includes(t));
     });
   }, [q, products]);
 

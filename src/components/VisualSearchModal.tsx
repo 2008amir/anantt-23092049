@@ -13,6 +13,7 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
   const [stage, setStage] = useState<Stage>("choose");
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [description, setDescription] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -29,6 +30,7 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
     setStage("choose");
     setImageDataUrl(null);
     setMatches([]);
+    setProducts([]);
     setDescription("");
     setErrorMsg("");
   };
@@ -104,6 +106,9 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
       const res = await visualSearch({ data: { imageDataUrl: img } });
       setMatches(res.matches);
       setDescription(res.description);
+      const ids = res.matches.map((m) => m.id);
+      const fetched = ids.length ? await fetchProductsByIds(ids) : [];
+      setProducts(fetched);
       setStage("results");
     } catch (e) {
       console.error(e);
@@ -116,7 +121,7 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
   if (typeof document === "undefined") return null;
 
   const matchedProducts = matches
-    .map((m) => ({ ...m, product: PRODUCTS.find((p) => p.id === m.id) }))
+    .map((m) => ({ ...m, product: products.find((p: Product) => p.id === m.id) }))
     .filter((m) => m.product);
 
   return createPortal(
