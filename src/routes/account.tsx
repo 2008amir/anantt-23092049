@@ -10,11 +10,11 @@ import {
   Gift,
   MapPin,
   Heart,
-  CreditCard,
   Settings,
   LogOut,
 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/account")({
@@ -23,17 +23,16 @@ export const Route = createFileRoute("/account")({
 });
 
 function AccountLayout() {
-  const { user } = useStore();
+  const { user, loading } = useStore();
   const navigate = useNavigate();
   const { location } = useRouterState();
 
   useEffect(() => {
-    if (!user) navigate({ to: "/login" });
-  }, [user, navigate]);
+    if (!loading && !user) navigate({ to: "/login" });
+  }, [user, loading, navigate]);
 
-  if (!user) return null;
+  if (loading || !user) return null;
 
-  // If we're on a sub-route, render only the outlet (sub-pages keep their own layout)
   if (location.pathname !== "/account") {
     return (
       <div className="container mx-auto max-w-3xl px-4 py-6">
@@ -56,21 +55,35 @@ function AccountLayout() {
 }
 
 function ProfileHome() {
-  const { user, orders, wishlist, logout } = useStore();
+  const { user, profile, wishlist, signOut } = useStore();
   const navigate = useNavigate();
-  if (!user) return null;
+  const [orderCount, setOrderCount] = useState(0);
+  const [lifetime, setLifetime] = useState(0);
 
-  const initial = user.name.charAt(0).toUpperCase();
-  const lifetime = orders.reduce((s, o) => s + o.total, 0);
+  useEffect(() => {
+    if (!user) return;
+    void supabase
+      .from("orders")
+      .select("total")
+      .eq("user_id", user.id)
+      .then(({ data }) => {
+        if (!data) return;
+        setOrderCount(data.length);
+        setLifetime(data.reduce((s: number, o: { total: number | string }) => s + Number(o.total), 0));
+      });
+  }, [user]);
+
+  if (!user) return null;
+  const displayName = profile?.display_name ?? user.email?.split("@")[0] ?? "Guest";
+  const initial = displayName.charAt(0).toUpperCase();
 
   return (
     <div className="mx-auto max-w-3xl pb-8">
-      {/* Top: Avatar + Name + actions */}
       <div className="flex items-center gap-3 px-5 pt-6 pb-5">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gold-gradient">
           <span className="font-serif text-base text-primary-foreground">{initial}</span>
         </div>
-        <h1 className="flex-1 truncate font-serif text-base text-foreground">{user.name}</h1>
+        <h1 className="flex-1 truncate font-serif text-base text-foreground">{displayName}</h1>
         <button
           type="button"
           aria-label="Concierge"
@@ -89,96 +102,38 @@ function ProfileHome() {
         </button>
       </div>
 
-      {/* Two stat cards */}
       <div className="mx-5 grid grid-cols-2 divide-x divide-border border border-border bg-card/40">
-        <button
-          type="button"
-          className="px-4 py-5 text-center transition-smooth hover:bg-secondary/50"
-        >
+        <button type="button" className="px-4 py-5 text-center transition-smooth hover:bg-secondary/50">
           <p className="font-serif text-3xl text-gold-gradient">${lifetime.toFixed(0)}</p>
-          <p className="mt-1 text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            Credit Balance
-          </p>
+          <p className="mt-1 text-xs uppercase tracking-[0.2em] text-muted-foreground">Credit Balance</p>
         </button>
-        <button
-          type="button"
-          className="px-4 py-5 text-center transition-smooth hover:bg-secondary/50"
-        >
+        <button type="button" className="px-4 py-5 text-center transition-smooth hover:bg-secondary/50">
           <p className="font-serif text-3xl text-gold-gradient">{wishlist.length}</p>
-          <p className="mt-1 text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            Privileges & Offers
-          </p>
+          <p className="mt-1 text-xs uppercase tracking-[0.2em] text-muted-foreground">Privileges & Offers</p>
         </button>
       </div>
 
-      {/* 4-icon row — horizontal tiles right after the stat cards */}
       <div className="mx-5 mt-4 grid grid-cols-4 border border-border bg-card/40 py-5">
-        <Tile
-          to="/account/orders"
-          icon={<History className="h-6 w-6" strokeWidth={1.5} />}
-          label="History"
-        />
-        <Tile
-          to="/account/payment"
-          icon={<Gift className="h-6 w-6" strokeWidth={1.5} />}
-          label="Earn & Free"
-          dot
-        />
-        <Tile
-          to="/account/addresses"
-          icon={<MapPin className="h-6 w-6" strokeWidth={1.5} />}
-          label="Addresses"
-        />
-        <Tile
-          to="/account/wishlist"
-          icon={<Heart className="h-6 w-6" strokeWidth={1.5} />}
-          label="Following"
-        />
+        <Tile to="/account/orders" icon={<History className="h-6 w-6" strokeWidth={1.5} />} label="History" />
+        <Tile to="/account/settings" icon={<Gift className="h-6 w-6" strokeWidth={1.5} />} label="Earn & Free" dot />
+        <Tile to="/account/addresses" icon={<MapPin className="h-6 w-6" strokeWidth={1.5} />} label="Addresses" />
+        <Tile to="/account/wishlist" icon={<Heart className="h-6 w-6" strokeWidth={1.5} />} label="Following" />
       </div>
 
-      {/* Vertical list — Orders, Messages, Reviews */}
       <div className="mx-5 mt-4 divide-y divide-border border border-border bg-card/40">
-        <Row
-          to="/account/orders"
-          icon={<Package className="h-5 w-5" strokeWidth={1.5} />}
-          label="Your Orders"
-          badge={orders.length > 0 ? String(orders.length) : undefined}
-        />
-        <Row
-          to="/account/notifications"
-          icon={<MessageSquare className="h-5 w-5" strokeWidth={1.5} />}
-          label="Messages"
-          badgeStrong="99+"
-        />
-        <Row
-          to="/account/wishlist"
-          icon={<Star className="h-5 w-5" strokeWidth={1.5} />}
-          label="Reviews"
-        />
+        <Row to="/account/orders" icon={<Package className="h-5 w-5" strokeWidth={1.5} />} label="Your Orders" badge={orderCount > 0 ? String(orderCount) : undefined} />
+        <Row to="/account/notifications" icon={<MessageSquare className="h-5 w-5" strokeWidth={1.5} />} label="Messages" badgeStrong="99+" />
+        <Row to="/account/wishlist" icon={<Star className="h-5 w-5" strokeWidth={1.5} />} label="Reviews" />
       </div>
 
-      {/* Secondary list — Payment, Settings */}
       <div className="mx-5 mt-4 divide-y divide-border border border-border bg-card/40">
-        <Row
-          to="/account/payment"
-          icon={<CreditCard className="h-5 w-5" strokeWidth={1.5} />}
-          label="Payment"
-        />
-        <Row
-          to="/account/settings"
-          icon={<Settings className="h-5 w-5" strokeWidth={1.5} />}
-          label="Settings"
-        />
+        <Row to="/account/settings" icon={<Settings className="h-5 w-5" strokeWidth={1.5} />} label="Settings & Payment" />
       </div>
 
-      {/* Sign out */}
       <div className="mx-5 mt-4">
         <button
           type="button"
-          onClick={() => {
-            logout();
-            navigate({ to: "/" });
-          }}
+          onClick={async () => { await signOut(); navigate({ to: "/" }); }}
           className="flex w-full items-center justify-center gap-2 border border-destructive/40 px-4 py-3 text-xs uppercase tracking-[0.25em] text-destructive transition-smooth hover:bg-destructive/10"
         >
           <LogOut className="h-4 w-4" />
@@ -189,55 +144,23 @@ function ProfileHome() {
   );
 }
 
-function Row({
-  to,
-  icon,
-  label,
-  badge,
-  badgeStrong,
-}: {
-  to: string;
-  icon: React.ReactNode;
-  label: string;
-  badge?: string;
-  badgeStrong?: string;
-}) {
+function Row({ to, icon, label, badge, badgeStrong }: { to: string; icon: React.ReactNode; label: string; badge?: string; badgeStrong?: string }) {
   return (
-    <Link
-      to={to}
-      className="flex items-center gap-4 px-4 py-4 transition-smooth hover:bg-secondary/50"
-    >
+    <Link to={to} className="flex items-center gap-4 px-4 py-4 transition-smooth hover:bg-secondary/50">
       <span className="flex h-9 w-9 items-center justify-center text-foreground">{icon}</span>
       <span className="flex-1 text-sm text-foreground">{label}</span>
       {badgeStrong && (
-        <span className="flex min-w-9 items-center justify-center rounded-full bg-gold-gradient px-2 py-0.5 text-[11px] font-medium text-primary-foreground">
-          {badgeStrong}
-        </span>
+        <span className="flex min-w-9 items-center justify-center rounded-full bg-gold-gradient px-2 py-0.5 text-[11px] font-medium text-primary-foreground">{badgeStrong}</span>
       )}
-      {badge && !badgeStrong && (
-        <span className="text-xs text-muted-foreground">{badge}</span>
-      )}
+      {badge && !badgeStrong && <span className="text-xs text-muted-foreground">{badge}</span>}
       <ChevronRight className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
     </Link>
   );
 }
 
-function Tile({
-  to,
-  icon,
-  label,
-  dot,
-}: {
-  to: string;
-  icon: React.ReactNode;
-  label: string;
-  dot?: boolean;
-}) {
+function Tile({ to, icon, label, dot }: { to: string; icon: React.ReactNode; label: string; dot?: boolean }) {
   return (
-    <Link
-      to={to}
-      className="flex flex-col items-center gap-2 px-2 text-foreground transition-smooth hover:text-primary"
-    >
+    <Link to={to} className="flex flex-col items-center gap-2 px-2 text-foreground transition-smooth hover:text-primary">
       <span className="relative">
         {icon}
         {dot && <span className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-primary" />}

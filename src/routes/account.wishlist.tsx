@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PRODUCTS } from "@/lib/products";
-import { useStore } from "@/lib/store";
+import { Loader2 } from "lucide-react";
+import { useStore, useProductsByIds } from "@/lib/store";
 
 export const Route = createFileRoute("/account/wishlist")({
   component: AccountWishlist,
@@ -8,12 +8,14 @@ export const Route = createFileRoute("/account/wishlist")({
 
 function AccountWishlist() {
   const { wishlist, toggleWishlist } = useStore();
-  const items = PRODUCTS.filter((p) => wishlist.includes(p.id));
+  const { products: items, loading } = useProductsByIds(wishlist);
 
   return (
     <div>
       <h2 className="font-serif text-3xl">Saved Pieces</h2>
-      {items.length === 0 ? (
+      {loading ? (
+        <div className="mt-12 flex justify-center"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+      ) : items.length === 0 ? (
         <p className="mt-12 text-center text-muted-foreground">Nothing saved yet.</p>
       ) : (
         <div className="mt-8 space-y-3">
@@ -29,7 +31,7 @@ function AccountWishlist() {
               <p className="text-primary">${p.price.toLocaleString()}</p>
               <button
                 type="button"
-                onClick={() => toggleWishlist(p.id)}
+                onClick={() => void toggleWishlist(p.id)}
                 className="text-xs uppercase tracking-[0.2em] text-muted-foreground hover:text-destructive"
               >
                 Remove

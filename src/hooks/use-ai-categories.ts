@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import { generateCategories, type AICategory } from "@/lib/categories.functions";
+import { generateCategories } from "@/lib/ai.functions";
 
-const CACHE_KEY = "lux_ai_categories_v1";
+export type AICategory = { name: string; productIds: string[] };
+
+const CACHE_KEY = "lux_ai_categories_v2";
 const CACHE_TTL = 1000 * 60 * 60 * 24; // 24h
 
 let inflight: Promise<AICategory[]> | null = null;
@@ -22,7 +24,7 @@ async function load(): Promise<AICategory[]> {
   }
   if (!inflight) {
     inflight = generateCategories()
-      .then((res) => {
+      .then((res: { categories: AICategory[] }) => {
         const data = res.categories ?? [];
         if (typeof window !== "undefined" && data.length) {
           try {
