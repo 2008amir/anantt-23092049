@@ -1,5 +1,5 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Search, Camera, Truck, ShieldCheck, ShoppingBag, Flame, Star, Award } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Truck, ShieldCheck, ShoppingBag, Flame, Star, Award } from "lucide-react";
 import { useMemo, useState } from "react";
 import { PRODUCTS, CATEGORIES, type Category } from "@/lib/products";
 import { useStore } from "@/lib/store";

@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Search, Camera } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { PRODUCTS, CATEGORIES, type Category } from "@/lib/products";
 
 type ShopSearch = { category?: Category; q?: string };
@@ -24,8 +23,6 @@ export const Route = createFileRoute("/shop")({
 
 function Shop() {
   const { category, q } = Route.useSearch();
-  const navigate = Route.useNavigate();
-  const [query, setQuery] = useState(q ?? "");
   const active: Category | "Featured" = category ?? "Featured";
 
   const filtered = useMemo(() => {
@@ -49,7 +46,7 @@ function Shop() {
       <div className="mx-auto flex max-w-5xl">
         {/* Vertical category sidebar */}
         <aside className="w-28 shrink-0 border-r border-border/40 md:w-36">
-          <div className="sticky top-[140px] max-h-[calc(100vh-140px)] overflow-y-auto py-2">
+          <div className="py-2">
             <Link
               to="/shop"
               search={{}}
