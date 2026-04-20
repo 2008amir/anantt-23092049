@@ -105,7 +105,50 @@ function Shop() {
 
   return (
     <div className="bg-background">
-      <div className="mx-auto max-w-5xl px-3 py-4">
+      <div className="mx-auto flex max-w-5xl">
+        {/* Vertical AI category sidebar */}
+        <aside className="w-28 shrink-0 border-r border-border/40 md:w-36">
+          <div className="py-2">
+            <Link
+              to="/shop"
+              search={{}}
+              className={`relative block px-3 py-4 text-xs leading-tight transition-smooth ${
+                !category && !q
+                  ? "bg-card font-medium text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {!category && !q && <span className="absolute left-0 top-2 h-8 w-0.5 bg-primary" />}
+              All
+            </Link>
+            {catsLoading ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              aiCategories.map((c) => {
+                const isActive = category?.toLowerCase() === c.name.toLowerCase();
+                return (
+                  <Link
+                    key={c.name}
+                    to="/shop"
+                    search={{ category: c.name }}
+                    className={`relative block px-3 py-4 text-xs leading-tight transition-smooth ${
+                      isActive
+                        ? "bg-card font-medium text-primary"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {isActive && <span className="absolute left-0 top-2 h-8 w-0.5 bg-primary" />}
+                    {c.name}
+                  </Link>
+                );
+              })
+            )}
+          </div>
+        </aside>
+
+        <div className="flex-1 px-3 py-4">
         {isSearching ? (
           <>
             <div className="mb-4 flex items-center justify-between gap-3">
