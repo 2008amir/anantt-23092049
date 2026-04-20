@@ -134,24 +134,27 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
 
       <div className="flex-1 overflow-y-auto">
         {stage === "choose" && (
-          <div className="mx-auto flex h-full max-w-md flex-col items-center justify-center gap-6 p-6 text-center">
-            <h2 className="font-serif text-xl text-foreground">Search by image</h2>
+          <div className="mx-auto flex min-h-full max-w-md flex-col items-center justify-center gap-6 p-6 text-center">
+            <div className="space-y-2">
+              <h2 className="font-serif text-2xl text-foreground">Search by image</h2>
+              <p className="text-xs text-muted-foreground">Choose how you want to search</p>
+            </div>
             <div className="grid w-full grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={startCamera}
-                className="flex flex-col items-center gap-2 rounded-lg border border-primary/40 bg-card p-5 transition-smooth hover:border-primary"
+                className="flex flex-col items-center gap-3 rounded-lg border border-primary/40 bg-card p-6 transition-smooth hover:border-primary hover:bg-card/80"
               >
-                <Camera className="h-7 w-7 text-primary" />
-                <span className="text-xs font-medium text-foreground">Take image</span>
+                <Camera className="h-8 w-8 text-primary" />
+                <span className="text-sm font-medium text-foreground">Take image</span>
               </button>
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="flex flex-col items-center gap-2 rounded-lg border border-primary/40 bg-card p-5 transition-smooth hover:border-primary"
+                className="flex flex-col items-center gap-3 rounded-lg border border-primary/40 bg-card p-6 transition-smooth hover:border-primary hover:bg-card/80"
               >
-                <Upload className="h-7 w-7 text-primary" />
-                <span className="text-xs font-medium text-foreground">Upload image</span>
+                <Upload className="h-8 w-8 text-primary" />
+                <span className="text-sm font-medium text-foreground">Upload image</span>
               </button>
             </div>
             <input
