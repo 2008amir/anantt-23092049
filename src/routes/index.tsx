@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Truck, ShieldCheck, ShoppingBag, Flame, Star, Award } from "lucide-react";
 import { useMemo, useState } from "react";
-import { PRODUCTS, CATEGORIES, type Category } from "@/lib/products";
+import { PRODUCTS } from "@/lib/products";
 import { useStore } from "@/lib/store";
+import { useAICategories } from "@/hooks/use-ai-categories";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -28,24 +29,28 @@ const TABS: { id: "all" | "deals" | "rated" | "best"; label: string; icon?: type
 function Index() {
   const { addToCart, user } = useStore();
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("all");
-  const [cat, setCat] = useState<Category | "All">("All");
+  const [cat, setCat] = useState<string>("All");
+  const { categories: aiCategories } = useAICategories();
 
   const list = useMemo(() => {
     let l = [...PRODUCTS];
-    if (cat !== "All") l = l.filter((p) => p.category === cat);
+    if (cat !== "All") {
+      const match = aiCategories.find((c) => c.name === cat);
+      if (match) l = l.filter((p) => match.productIds.includes(p.id));
+    }
     if (tab === "rated") l = l.filter((p) => p.rating >= 4.7);
     if (tab === "best") l = l.sort((a, b) => b.reviewCount - a.reviewCount);
     if (tab === "deals") l = l.sort((a, b) => b.price - a.price);
     return l;
-  }, [tab, cat]);
+  }, [tab, cat, aiCategories]);
 
   return (
     <div className="bg-background pb-12">
 
-      {/* Top category strip */}
+      {/* Top category strip — AI generated */}
       <div className="border-b border-border/40">
         <div className="mx-auto flex max-w-5xl gap-6 overflow-x-auto px-4 py-3 text-xs uppercase tracking-[0.2em] no-scrollbar">
-          {(["All", ...CATEGORIES] as const).map((c) => (
+          {["All", ...aiCategories.map((c) => c.name)].map((c) => (
             <button
               key={c}
               type="button"
