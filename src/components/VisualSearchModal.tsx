@@ -120,7 +120,7 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
   if (typeof document === "undefined") return null;
 
   const matchedProducts = matches
-    .map((m) => ({ ...m, product: PRODUCTS.find((p) => p.id === m.id) }))
+    .map((m) => ({ ...m, product: products.find((p: Product) => p.id === m.id) }))
     .filter((m) => m.product);
 
   return createPortal(
