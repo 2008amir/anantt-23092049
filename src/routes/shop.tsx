@@ -1,22 +1,23 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { PRODUCTS, CATEGORIES, type Category } from "@/lib/products";
+import { PRODUCTS } from "@/lib/products";
 import { textSearch } from "@/lib/text-search.functions";
+import { useAICategories } from "@/hooks/use-ai-categories";
 
-type ShopSearch = { category?: Category; q?: string };
+type ShopSearch = { category?: string; q?: string };
 
 export const Route = createFileRoute("/shop")({
   validateSearch: (search: Record<string, unknown>): ShopSearch => ({
-    category: (search.category as Category) || undefined,
+    category: (search.category as string) || undefined,
     q: (search.q as string) || undefined,
   }),
   head: () => ({
     meta: [
-      { title: "Categories — Maison Luxe" },
+      { title: "Shop — Maison Luxe" },
       {
         name: "description",
-        content: "Shop by category: timepieces, leather goods, fragrance, audio, home, and accessories.",
+        content: "Browse a curated selection of luxury objects across thoughtfully grouped collections.",
       },
     ],
   }),
@@ -25,29 +26,24 @@ export const Route = createFileRoute("/shop")({
 
 function Shop() {
   const { category, q } = Route.useSearch();
-  const active: Category | "Featured" = category ?? "Featured";
+  const { categories: aiCategories, loading: catsLoading } = useAICategories();
 
   const [aiIds, setAiIds] = useState<string[] | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
-  // Local fast filter (always available as fallback while AI loads)
+  // Fast local fallback while AI search runs
   const localFiltered = useMemo(() => {
-    let list = [...PRODUCTS];
-    if (category) list = list.filter((p) => p.category === category);
-    if (q) {
-      const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
-      list = list.filter((p) => {
-        const haystack = [p.name, p.brand, p.category, p.description, ...(p.details ?? [])]
-          .join(" ")
-          .toLowerCase();
-        return terms.every((t: string) => haystack.includes(t));
-      });
-    }
-    return list;
-  }, [category, q]);
+    if (!q) return [];
+    const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
+    return PRODUCTS.filter((p) => {
+      const haystack = [p.name, p.brand, p.category, p.description, ...(p.details ?? [])]
+        .join(" ")
+        .toLowerCase();
+      return terms.every((t) => haystack.includes(t));
+    });
+  }, [q]);
 
-  // Run AI search whenever the query changes
   useEffect(() => {
     if (!q) {
       setAiIds(null);
@@ -59,8 +55,7 @@ function Shop() {
     setAiError(null);
     textSearch({ data: { query: q } })
       .then((res) => {
-        if (cancelled) return;
-        setAiIds(res.ids);
+        if (!cancelled) setAiIds(res.ids);
       })
       .catch((e) => {
         if (cancelled) return;
@@ -76,16 +71,14 @@ function Shop() {
     };
   }, [q]);
 
-  // Final results: merge AI ids with local matches (AI first, then any local extras)
-  const results = useMemo(() => {
-    if (!q) return localFiltered;
+  const searchResults = useMemo(() => {
+    if (!q) return [];
     const idSet = new Set<string>();
     const ordered: typeof PRODUCTS = [];
     if (aiIds) {
       for (const id of aiIds) {
         const p = PRODUCTS.find((x) => x.id === id);
         if (p && !idSet.has(p.id)) {
-          if (category && p.category !== category) continue;
           idSet.add(p.id);
           ordered.push(p);
         }
@@ -98,194 +91,145 @@ function Shop() {
       }
     }
     return ordered;
-  }, [q, aiIds, localFiltered, category]);
+  }, [q, aiIds, localFiltered]);
 
   const isSearching = Boolean(q);
 
+  // Active AI category browse
+  const activeCategory = !isSearching && category
+    ? aiCategories.find((c) => c.name.toLowerCase() === category.toLowerCase())
+    : null;
+  const categoryProducts = activeCategory
+    ? PRODUCTS.filter((p) => activeCategory.productIds.includes(p.id))
+    : [];
+
   return (
     <div className="bg-background">
-      <div className="mx-auto flex max-w-5xl">
-        {/* Vertical category sidebar */}
-        <aside className="w-28 shrink-0 border-r border-border/40 md:w-36">
-          <div className="py-2">
-            <Link
-              to="/shop"
-              search={{}}
-              className={`relative block px-3 py-4 text-xs leading-tight transition-smooth ${
-                active === "Featured"
-                  ? "bg-card font-medium text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {active === "Featured" && <span className="absolute left-0 top-2 h-8 w-0.5 bg-primary" />}
-              Featured
-            </Link>
-            {CATEGORIES.map((c) => (
+      <div className="mx-auto max-w-5xl px-3 py-4">
+        {isSearching ? (
+          <>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="font-serif text-lg text-foreground">
+                Results for <span className="text-primary">"{q}"</span>{" "}
+                <span className="text-xs text-muted-foreground">({searchResults.length})</span>
+              </h2>
               <Link
-                key={c}
                 to="/shop"
-                search={{ category: c }}
-                className={`relative block px-3 py-4 text-xs leading-tight transition-smooth ${
-                  active === c
-                    ? "bg-card font-medium text-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                search={{}}
+                className="rounded-full border border-border px-3 py-1 text-[10px] uppercase tracking-[0.15em] text-muted-foreground hover:border-primary hover:text-primary"
               >
-                {active === c && <span className="absolute left-0 top-2 h-8 w-0.5 bg-primary" />}
-                {c}
+                Clear
               </Link>
-            ))}
-          </div>
-        </aside>
+            </div>
 
-        {/* Right pane */}
-        <div className="flex-1 px-3 py-4">
-          {isSearching ? (
-            <>
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <h2 className="font-serif text-lg text-foreground">
-                  Results for <span className="text-primary">"{q}"</span>{" "}
-                  <span className="text-xs text-muted-foreground">({results.length})</span>
-                </h2>
-                <Link
-                  to="/shop"
-                  search={{}}
-                  className="rounded-full border border-border px-3 py-1 text-[10px] uppercase tracking-[0.15em] text-muted-foreground hover:border-primary hover:text-primary"
-                >
-                  Clear
+            {aiLoading && searchResults.length === 0 ? (
+              <div className="flex flex-col items-center gap-3 py-16">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <p className="text-xs text-muted-foreground">Searching…</p>
+              </div>
+            ) : searchResults.length === 0 ? (
+              <div className="py-16 text-center">
+                <p className="text-sm text-muted-foreground">
+                  {aiError ?? "No pieces match your search."}
+                </p>
+                <Link to="/shop" search={{}} className="mt-3 inline-block text-xs text-primary underline">
+                  Browse all
                 </Link>
               </div>
-
-              {aiLoading && results.length === 0 ? (
-                <div className="flex flex-col items-center gap-3 py-16">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  <p className="text-xs text-muted-foreground">Searching…</p>
-                </div>
-              ) : results.length === 0 ? (
-                <div className="py-16 text-center">
-                  <p className="text-sm text-muted-foreground">
-                    {aiError ?? "No pieces match your search."}
-                  </p>
-                  <Link to="/shop" search={{}} className="mt-3 inline-block text-xs text-primary underline">
-                    Browse all
-                  </Link>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-                  {results.map((p) => {
-                    const original = Math.round(p.price * 1.4);
-                    return (
-                      <Link
-                        key={p.id}
-                        to="/product/$id"
-                        params={{ id: p.id }}
-                        className="group block border border-border bg-card transition-smooth hover:border-primary"
-                      >
-                        <div className="aspect-square overflow-hidden">
-                          <img
-                            src={p.image}
-                            alt={p.name}
-                            loading="lazy"
-                            className="h-full w-full object-cover transition-smooth group-hover:scale-105"
-                          />
-                        </div>
-                        <div className="space-y-1 p-2">
-                          <p className="line-clamp-2 text-[11px] leading-tight text-foreground">{p.name}</p>
-                          <div className="flex items-baseline gap-1">
-                            <span className="font-serif text-sm text-gold-gradient">
-                              ${p.price.toLocaleString()}
-                            </span>
-                            <span className="text-[9px] text-muted-foreground line-through">
-                              ${original.toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              <h2 className="mb-4 font-serif text-xl text-foreground">Shop by category</h2>
-
-              {/* Category tile grid */}
-              <div className="mb-8 grid grid-cols-3 gap-3">
-                {CATEGORIES.map((c) => {
-                  const sample = PRODUCTS.find((p) => p.category === c);
+            ) : (
+              <ProductGrid products={searchResults} />
+            )}
+          </>
+        ) : activeCategory ? (
+          <>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="font-serif text-lg text-foreground">
+                {activeCategory.name}{" "}
+                <span className="text-xs text-muted-foreground">({categoryProducts.length})</span>
+              </h2>
+              <Link
+                to="/shop"
+                search={{}}
+                className="rounded-full border border-border px-3 py-1 text-[10px] uppercase tracking-[0.15em] text-muted-foreground hover:border-primary hover:text-primary"
+              >
+                All collections
+              </Link>
+            </div>
+            <ProductGrid products={categoryProducts} />
+          </>
+        ) : (
+          <>
+            <h2 className="mb-4 font-serif text-xl text-foreground">Collections</h2>
+            {catsLoading ? (
+              <div className="flex flex-col items-center gap-3 py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <p className="text-xs text-muted-foreground">Curating collections…</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-3">
+                {aiCategories.map((c) => {
+                  const sample = PRODUCTS.find((p) => c.productIds.includes(p.id));
                   return (
-                    <Link key={c} to="/shop" search={{ category: c }} className="group block text-center">
+                    <Link
+                      key={c.name}
+                      to="/shop"
+                      search={{ category: c.name }}
+                      className="group block text-center"
+                    >
                       <div className="relative aspect-square overflow-hidden rounded-full border border-border bg-card transition-smooth group-hover:border-primary">
-                        {sample && <img src={sample.image} alt={c} className="h-full w-full object-cover" />}
-                        {(c === "Timepieces" || c === "Fragrance") && (
-                          <span className="absolute -right-1 -top-1 bg-gold-gradient px-1.5 py-0.5 text-[8px] uppercase tracking-[0.15em] text-primary-foreground">
-                            Hot
-                          </span>
+                        {sample && (
+                          <img src={sample.image} alt={c.name} className="h-full w-full object-cover" />
                         )}
                       </div>
                       <p className="mt-2 text-[11px] leading-tight text-foreground transition-smooth group-hover:text-primary">
-                        {c}
+                        {c.name}
                       </p>
                     </Link>
                   );
                 })}
               </div>
-
-              {/* Category-only filtered results */}
-              {category && (
-                <>
-                  <h3 className="mb-3 font-serif text-lg text-foreground">
-                    {category} <span className="text-xs text-muted-foreground">({localFiltered.length})</span>
-                  </h3>
-                  {localFiltered.length === 0 ? (
-                    <p className="py-12 text-center text-sm text-muted-foreground">
-                      No pieces.{" "}
-                      <Link to="/shop" search={{}} className="text-primary underline">
-                        Clear
-                      </Link>
-                    </p>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-                      {localFiltered.map((p) => {
-                        const original = Math.round(p.price * 1.4);
-                        return (
-                          <Link
-                            key={p.id}
-                            to="/product/$id"
-                            params={{ id: p.id }}
-                            className="group block border border-border bg-card transition-smooth hover:border-primary"
-                          >
-                            <div className="aspect-square overflow-hidden">
-                              <img
-                                src={p.image}
-                                alt={p.name}
-                                loading="lazy"
-                                className="h-full w-full object-cover transition-smooth group-hover:scale-105"
-                              />
-                            </div>
-                            <div className="space-y-1 p-2">
-                              <p className="line-clamp-2 text-[11px] leading-tight text-foreground">{p.name}</p>
-                              <div className="flex items-baseline gap-1">
-                                <span className="font-serif text-sm text-gold-gradient">
-                                  ${p.price.toLocaleString()}
-                                </span>
-                                <span className="text-[9px] text-muted-foreground line-through">
-                                  ${original.toLocaleString()}
-                                </span>
-                              </div>
-                            </div>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  )}
-                </>
-              )}
-            </>
-          )}
-        </div>
+            )}
+          </>
+        )}
       </div>
+    </div>
+  );
+}
+
+function ProductGrid({ products }: { products: typeof PRODUCTS }) {
+  return (
+    <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+      {products.map((p) => {
+        const original = Math.round(p.price * 1.4);
+        return (
+          <Link
+            key={p.id}
+            to="/product/$id"
+            params={{ id: p.id }}
+            className="group block border border-border bg-card transition-smooth hover:border-primary"
+          >
+            <div className="aspect-square overflow-hidden">
+              <img
+                src={p.image}
+                alt={p.name}
+                loading="lazy"
+                className="h-full w-full object-cover transition-smooth group-hover:scale-105"
+              />
+            </div>
+            <div className="space-y-1 p-2">
+              <p className="line-clamp-2 text-[11px] leading-tight text-foreground">{p.name}</p>
+              <div className="flex items-baseline gap-1">
+                <span className="font-serif text-sm text-gold-gradient">
+                  ${p.price.toLocaleString()}
+                </span>
+                <span className="text-[9px] text-muted-foreground line-through">
+                  ${original.toLocaleString()}
+                </span>
+              </div>
+            </div>
+          </Link>
+        );
+      })}
     </div>
   );
 }
