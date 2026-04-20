@@ -34,7 +34,7 @@ export const visualSearch = createServerFn({ method: "POST" })
       (p) => `- ${p.id}: ${p.name} (${p.brand}) — category: ${p.category}, colors: ${p.colors}, function: ${p.function}`,
     ).join("\n");
 
-    const systemPrompt = `You are a visual product matcher for Maison Luxe. The user gives you an image. Match it to products in this catalog by visual resemblance, function/purpose, OR dominant color. Always return at least 1 match if any product is even loosely related; rank best first. Use the match_products tool.
+    const systemPrompt = `You are a strict product matcher for Maison Luxe. Given an image, return ONLY products from the catalog that are the SAME TYPE of object with the SAME FUNCTION as what's in the image (e.g. a watch matches watches, a bag matches bags, headphones match headphones). Color and size may differ — that's fine. Do NOT return loosely related, decorative, or thematic matches. If no product in the catalog is the same type/function as the image, return an empty matches array. Use the match_products tool.
 
 CATALOG:
 ${catalogText}`;

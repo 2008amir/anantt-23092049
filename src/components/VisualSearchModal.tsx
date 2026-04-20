@@ -236,9 +236,7 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
             {imageDataUrl && (
               <div className="mb-4 flex items-center gap-3 rounded-lg border border-border bg-card p-3">
                 <img src={imageDataUrl} alt="Your image" className="h-14 w-14 rounded object-cover" />
-                <div className="flex-1">
-                  <p className="text-xs text-foreground">{description || "Your image"}</p>
-                </div>
+                <div className="flex-1" />
                 <button
                   type="button"
                   onClick={reset}
@@ -252,7 +250,7 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
             <h3 className="mb-3 font-serif text-base text-foreground">
               {matchedProducts.length > 0
                 ? `${matchedProducts.length} matching ${matchedProducts.length === 1 ? "piece" : "pieces"}`
-                : "No close matches"}
+                : "No matches"}
             </h3>
 
             {matchedProducts.length === 0 ? (
