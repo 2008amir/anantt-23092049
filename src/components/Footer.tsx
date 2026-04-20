@@ -18,8 +18,8 @@ export function Footer() {
   if (location.pathname === "/login") return null;
 
   return (
-    <nav className="sticky bottom-0 z-40 border-t border-border/60 bg-background/95 backdrop-blur-xl">
-      <div className="mx-auto grid max-w-3xl grid-cols-5">
+    <nav className="sticky bottom-0 z-40 w-full border-t border-border/60 bg-background/95 backdrop-blur-xl">
+      <div className="grid w-full grid-cols-5">
         {NAV.map((item) => {
           const Icon = item.icon;
           const active = item.exact
