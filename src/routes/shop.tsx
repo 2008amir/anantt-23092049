@@ -234,6 +234,7 @@ function Shop() {
             )}
           </>
         )}
+        </div>
       </div>
     </div>
   );
