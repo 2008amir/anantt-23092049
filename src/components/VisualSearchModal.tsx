@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Camera, Upload, X, Loader2, Sparkles, RefreshCw, ImagePlus } from "lucide-react";
+import { Camera, Upload, X, Loader2, ImagePlus } from "lucide-react";
 import { visualSearch } from "@/lib/visual-search.functions";
 import { PRODUCTS } from "@/lib/products";
 
-type Stage = "choose" | "camera" | "preview" | "loading" | "results" | "error";
+type Stage = "choose" | "camera" | "loading" | "results" | "error";
 
 type Match = { id: string; reason: string; score: number };
 
@@ -75,7 +75,7 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
     const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
     stopCamera();
     setImageDataUrl(dataUrl);
-    setStage("preview");
+    void runSearch(dataUrl);
   };
 
   const onUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,17 +88,19 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
     }
     const reader = new FileReader();
     reader.onload = () => {
-      setImageDataUrl(reader.result as string);
-      setStage("preview");
+      const dataUrl = reader.result as string;
+      setImageDataUrl(dataUrl);
+      void runSearch(dataUrl);
     };
     reader.readAsDataURL(file);
   };
 
-  const runSearch = async () => {
-    if (!imageDataUrl) return;
+  const runSearch = async (dataUrl?: string) => {
+    const img = dataUrl ?? imageDataUrl;
+    if (!img) return;
     setStage("loading");
     try {
-      const res = await visualSearch({ data: { imageDataUrl } });
+      const res = await visualSearch({ data: { imageDataUrl: img } });
       setMatches(res.matches);
       setDescription(res.description);
       setStage("results");
@@ -119,10 +121,7 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
     <div className="fixed inset-0 z-[60] flex flex-col bg-background">
       {/* Header bar */}
       <div className="flex items-center justify-between border-b border-border/60 bg-background/95 px-4 py-3 backdrop-blur-xl">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" />
-          <p className="font-serif text-sm text-foreground">Visual AI Search</p>
-        </div>
+        <p className="font-serif text-sm text-foreground">Search</p>
         <button
           type="button"
           onClick={onClose}
@@ -136,15 +135,7 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
       <div className="flex-1 overflow-y-auto">
         {stage === "choose" && (
           <div className="mx-auto flex h-full max-w-md flex-col items-center justify-center gap-6 p-6 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gold-gradient">
-              <Sparkles className="h-7 w-7 text-primary-foreground" />
-            </div>
-            <div>
-              <h2 className="font-serif text-xl text-foreground">Find by image</h2>
-              <p className="mt-2 text-xs text-muted-foreground">
-                Snap a photo or upload one — our AI will match it to pieces in the atelier by look, function, and color.
-              </p>
-            </div>
+            <h2 className="font-serif text-xl text-foreground">Search by image</h2>
             <div className="grid w-full grid-cols-2 gap-3">
               <button
                 type="button"
@@ -152,8 +143,7 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
                 className="flex flex-col items-center gap-2 rounded-lg border border-primary/40 bg-card p-5 transition-smooth hover:border-primary"
               >
                 <Camera className="h-7 w-7 text-primary" />
-                <span className="text-xs font-medium text-foreground">Take photo</span>
-                <span className="text-[10px] text-muted-foreground">Use device camera</span>
+                <span className="text-xs font-medium text-foreground">Take image</span>
               </button>
               <button
                 type="button"
@@ -162,7 +152,6 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
               >
                 <Upload className="h-7 w-7 text-primary" />
                 <span className="text-xs font-medium text-foreground">Upload image</span>
-                <span className="text-[10px] text-muted-foreground">From your library</span>
               </button>
             </div>
             <input
@@ -233,37 +222,10 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
           </div>
         )}
 
-        {stage === "preview" && imageDataUrl && (
-          <div className="mx-auto flex max-w-md flex-col gap-4 p-4">
-            <div className="overflow-hidden rounded-lg border border-border bg-card">
-              <img src={imageDataUrl} alt="Preview" className="h-72 w-full object-cover" />
-            </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={reset}
-                className="flex flex-1 items-center justify-center gap-2 rounded-full border border-border bg-card px-4 py-3 text-sm text-foreground hover:border-primary"
-              >
-                <RefreshCw className="h-4 w-4" />
-                Retake
-              </button>
-              <button
-                type="button"
-                onClick={runSearch}
-                className="flex flex-[2] items-center justify-center gap-2 rounded-full bg-gold-gradient px-4 py-3 text-sm font-medium text-primary-foreground"
-              >
-                <Sparkles className="h-4 w-4" />
-                Search with AI
-              </button>
-            </div>
-          </div>
-        )}
-
         {stage === "loading" && (
           <div className="flex h-full flex-col items-center justify-center gap-4 p-8">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <p className="font-serif text-sm text-foreground">Analyzing your image…</p>
-            <p className="text-xs text-muted-foreground">Matching against the Maison atelier</p>
+            <p className="font-serif text-sm text-foreground">Searching…</p>
           </div>
         )}
 
@@ -273,7 +235,6 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
               <div className="mb-4 flex items-center gap-3 rounded-lg border border-border bg-card p-3">
                 <img src={imageDataUrl} alt="Your image" className="h-14 w-14 rounded object-cover" />
                 <div className="flex-1">
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">AI sees</p>
                   <p className="text-xs text-foreground">{description || "Your image"}</p>
                 </div>
                 <button
@@ -311,13 +272,9 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
                     >
                       <div className="relative aspect-square overflow-hidden">
                         <img src={p.image} alt={p.name} className="h-full w-full object-cover transition-smooth group-hover:scale-105" />
-                        <span className="absolute left-1.5 top-1.5 bg-gold-gradient px-1.5 py-0.5 text-[8px] uppercase tracking-[0.15em] text-primary-foreground">
-                          {Math.round(m.score * 100)}% match
-                        </span>
                       </div>
                       <div className="space-y-1 p-2">
                         <p className="line-clamp-2 text-[11px] leading-tight text-foreground">{p.name}</p>
-                        <p className="line-clamp-2 text-[9px] italic text-muted-foreground">{m.reason}</p>
                         <div className="flex items-baseline gap-1 pt-0.5">
                           <span className="font-serif text-sm text-gold-gradient">${p.price.toLocaleString()}</span>
                           <span className="text-[9px] text-muted-foreground line-through">${original.toLocaleString()}</span>
