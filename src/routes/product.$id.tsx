@@ -3,11 +3,11 @@ import { Heart, Minus, Plus, ShieldCheck, Truck, RotateCcw } from "lucide-react"
 import { useState } from "react";
 import { Stars } from "@/components/Stars";
 import { ProductCard } from "@/components/ProductCard";
-import { PRODUCTS, getProduct } from "@/lib/products";
+import { PRODUCTS, getProduct, type Product } from "@/lib/products";
 import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/product/$id")({
-  loader: ({ params }) => {
+  loader: ({ params }): { product: Product } => {
     const product = getProduct(params.id);
     if (!product) throw notFound();
     return { product };
