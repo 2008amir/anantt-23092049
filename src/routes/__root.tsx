@@ -64,9 +64,9 @@ function RootComponent() {
   return (
     <StoreProvider>
       <Splash>
-        <div className="flex min-h-[100dvh] flex-col">
+        <div className="flex h-screen flex-col overflow-hidden">
           <Header />
-          <main className="flex-1">
+          <main className="flex-1 overflow-y-auto">
             <Outlet />
           </main>
           <Footer />
