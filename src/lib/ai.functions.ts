@@ -371,7 +371,7 @@ export const personalizedFeed = createServerFn({ method: "POST" })
       .order("created_at", { ascending: false })
       .limit(50);
 
-    const interestList = rows ?? [];
+    const interestList = (rows ?? []) as Array<{ product_id: string | null; query: string | null; kind: string; created_at: string }>;
     if (interestList.length === 0) {
       // Random shuffle if no history
       const shuffled = shuffle(data.allIds);
