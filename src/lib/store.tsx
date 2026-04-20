@@ -1,138 +1,294 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import type { Product } from "./products";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+import type { Session, User as AuthUser } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
+import { fetchProductsByIds, type Product } from "./products";
 
-type CartItem = { productId: string; quantity: number };
-type Order = {
+export type Profile = { id: string; email: string | null; display_name: string | null };
+
+export type Address = {
   id: string;
-  date: string;
-  items: { productId: string; quantity: number; price: number; name: string; image: string }[];
-  total: number;
-  status: "Processing" | "Shipped" | "Delivered";
-  shipping: { name: string; address: string; city: string; zip: string; country: string };
+  user_id: string;
+  country: string;
+  first_name: string;
+  last_name: string;
+  phone: string;
+  address_line: string;
+  state: string;
+  city: string;
+  is_default: boolean;
 };
-type User = { email: string; name: string };
+
+export type Order = {
+  id: string;
+  total: number;
+  subtotal: number;
+  shipping: number;
+  tax: number;
+  status: string;
+  shipping_address: Address;
+  created_at: string;
+  items: {
+    product_id: string;
+    product_name: string;
+    product_image: string;
+    price: number;
+    quantity: number;
+  }[];
+};
+
+type CartRow = { product_id: string; quantity: number };
 
 type StoreState = {
-  cart: CartItem[];
+  loading: boolean;
+  user: AuthUser | null;
+  profile: Profile | null;
+  cart: CartRow[];
   wishlist: string[];
-  orders: Order[];
-  user: User | null;
-  addToCart: (productId: string, quantity?: number) => void;
-  removeFromCart: (productId: string) => void;
-  updateCartQty: (productId: string, quantity: number) => void;
-  clearCart: () => void;
-  toggleWishlist: (productId: string) => void;
-  placeOrder: (order: Omit<Order, "id" | "date" | "status">) => Order;
-  login: (email: string, name?: string) => void;
-  logout: () => void;
+  // mutations
+  addToCart: (productId: string, quantity?: number) => Promise<void>;
+  removeFromCart: (productId: string) => Promise<void>;
+  updateCartQty: (productId: string, quantity: number) => Promise<void>;
+  clearCart: () => Promise<void>;
+  toggleWishlist: (productId: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, displayName?: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  refresh: () => Promise<void>;
 };
 
 const StoreContext = createContext<StoreState | null>(null);
 
-const KEY = "lux_store_v1";
-
-function load() {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem(KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [cart, setCart] = useState<CartRow[]>([]);
   const [wishlist, setWishlist] = useState<string[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [user, setUser] = useState<User | null>(null);
-  const [hydrated, setHydrated] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const data = load();
-    if (data) {
-      setCart(data.cart ?? []);
-      setWishlist(data.wishlist ?? []);
-      setOrders(data.orders ?? []);
-      setUser(data.user ?? null);
-    }
-    setHydrated(true);
+  const user = session?.user ?? null;
+
+  const loadUserData = useCallback(async (uid: string) => {
+    const [profileRes, cartRes, wlRes] = await Promise.all([
+      supabase.from("profiles").select("*").eq("id", uid).maybeSingle(),
+      supabase.from("cart_items").select("product_id, quantity").eq("user_id", uid),
+      supabase.from("wishlist").select("product_id").eq("user_id", uid),
+    ]);
+    setProfile((profileRes.data as Profile | null) ?? null);
+    setCart((cartRes.data ?? []) as CartRow[]);
+    setWishlist(((wlRes.data ?? []) as { product_id: string }[]).map((r) => r.product_id));
   }, []);
 
+  // Auth bootstrap
   useEffect(() => {
-    if (!hydrated) return;
-    localStorage.setItem(KEY, JSON.stringify({ cart, wishlist, orders, user }));
-  }, [cart, wishlist, orders, user, hydrated]);
-
-  const addToCart = (productId: string, quantity = 1) => {
-    if (!user) {
-      if (typeof window !== "undefined") {
-        window.location.href = "/login";
+    let mounted = true;
+    // First, set up the listener (do not await async in callback).
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      if (!mounted) return;
+      setSession(newSession);
+      if (newSession?.user) {
+        // defer to avoid deadlocks
+        setTimeout(() => {
+          void loadUserData(newSession.user.id);
+        }, 0);
+      } else {
+        setProfile(null);
+        setCart([]);
+        setWishlist([]);
       }
-      return;
-    }
-    setCart((prev) => {
-      const existing = prev.find((i) => i.productId === productId);
-      if (existing) {
-        return prev.map((i) =>
-          i.productId === productId ? { ...i, quantity: i.quantity + quantity } : i,
-        );
-      }
-      return [...prev, { productId, quantity }];
     });
-  };
 
-  const removeFromCart = (productId: string) =>
-    setCart((prev) => prev.filter((i) => i.productId !== productId));
+    // Then fetch existing session
+    void supabase.auth.getSession().then(({ data: { session: existing } }) => {
+      if (!mounted) return;
+      setSession(existing);
+      if (existing?.user) {
+        void loadUserData(existing.user.id).finally(() => {
+          if (mounted) setLoading(false);
+        });
+      } else {
+        setLoading(false);
+      }
+    });
 
-  const updateCartQty = (productId: string, quantity: number) => {
-    if (quantity <= 0) return removeFromCart(productId);
-    setCart((prev) => prev.map((i) => (i.productId === productId ? { ...i, quantity } : i)));
-  };
-
-  const clearCart = () => setCart([]);
-
-  const toggleWishlist = (productId: string) =>
-    setWishlist((prev) =>
-      prev.includes(productId) ? prev.filter((id) => id !== productId) : [...prev, productId],
-    );
-
-  const placeOrder: StoreState["placeOrder"] = (order) => {
-    const newOrder: Order = {
-      ...order,
-      id: `ORD-${Date.now().toString(36).toUpperCase()}`,
-      date: new Date().toISOString(),
-      status: "Processing",
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
     };
-    setOrders((prev) => [newOrder, ...prev]);
-    setCart([]);
-    return newOrder;
-  };
+  }, [loadUserData]);
 
-  const login = (email: string, name?: string) =>
-    setUser({ email, name: name ?? email.split("@")[0] });
-  const logout = () => setUser(null);
+  const refresh = useCallback(async () => {
+    if (user) await loadUserData(user.id);
+  }, [user, loadUserData]);
 
-  return (
-    <StoreContext.Provider
-      value={{
-        cart,
-        wishlist,
-        orders,
-        user,
-        addToCart,
-        removeFromCart,
-        updateCartQty,
-        clearCart,
-        toggleWishlist,
-        placeOrder,
-        login,
-        logout,
-      }}
-    >
-      {children}
-    </StoreContext.Provider>
+  const requireAuth = useCallback(() => {
+    if (!user) {
+      if (typeof window !== "undefined") window.location.href = "/login";
+      return false;
+    }
+    return true;
+  }, [user]);
+
+  const addToCart = useCallback(
+    async (productId: string, quantity = 1) => {
+      if (!requireAuth() || !user) return;
+      const existing = cart.find((c) => c.product_id === productId);
+      const nextQty = (existing?.quantity ?? 0) + quantity;
+      // optimistic
+      setCart((prev) => {
+        const found = prev.find((c) => c.product_id === productId);
+        if (found) return prev.map((c) => (c.product_id === productId ? { ...c, quantity: nextQty } : c));
+        return [...prev, { product_id: productId, quantity }];
+      });
+      const { error } = await supabase
+        .from("cart_items")
+        .upsert(
+          { user_id: user.id, product_id: productId, quantity: nextQty, updated_at: new Date().toISOString() },
+          { onConflict: "user_id,product_id" },
+        );
+      if (error) {
+        console.error(error);
+        await refresh();
+      }
+    },
+    [user, cart, requireAuth, refresh],
   );
+
+  const removeFromCart = useCallback(
+    async (productId: string) => {
+      if (!user) return;
+      setCart((prev) => prev.filter((c) => c.product_id !== productId));
+      const { error } = await supabase
+        .from("cart_items")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("product_id", productId);
+      if (error) {
+        console.error(error);
+        await refresh();
+      }
+    },
+    [user, refresh],
+  );
+
+  const updateCartQty = useCallback(
+    async (productId: string, quantity: number) => {
+      if (!user) return;
+      if (quantity <= 0) return removeFromCart(productId);
+      setCart((prev) => prev.map((c) => (c.product_id === productId ? { ...c, quantity } : c)));
+      const { error } = await supabase
+        .from("cart_items")
+        .update({ quantity, updated_at: new Date().toISOString() })
+        .eq("user_id", user.id)
+        .eq("product_id", productId);
+      if (error) {
+        console.error(error);
+        await refresh();
+      }
+    },
+    [user, removeFromCart, refresh],
+  );
+
+  const clearCart = useCallback(async () => {
+    if (!user) return;
+    setCart([]);
+    const { error } = await supabase.from("cart_items").delete().eq("user_id", user.id);
+    if (error) console.error(error);
+  }, [user]);
+
+  const toggleWishlist = useCallback(
+    async (productId: string) => {
+      if (!requireAuth() || !user) return;
+      const liked = wishlist.includes(productId);
+      setWishlist((prev) => (liked ? prev.filter((id) => id !== productId) : [...prev, productId]));
+      if (liked) {
+        const { error } = await supabase
+          .from("wishlist")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("product_id", productId);
+        if (error) {
+          console.error(error);
+          await refresh();
+        }
+      } else {
+        const { error } = await supabase
+          .from("wishlist")
+          .insert({ user_id: user.id, product_id: productId });
+        if (error) {
+          console.error(error);
+          await refresh();
+        }
+      }
+    },
+    [user, wishlist, requireAuth, refresh],
+  );
+
+  const signIn = useCallback(async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+  }, []);
+
+  const signUp = useCallback(async (email: string, password: string, displayName?: string) => {
+    const redirectUrl = typeof window !== "undefined" ? `${window.location.origin}/` : undefined;
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: redirectUrl,
+        data: displayName ? { display_name: displayName } : undefined,
+      },
+    });
+    if (error) throw error;
+  }, []);
+
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
+  }, []);
+
+  const value = useMemo<StoreState>(
+    () => ({
+      loading,
+      user,
+      profile,
+      cart,
+      wishlist,
+      addToCart,
+      removeFromCart,
+      updateCartQty,
+      clearCart,
+      toggleWishlist,
+      signIn,
+      signUp,
+      signOut,
+      refresh,
+    }),
+    [
+      loading,
+      user,
+      profile,
+      cart,
+      wishlist,
+      addToCart,
+      removeFromCart,
+      updateCartQty,
+      clearCart,
+      toggleWishlist,
+      signIn,
+      signUp,
+      signOut,
+      refresh,
+    ],
+  );
+
+  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
 
 export function useStore() {
@@ -145,7 +301,7 @@ export function useCartTotal(products: Product[]) {
   const { cart } = useStore();
   const items = cart
     .map((c) => {
-      const p = products.find((p) => p.id === c.productId);
+      const p = products.find((p) => p.id === c.product_id);
       return p ? { product: p, quantity: c.quantity } : null;
     })
     .filter(Boolean) as { product: Product; quantity: number }[];
@@ -154,4 +310,59 @@ export function useCartTotal(products: Product[]) {
   const tax = subtotal * 0.08;
   const total = subtotal + shipping + tax;
   return { items, subtotal, shipping, tax, total };
+}
+
+// Hook to subscribe to all products (lightweight cache)
+export function useProducts() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    import("./products").then(({ fetchProducts }) =>
+      fetchProducts()
+        .then((p) => {
+          if (!cancelled) setProducts(p);
+        })
+        .catch((e) => console.error(e))
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        }),
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return { products, loading };
+}
+
+export function useProductsByIds(ids: string[]) {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const key = ids.join(",");
+
+  useEffect(() => {
+    let cancelled = false;
+    if (ids.length === 0) {
+      setProducts([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    fetchProductsByIds(ids)
+      .then((p) => {
+        if (!cancelled) setProducts(p);
+      })
+      .catch((e) => console.error(e))
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
+  return { products, loading };
 }
