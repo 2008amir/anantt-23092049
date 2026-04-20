@@ -105,6 +105,9 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
       const res = await visualSearch({ data: { imageDataUrl: img } });
       setMatches(res.matches);
       setDescription(res.description);
+      const ids = res.matches.map((m) => m.id);
+      const fetched = ids.length ? await fetchProductsByIds(ids) : [];
+      setProducts(fetched);
       setStage("results");
     } catch (e) {
       console.error(e);
