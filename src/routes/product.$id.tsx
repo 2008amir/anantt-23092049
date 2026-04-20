@@ -199,7 +199,6 @@ function ProductPage() {
         </section>
       )}
 
-      <Recommend />
     </div>
   );
 }

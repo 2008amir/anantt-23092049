@@ -4,7 +4,17 @@ import { Loader2 } from "lucide-react";
 import { recommendations } from "@/lib/ai.functions";
 import { fetchProductsByIds, type Product } from "@/lib/products";
 
-const HIDE_PREFIXES = ["/account", "/login", "/checkout", "/cart"];
+// Pages where Recommend SHOULD appear
+const SHOW_PREFIXES = [
+  "/account/orders",
+  "/account/notifications",
+  "/account/wishlist",
+  "/account/earn",
+  "/cart",
+  "/wishlist",
+  "/orders",
+  "/search",
+];
 
 export function Recommend() {
   const { location } = useRouterState();
@@ -12,12 +22,12 @@ export function Recommend() {
   const [theme, setTheme] = useState("Recommended for You");
   const [loading, setLoading] = useState(true);
 
-  const hidden = HIDE_PREFIXES.some(
+  const visible = SHOW_PREFIXES.some(
     (prefix) => location.pathname === prefix || location.pathname.startsWith(prefix + "/"),
   );
 
   useEffect(() => {
-    if (hidden) return;
+    if (!visible) return;
     let cancelled = false;
     setLoading(true);
     recommendations()
@@ -34,17 +44,15 @@ export function Recommend() {
     return () => {
       cancelled = true;
     };
-  }, [hidden]);
+  }, [visible]);
 
-  if (hidden) return null;
+  if (!visible) return null;
 
   return (
     <section className="mx-auto mt-10 max-w-5xl border-t border-border/40 px-3 pt-8 pb-4">
-      <header className="mb-4 flex items-end justify-between">
-        <div>
-          <p className="text-[10px] uppercase tracking-[0.3em] text-primary">Recommend</p>
-          <h2 className="mt-1 font-serif text-xl text-foreground">{theme}</h2>
-        </div>
+      <header className="mb-4">
+        <p className="text-[10px] uppercase tracking-[0.3em] text-primary">Recommend</p>
+        <h2 className="mt-1 font-serif text-xl text-foreground">{theme}</h2>
       </header>
 
       {loading && products.length === 0 ? (

@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
 import { useStore, useProductsByIds } from "@/lib/store";
+import { Recommend } from "@/components/Recommend";
 
 export const Route = createFileRoute("/account/wishlist")({
   component: AccountWishlist,
@@ -11,7 +12,7 @@ function AccountWishlist() {
   const { products: items, loading } = useProductsByIds(wishlist);
 
   return (
-    <div>
+    <><div>
       <h2 className="font-serif text-3xl">Saved Pieces</h2>
       {loading ? (
         <div className="mt-12 flex justify-center"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
@@ -40,6 +41,6 @@ function AccountWishlist() {
           ))}
         </div>
       )}
-    </div>
+    </div><Recommend /></>
   );
 }

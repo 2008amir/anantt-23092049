@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/lib/store";
+import { Recommend } from "@/components/Recommend";
 
 type OrderRow = {
   id: string;
@@ -35,7 +36,7 @@ function AccountOrders() {
   }, [user]);
 
   return (
-    <div>
+    <><div>
       <h2 className="font-serif text-3xl">Order History</h2>
       <p className="mt-2 text-sm text-muted-foreground">A record of every piece in your collection.</p>
 
@@ -61,6 +62,6 @@ function AccountOrders() {
           ))}
         </div>
       )}
-    </div>
+    </div><Recommend /></>
   );
 }
