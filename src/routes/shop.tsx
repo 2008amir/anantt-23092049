@@ -40,7 +40,7 @@ function Shop() {
         ]
           .join(" ")
           .toLowerCase();
-        return terms.every((t) => haystack.includes(t));
+        return terms.every((t: string) => haystack.includes(t));
       });
     }
     return list;
