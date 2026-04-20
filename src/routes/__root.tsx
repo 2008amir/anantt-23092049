@@ -64,9 +64,9 @@ function RootComponent() {
   return (
     <StoreProvider>
       <Splash>
-        <div className="fixed inset-0 flex flex-col overflow-hidden" style={{ height: "100dvh" }}>
+        <div className="flex h-screen flex-col overflow-hidden">
           <Header />
-          <main className="flex-1 overflow-y-auto overscroll-contain">
+          <main className="flex-1 overflow-y-auto">
             <Outlet />
           </main>
           <Footer />
