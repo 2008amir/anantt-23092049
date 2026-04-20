@@ -1,60 +1,54 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
+import { Home, LayoutGrid, Heart, ShoppingBag, User } from "lucide-react";
+import { useStore } from "@/lib/store";
+
+const NAV = [
+  { to: "/", label: "Home", icon: Home, exact: true },
+  { to: "/shop", label: "Shop", icon: LayoutGrid },
+  { to: "/wishlist", label: "Wishlist", icon: Heart },
+  { to: "/cart", label: "Cart", icon: ShoppingBag },
+  { to: "/account", label: "You", icon: User },
+];
 
 export function Footer() {
-  return (
-    <footer className="mt-32 border-t border-border/50 bg-card/30">
-      <div className="container mx-auto grid gap-12 px-6 py-16 md:grid-cols-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="font-serif text-xl text-gold-gradient">MAISON</span>
-            <span className="font-serif text-xl tracking-[0.3em] text-foreground">LUXE</span>
-          </div>
-          <p className="mt-4 text-sm text-muted-foreground">
-            A curated atelier of considered objects, sourced from the world's finest houses.
-          </p>
-        </div>
-        <FooterCol title="Shop" links={[
-          { to: "/shop", label: "All Pieces" },
-          { to: "/shop", label: "Timepieces" },
-          { to: "/shop", label: "Leather Goods" },
-          { to: "/shop", label: "Fragrance" },
-        ]} />
-        <FooterCol title="Account" links={[
-          { to: "/account", label: "My Account" },
-          { to: "/orders", label: "Orders" },
-          { to: "/wishlist", label: "Wishlist" },
-          { to: "/cart", label: "Cart" },
-        ]} />
-        <FooterCol title="House" links={[
-          { to: "/", label: "Our Story" },
-          { to: "/", label: "Press" },
-          { to: "/", label: "Contact" },
-          { to: "/", label: "Concierge" },
-        ]} />
-      </div>
-      <div className="border-t border-border/50">
-        <div className="container mx-auto flex flex-col items-center justify-between gap-2 px-6 py-6 text-xs text-muted-foreground md:flex-row">
-          <p>© {new Date().getFullYear()} Maison Luxe. All rights reserved.</p>
-          <p className="tracking-[0.2em]">CRAFTED WITH INTENTION</p>
-        </div>
-      </div>
-    </footer>
-  );
-}
+  const { cart, wishlist, user } = useStore();
+  const { location } = useRouterState();
+  const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
 
-function FooterCol({ title, links }: { title: string; links: { to: string; label: string }[] }) {
+  if (location.pathname === "/login") return null;
+
   return (
-    <div>
-      <h4 className="mb-4 text-xs uppercase tracking-[0.2em] text-primary">{title}</h4>
-      <ul className="space-y-2">
-        {links.map((l, i) => (
-          <li key={i}>
-            <Link to={l.to} className="text-sm text-muted-foreground transition-smooth hover:text-foreground">
-              {l.label}
+    <nav className="sticky bottom-0 z-40 border-t border-border/60 bg-background/95 backdrop-blur-xl">
+      <div className="mx-auto grid max-w-3xl grid-cols-5">
+        {NAV.map((item) => {
+          const Icon = item.icon;
+          const active = item.exact
+            ? location.pathname === item.to
+            : location.pathname.startsWith(item.to);
+          const to = item.to === "/account" && !user ? "/login" : item.to;
+          const badge =
+            item.to === "/cart" ? cartCount : item.to === "/wishlist" ? wishlist.length : 0;
+          return (
+            <Link
+              key={item.to}
+              to={to}
+              className={`relative flex flex-col items-center gap-1 py-2.5 text-[10px] uppercase tracking-[0.2em] transition-smooth ${
+                active ? "text-primary" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <span className="relative">
+                <Icon className="h-5 w-5" strokeWidth={1.5} />
+                {badge > 0 && (
+                  <span className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-medium text-primary-foreground">
+                    {badge}
+                  </span>
+                )}
+              </span>
+              <span>{item.label}</span>
             </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
+          );
+        })}
+      </div>
+    </nav>
   );
 }
