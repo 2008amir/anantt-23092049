@@ -240,7 +240,9 @@ function Shop() {
   );
 }
 
-function ProductGrid({ products }: { products: typeof PRODUCTS }) {
+type ProductList = typeof PRODUCTS;
+
+function ProductGrid({ products }: { products: ProductList }) {
   return (
     <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
       {products.map((p) => {
