@@ -344,8 +344,10 @@ export const logInterest = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    await supabase.from("user_interests").insert({
+    const { supabase, userId } = context;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).from("user_interests").insert({
+      user_id: userId,
       kind: data.kind,
       product_id: data.productId ?? null,
       query: data.query ?? null,
