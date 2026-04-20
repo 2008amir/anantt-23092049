@@ -158,6 +158,9 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          payment_method: string | null
+          payment_reference: string | null
+          payment_status: string
           shipping: number
           shipping_address: Json
           status: string
@@ -169,6 +172,9 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          payment_method?: string | null
+          payment_reference?: string | null
+          payment_status?: string
           shipping?: number
           shipping_address: Json
           status?: string
@@ -180,12 +186,63 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          payment_method?: string | null
+          payment_reference?: string | null
+          payment_status?: string
           shipping?: number
           shipping_address?: Json
           status?: string
           subtotal?: number
           tax?: number
           total?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      payment_methods: {
+        Row: {
+          authorization_code: string | null
+          brand: string
+          card_holder: string
+          created_at: string
+          email: string | null
+          exp_month: string
+          exp_year: string
+          id: string
+          is_default: boolean
+          last4: string
+          paystack_customer_code: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          authorization_code?: string | null
+          brand: string
+          card_holder: string
+          created_at?: string
+          email?: string | null
+          exp_month: string
+          exp_year: string
+          id?: string
+          is_default?: boolean
+          last4: string
+          paystack_customer_code?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          authorization_code?: string | null
+          brand?: string
+          card_holder?: string
+          created_at?: string
+          email?: string | null
+          exp_month?: string
+          exp_year?: string
+          id?: string
+          is_default?: boolean
+          last4?: string
+          paystack_customer_code?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
