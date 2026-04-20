@@ -13,6 +13,7 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
   const [stage, setStage] = useState<Stage>("choose");
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [description, setDescription] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const videoRef = useRef<HTMLVideoElement | null>(null);
