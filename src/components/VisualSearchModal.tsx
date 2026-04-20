@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "@tanstack/react-router";
 import { Camera, Upload, X, Loader2, ImagePlus } from "lucide-react";
 import { visualSearch } from "@/lib/visual-search.functions";
@@ -112,13 +113,14 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
   };
 
   if (!open) return null;
+  if (typeof document === "undefined") return null;
 
   const matchedProducts = matches
     .map((m) => ({ ...m, product: PRODUCTS.find((p) => p.id === m.id) }))
     .filter((m) => m.product);
 
-  return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-background">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex flex-col bg-background">
       {/* Header bar */}
       <div className="flex items-center justify-between border-b border-border/60 bg-background/95 px-4 py-3 backdrop-blur-xl">
         <p className="font-serif text-sm text-foreground">Search</p>
@@ -302,6 +304,7 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
