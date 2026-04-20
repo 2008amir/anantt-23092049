@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Search } from "lucide-react";
+import { Search, Camera } from "lucide-react";
 import { useMemo, useState } from "react";
-import { ProductCard } from "@/components/ProductCard";
 import { PRODUCTS, CATEGORIES, type Category } from "@/lib/products";
 
 type ShopSearch = { category?: Category; q?: string };
@@ -13,11 +12,10 @@ export const Route = createFileRoute("/shop")({
   }),
   head: () => ({
     meta: [
-      { title: "Shop — Maison Luxe" },
+      { title: "Categories — Maison Luxe" },
       {
         name: "description",
-        content:
-          "Browse the full collection of curated luxury objects: timepieces, leather goods, fragrance, audio, and home.",
+        content: "Shop by category: timepieces, leather goods, fragrance, audio, home, and accessories.",
       },
     ],
   }),
@@ -27,8 +25,8 @@ export const Route = createFileRoute("/shop")({
 function Shop() {
   const { category, q } = Route.useSearch();
   const navigate = Route.useNavigate();
-  const [sort, setSort] = useState<"featured" | "price-low" | "price-high" | "rating">("featured");
   const [query, setQuery] = useState(q ?? "");
+  const active: Category | "Featured" = category ?? "Featured";
 
   const filtered = useMemo(() => {
     let list = [...PRODUCTS];
@@ -42,91 +40,146 @@ function Shop() {
           p.category.toLowerCase().includes(lower),
       );
     }
-    if (sort === "price-low") list.sort((a, b) => a.price - b.price);
-    if (sort === "price-high") list.sort((a, b) => b.price - a.price);
-    if (sort === "rating") list.sort((a, b) => b.rating - a.rating);
     return list;
-  }, [category, q, sort]);
+  }, [category, q]);
 
   return (
-    <div className="container mx-auto px-6 py-16">
-      <header className="mb-12 text-center">
-        <p className="text-xs uppercase tracking-[0.3em] text-primary">The Collection</p>
-        <h1 className="mt-3 font-serif text-5xl md:text-6xl">
-          {category ?? "All Pieces"}
-        </h1>
-        <p className="mt-4 text-muted-foreground">
-          {filtered.length} {filtered.length === 1 ? "piece" : "pieces"}
-        </p>
-      </header>
-
+    <div className="bg-background">
       {/* Search */}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          navigate({ search: { category, q: query || undefined } });
-        }}
-        className="mx-auto mb-10 flex max-w-xl items-center border border-border bg-card"
-      >
-        <Search className="ml-4 h-4 w-4 text-muted-foreground" />
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search the collection..."
-          className="flex-1 bg-transparent px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
-        />
-        <button type="submit" className="bg-gold-gradient px-6 py-3 text-xs uppercase tracking-[0.2em] text-primary-foreground">
-          Search
-        </button>
-      </form>
-
-      <div className="mb-10 flex flex-col gap-4 border-y border-border py-4 md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-wrap gap-2">
-          <Link
-            to="/shop"
-            search={{}}
-            className={`border px-4 py-2 text-xs uppercase tracking-[0.2em] transition-smooth ${
-              !category ? "border-primary text-primary" : "border-border text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            All
-          </Link>
-          {CATEGORIES.map((c) => (
-            <Link
-              key={c}
-              to="/shop"
-              search={{ category: c }}
-              className={`border px-4 py-2 text-xs uppercase tracking-[0.2em] transition-smooth ${
-                category === c ? "border-primary text-primary" : "border-border text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {c}
-            </Link>
-          ))}
-        </div>
-        <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value as typeof sort)}
-          className="border border-border bg-card px-4 py-2 text-xs uppercase tracking-[0.2em] text-foreground outline-none"
+      <div className="sticky top-20 z-30 border-b border-border/40 bg-background/95 px-4 py-3 backdrop-blur">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            navigate({ search: { category, q: query || undefined } });
+          }}
+          className="mx-auto flex max-w-3xl items-center gap-2 rounded-full border border-border bg-card px-5 py-2 shadow-luxury"
         >
-          <option value="featured">Sort: Featured</option>
-          <option value="price-low">Price: Low to High</option>
-          <option value="price-high">Price: High to Low</option>
-          <option value="rating">Top Rated</option>
-        </select>
+          <Search className="h-4 w-4 text-muted-foreground" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search Maison Luxe"
+            className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+          />
+          <Camera className="h-4 w-4 text-muted-foreground" />
+          <button type="submit" aria-label="Search" className="flex h-8 w-8 items-center justify-center rounded-full bg-gold-gradient text-primary-foreground">
+            <Search className="h-4 w-4" />
+          </button>
+        </form>
       </div>
 
-      {filtered.length === 0 ? (
-        <div className="py-24 text-center text-muted-foreground">
-          No pieces match your search. <Link to="/shop" search={{}} className="text-primary underline">Clear filters</Link>
+      <div className="mx-auto flex max-w-5xl">
+        {/* Vertical category sidebar */}
+        <aside className="w-28 shrink-0 border-r border-border/40 md:w-36">
+          <div className="sticky top-[140px] max-h-[calc(100vh-140px)] overflow-y-auto py-2">
+            <Link
+              to="/shop"
+              search={{}}
+              className={`relative block px-3 py-4 text-xs leading-tight transition-smooth ${
+                active === "Featured"
+                  ? "bg-card font-medium text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {active === "Featured" && <span className="absolute left-0 top-2 h-8 w-0.5 bg-primary" />}
+              Featured
+            </Link>
+            {CATEGORIES.map((c) => (
+              <Link
+                key={c}
+                to="/shop"
+                search={{ category: c }}
+                className={`relative block px-3 py-4 text-xs leading-tight transition-smooth ${
+                  active === c
+                    ? "bg-card font-medium text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {active === c && <span className="absolute left-0 top-2 h-8 w-0.5 bg-primary" />}
+                {c}
+              </Link>
+            ))}
+          </div>
+        </aside>
+
+        {/* Right pane */}
+        <div className="flex-1 px-3 py-4">
+          <h2 className="mb-4 font-serif text-xl text-foreground">
+            Shop by category
+          </h2>
+
+          {/* Category tile grid (always show all to mimic browse) */}
+          <div className="mb-8 grid grid-cols-3 gap-3">
+            {CATEGORIES.map((c) => {
+              const sample = PRODUCTS.find((p) => p.category === c);
+              return (
+                <Link
+                  key={c}
+                  to="/shop"
+                  search={{ category: c }}
+                  className="group block text-center"
+                >
+                  <div className="relative aspect-square overflow-hidden rounded-full border border-border bg-card transition-smooth group-hover:border-primary">
+                    {sample && (
+                      <img src={sample.image} alt={c} className="h-full w-full object-cover" />
+                    )}
+                    {(c === "Timepieces" || c === "Fragrance") && (
+                      <span className="absolute -right-1 -top-1 bg-gold-gradient px-1.5 py-0.5 text-[8px] uppercase tracking-[0.15em] text-primary-foreground">
+                        Hot
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-2 text-[11px] leading-tight text-foreground transition-smooth group-hover:text-primary">
+                    {c}
+                  </p>
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Filtered results when a category is chosen */}
+          {(category || q) && (
+            <>
+              <h3 className="mb-3 font-serif text-lg text-foreground">
+                {category ?? "Search results"} <span className="text-xs text-muted-foreground">({filtered.length})</span>
+              </h3>
+              {filtered.length === 0 ? (
+                <p className="py-12 text-center text-sm text-muted-foreground">
+                  No pieces match.{" "}
+                  <Link to="/shop" search={{}} className="text-primary underline">
+                    Clear filters
+                  </Link>
+                </p>
+              ) : (
+                <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+                  {filtered.map((p) => {
+                    const original = Math.round(p.price * 1.4);
+                    return (
+                      <Link
+                        key={p.id}
+                        to="/product/$id"
+                        params={{ id: p.id }}
+                        className="group block border border-border bg-card transition-smooth hover:border-primary"
+                      >
+                        <div className="aspect-square overflow-hidden">
+                          <img src={p.image} alt={p.name} loading="lazy" className="h-full w-full object-cover transition-smooth group-hover:scale-105" />
+                        </div>
+                        <div className="space-y-1 p-2">
+                          <p className="line-clamp-2 text-[11px] leading-tight text-foreground">{p.name}</p>
+                          <div className="flex items-baseline gap-1">
+                            <span className="font-serif text-sm text-gold-gradient">${p.price.toLocaleString()}</span>
+                            <span className="text-[9px] text-muted-foreground line-through">${original.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
         </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filtered.map((p) => (
-            <ProductCard key={p.id} product={p} />
-          ))}
-        </div>
-      )}
+      </div>
     </div>
   );
 }

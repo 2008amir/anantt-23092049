@@ -1,8 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight } from "lucide-react";
-import hero from "@/assets/hero.jpg";
-import { ProductCard } from "@/components/ProductCard";
-import { PRODUCTS, CATEGORIES } from "@/lib/products";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Search, Camera, Truck, ShieldCheck, ShoppingBag, Flame, Star, Award } from "lucide-react";
+import { useMemo, useState } from "react";
+import { PRODUCTS, CATEGORIES, type Category } from "@/lib/products";
+import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -11,121 +11,204 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "A curated atelier of timepieces, leather goods, fragrance, and home objects from the world's finest houses.",
+          "Browse curated luxury timepieces, leather goods, fragrance, and home objects with daily deals and free shipping.",
       },
     ],
   }),
   component: Index,
 });
 
+const TABS: { id: "all" | "deals" | "rated" | "best"; label: string; icon?: typeof Flame }[] = [
+  { id: "all", label: "All" },
+  { id: "deals", label: "Deals", icon: Flame },
+  { id: "rated", label: "5-Star Rated", icon: Star },
+  { id: "best", label: "Best-Selling", icon: Award },
+];
+
 function Index() {
-  const featured = PRODUCTS.slice(0, 4);
+  const navigate = useNavigate();
+  const { addToCart, user } = useStore();
+  const [query, setQuery] = useState("");
+  const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("all");
+  const [cat, setCat] = useState<Category | "All">("All");
+
+  const list = useMemo(() => {
+    let l = [...PRODUCTS];
+    if (cat !== "All") l = l.filter((p) => p.category === cat);
+    if (tab === "rated") l = l.filter((p) => p.rating >= 4.7);
+    if (tab === "best") l = l.sort((a, b) => b.reviewCount - a.reviewCount);
+    if (tab === "deals") l = l.sort((a, b) => b.price - a.price);
+    return l;
+  }, [tab, cat]);
+
+  const submitSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    navigate({ to: "/shop", search: { q: query || undefined } });
+  };
 
   return (
-    <>
-      {/* Hero */}
-      <section className="relative h-[85vh] min-h-[600px] overflow-hidden">
-        <img
-          src={hero}
-          alt="Luxury still life"
-          width={1920}
-          height={1280}
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/70 to-transparent" />
-        <div className="container relative mx-auto flex h-full items-center px-6">
-          <div className="max-w-xl">
-            <p className="text-xs uppercase tracking-[0.4em] text-primary">Autumn Collection</p>
-            <h1 className="mt-6 font-serif text-5xl leading-[1.05] text-foreground md:text-7xl">
-              Objects of <em className="text-gold-gradient">enduring</em> craft.
-            </h1>
-            <p className="mt-6 max-w-md text-base text-muted-foreground">
-              From the ateliers of Florence, Grasse, and beyond — a meticulously curated
-              collection for those who measure value in decades, not seasons.
-            </p>
-            <div className="mt-10 flex flex-wrap gap-3">
-              <Link
-                to="/shop"
-                className="group inline-flex items-center gap-2 bg-gold-gradient px-8 py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold transition-smooth hover:opacity-90"
-              >
-                Explore Collection
-                <ArrowRight className="h-4 w-4 transition-smooth group-hover:translate-x-1" />
-              </Link>
-              <Link
-                to="/shop"
-                className="inline-flex items-center border border-border px-8 py-4 text-xs uppercase tracking-[0.25em] text-foreground transition-smooth hover:border-primary hover:text-primary"
-              >
-                Our Story
-              </Link>
+    <div className="bg-background pb-12">
+      {/* Search bar */}
+      <div className="sticky top-20 z-30 border-b border-border/40 bg-background/95 px-4 py-3 backdrop-blur">
+        <form onSubmit={submitSearch} className="mx-auto flex max-w-3xl items-center gap-2 rounded-full border border-border bg-card px-5 py-2 shadow-luxury">
+          <Search className="h-4 w-4 text-muted-foreground" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search Maison Luxe"
+            className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+          />
+          <button type="button" aria-label="Visual search" className="text-muted-foreground transition-smooth hover:text-primary">
+            <Camera className="h-4 w-4" />
+          </button>
+          <button type="submit" aria-label="Search" className="flex h-8 w-8 items-center justify-center rounded-full bg-gold-gradient text-primary-foreground">
+            <Search className="h-4 w-4" />
+          </button>
+        </form>
+      </div>
+
+      {/* Top category strip */}
+      <div className="border-b border-border/40">
+        <div className="mx-auto flex max-w-5xl gap-6 overflow-x-auto px-4 py-3 text-xs uppercase tracking-[0.2em] no-scrollbar">
+          {(["All", ...CATEGORIES] as const).map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setCat(c)}
+              className={`whitespace-nowrap pb-2 transition-smooth ${
+                cat === c
+                  ? "border-b-2 border-primary text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Trust strip */}
+      <div className="mx-auto mt-3 flex max-w-5xl items-center gap-6 border border-border/60 bg-card/60 px-5 py-3 text-xs text-muted-foreground">
+        <span className="flex items-center gap-2 text-primary">
+          <Truck className="h-4 w-4" /> Complimentary shipping
+        </span>
+        <span className="flex items-center gap-2 text-primary">
+          <ShieldCheck className="h-4 w-4" /> 30-day price assurance
+        </span>
+      </div>
+
+      {/* Editorial promo banner (color-preserving, NOT a Temu copy) */}
+      <section className="mx-auto mt-4 max-w-5xl px-4">
+        <p className="mb-3 font-serif text-xl text-foreground">House Privileges</p>
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            { label: "Members Only", sub: "Daily Edits" },
+            { label: "Atelier Access", sub: "By Invitation" },
+            { label: "Concierge", sub: "Personal Sourcing" },
+            { label: "Heritage", sub: "Lifetime Service" },
+          ].map((p) => (
+            <div key={p.label} className="border border-primary/30 bg-card/60 p-3 text-center transition-smooth hover:border-primary">
+              <p className="font-serif text-xs text-gold-gradient md:text-sm">{p.label}</p>
+              <p className="mt-1 text-[9px] uppercase tracking-[0.15em] text-muted-foreground">{p.sub}</p>
             </div>
-          </div>
+          ))}
         </div>
       </section>
 
-      {/* Categories */}
-      <section className="container mx-auto px-6 py-24">
-        <div className="mb-12 flex items-end justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-primary">By Category</p>
-            <h2 className="mt-3 font-serif text-4xl md:text-5xl">Explore the House</h2>
-          </div>
-          <Link
-            to="/shop"
-            className="hidden text-xs uppercase tracking-[0.25em] text-muted-foreground transition-smooth hover:text-primary md:inline"
-          >
-            View All →
-          </Link>
+      {/* Promise banner */}
+      <section className="mx-auto mt-4 max-w-5xl px-4">
+        <div className="border border-primary/40 bg-gradient-to-br from-card to-background p-6 shadow-luxury">
+          <p className="text-[10px] uppercase tracking-[0.3em] text-primary">The Maison Promise</p>
+          <ul className="mt-3 space-y-1.5 text-sm text-foreground">
+            <li>· <span className="text-muted-foreground">Lifetime authenticity guarantee on every piece</span></li>
+            <li>· <span className="text-muted-foreground">Complimentary returns within 30 considered days</span></li>
+            <li>· <span className="text-muted-foreground">Members earn House Credit on every order</span></li>
+          </ul>
         </div>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-          {CATEGORIES.map((cat) => (
+      </section>
+
+      {/* Tabs */}
+      <div className="mx-auto mt-6 max-w-5xl border-b border-border/40 px-4">
+        <div className="flex gap-6 overflow-x-auto text-xs uppercase tracking-[0.2em] no-scrollbar">
+          {TABS.map((t) => {
+            const Icon = t.icon;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTab(t.id)}
+                className={`flex items-center gap-1.5 whitespace-nowrap pb-3 transition-smooth ${
+                  tab === t.id
+                    ? "border-b-2 border-primary text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {Icon && <Icon className="h-3.5 w-3.5" />}
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 2-col product grid (Temu-like density, luxury palette) */}
+      <section className="mx-auto mt-4 grid max-w-5xl grid-cols-2 gap-2 px-2 md:grid-cols-3 lg:grid-cols-4">
+        {list.map((p) => {
+          const original = Math.round(p.price * 1.4);
+          const saved = original - p.price;
+          return (
             <Link
-              key={cat}
-              to="/shop"
-              search={{ category: cat }}
-              className="group relative aspect-square overflow-hidden border border-border bg-card transition-smooth hover:border-primary"
+              key={p.id}
+              to="/product/$id"
+              params={{ id: p.id }}
+              className="group relative flex flex-col border border-border bg-card transition-smooth hover:border-primary"
             >
-              <div className="flex h-full items-center justify-center p-4 text-center">
-                <span className="font-serif text-lg leading-tight text-foreground transition-smooth group-hover:text-primary">
-                  {cat}
-                </span>
+              <div className="relative aspect-square overflow-hidden bg-muted">
+                <img
+                  src={p.image}
+                  alt={p.name}
+                  loading="lazy"
+                  className="h-full w-full object-cover transition-smooth group-hover:scale-[1.03]"
+                />
+                {p.rating >= 4.8 && (
+                  <span className="absolute left-2 top-2 bg-gold-gradient px-2 py-0.5 text-[9px] uppercase tracking-[0.15em] text-primary-foreground">
+                    Star Atelier
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    addToCart(p.id, 1);
+                  }}
+                  aria-label={user ? "Add to cart" : "Sign in to shop"}
+                  className="absolute bottom-2 right-2 flex h-9 w-9 items-center justify-center rounded-full border border-primary bg-background/90 text-primary transition-smooth hover:bg-gold-gradient hover:text-primary-foreground"
+                >
+                  <ShoppingBag className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="space-y-1.5 p-3">
+                <p className="line-clamp-2 text-xs leading-tight text-foreground">{p.name}</p>
+                <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <Star className="h-3 w-3 fill-primary text-primary" />
+                  <span>{p.rating}</span>
+                  <span>·</span>
+                  <span>{(p.reviewCount * 0.1).toFixed(1)}K+ owners</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="border border-primary/40 px-1.5 py-0.5 text-[9px] uppercase tracking-[0.1em] text-primary">
+                    Save ${saved.toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-1.5 pt-0.5">
+                  <span className="font-serif text-base text-gold-gradient">${p.price.toLocaleString()}</span>
+                  <span className="text-[10px] text-muted-foreground line-through">${original.toLocaleString()}</span>
+                </div>
               </div>
             </Link>
-          ))}
-        </div>
+          );
+        })}
       </section>
-
-      {/* Featured */}
-      <section className="container mx-auto px-6 py-16">
-        <div className="mb-12">
-          <p className="text-xs uppercase tracking-[0.3em] text-primary">Featured</p>
-          <h2 className="mt-3 font-serif text-4xl md:text-5xl">This Season's Edit</h2>
-        </div>
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {featured.map((p) => (
-            <ProductCard key={p.id} product={p} />
-          ))}
-        </div>
-      </section>
-
-      {/* Editorial */}
-      <section className="container mx-auto px-6 py-24">
-        <div className="border border-border bg-card/50 p-12 text-center md:p-20">
-          <p className="text-xs uppercase tracking-[0.3em] text-primary">The Concierge</p>
-          <h2 className="mx-auto mt-4 max-w-2xl font-serif text-3xl md:text-5xl">
-            Personal sourcing, by appointment.
-          </h2>
-          <p className="mx-auto mt-6 max-w-lg text-muted-foreground">
-            Our private concierge will source rare and bespoke pieces on your behalf — from vintage
-            timepieces to one-of-one commissions.
-          </p>
-          <Link
-            to="/shop"
-            className="mt-10 inline-flex bg-gold-gradient px-8 py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground transition-smooth hover:opacity-90"
-          >
-            Begin a Conversation
-          </Link>
-        </div>
-      </section>
-    </>
+    </div>
   );
 }

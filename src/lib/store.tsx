@@ -65,6 +65,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [cart, wishlist, orders, user, hydrated]);
 
   const addToCart = (productId: string, quantity = 1) => {
+    if (!user) {
+      if (typeof window !== "undefined") {
+        window.location.href = "/login";
+      }
+      return;
+    }
     setCart((prev) => {
       const existing = prev.find((i) => i.productId === productId);
       if (existing) {
