@@ -30,6 +30,7 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
     setStage("choose");
     setImageDataUrl(null);
     setMatches([]);
+    setProducts([]);
     setDescription("");
     setErrorMsg("");
   };
