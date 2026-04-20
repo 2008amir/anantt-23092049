@@ -363,8 +363,9 @@ export const personalizedFeed = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data, context }): Promise<{ orderedIds: string[]; biasedIds: string[] }> => {
-    const { supabase, userId } = context;
-    const { data: rows } = await supabase
+    const { supabase } = context;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: rows } = await (supabase as any)
       .from("user_interests")
       .select("product_id, query, kind, created_at")
       .order("created_at", { ascending: false })
