@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { PRODUCTS, CATEGORIES, type Category } from "@/lib/products";
+import { textSearch } from "@/lib/text-search.functions";
 
 type ShopSearch = { category?: Category; q?: string };
 
@@ -25,19 +27,18 @@ function Shop() {
   const { category, q } = Route.useSearch();
   const active: Category | "Featured" = category ?? "Featured";
 
-  const filtered = useMemo(() => {
+  const [aiIds, setAiIds] = useState<string[] | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  // Local fast filter (always available as fallback while AI loads)
+  const localFiltered = useMemo(() => {
     let list = [...PRODUCTS];
     if (category) list = list.filter((p) => p.category === category);
     if (q) {
       const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
       list = list.filter((p) => {
-        const haystack = [
-          p.name,
-          p.brand,
-          p.category,
-          p.description,
-          ...(p.details ?? []),
-        ]
+        const haystack = [p.name, p.brand, p.category, p.description, ...(p.details ?? [])]
           .join(" ")
           .toLowerCase();
         return terms.every((t: string) => haystack.includes(t));
@@ -46,9 +47,63 @@ function Shop() {
     return list;
   }, [category, q]);
 
+  // Run AI search whenever the query changes
+  useEffect(() => {
+    if (!q) {
+      setAiIds(null);
+      setAiError(null);
+      return;
+    }
+    let cancelled = false;
+    setAiLoading(true);
+    setAiError(null);
+    textSearch({ data: { query: q } })
+      .then((res) => {
+        if (cancelled) return;
+        setAiIds(res.ids);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        console.error(e);
+        setAiError(e instanceof Error ? e.message : "Search failed");
+        setAiIds(null);
+      })
+      .finally(() => {
+        if (!cancelled) setAiLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [q]);
+
+  // Final results: merge AI ids with local matches (AI first, then any local extras)
+  const results = useMemo(() => {
+    if (!q) return localFiltered;
+    const idSet = new Set<string>();
+    const ordered: typeof PRODUCTS = [];
+    if (aiIds) {
+      for (const id of aiIds) {
+        const p = PRODUCTS.find((x) => x.id === id);
+        if (p && !idSet.has(p.id)) {
+          if (category && p.category !== category) continue;
+          idSet.add(p.id);
+          ordered.push(p);
+        }
+      }
+    }
+    for (const p of localFiltered) {
+      if (!idSet.has(p.id)) {
+        idSet.add(p.id);
+        ordered.push(p);
+      }
+    }
+    return ordered;
+  }, [q, aiIds, localFiltered, category]);
+
+  const isSearching = Boolean(q);
+
   return (
     <div className="bg-background">
-
       <div className="mx-auto flex max-w-5xl">
         {/* Vertical category sidebar */}
         <aside className="w-28 shrink-0 border-r border-border/40 md:w-36">
@@ -85,55 +140,39 @@ function Shop() {
 
         {/* Right pane */}
         <div className="flex-1 px-3 py-4">
-          <h2 className="mb-4 font-serif text-xl text-foreground">
-            Shop by category
-          </h2>
-
-          {/* Category tile grid (always show all to mimic browse) */}
-          <div className="mb-8 grid grid-cols-3 gap-3">
-            {CATEGORIES.map((c) => {
-              const sample = PRODUCTS.find((p) => p.category === c);
-              return (
-                <Link
-                  key={c}
-                  to="/shop"
-                  search={{ category: c }}
-                  className="group block text-center"
-                >
-                  <div className="relative aspect-square overflow-hidden rounded-full border border-border bg-card transition-smooth group-hover:border-primary">
-                    {sample && (
-                      <img src={sample.image} alt={c} className="h-full w-full object-cover" />
-                    )}
-                    {(c === "Timepieces" || c === "Fragrance") && (
-                      <span className="absolute -right-1 -top-1 bg-gold-gradient px-1.5 py-0.5 text-[8px] uppercase tracking-[0.15em] text-primary-foreground">
-                        Hot
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-2 text-[11px] leading-tight text-foreground transition-smooth group-hover:text-primary">
-                    {c}
-                  </p>
-                </Link>
-              );
-            })}
-          </div>
-
-          {/* Filtered results when a category is chosen */}
-          {(category || q) && (
+          {isSearching ? (
             <>
-              <h3 className="mb-3 font-serif text-lg text-foreground">
-                {category ?? "Search results"} <span className="text-xs text-muted-foreground">({filtered.length})</span>
-              </h3>
-              {filtered.length === 0 ? (
-                <p className="py-12 text-center text-sm text-muted-foreground">
-                  No pieces match.{" "}
-                  <Link to="/shop" search={{}} className="text-primary underline">
-                    Clear filters
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h2 className="font-serif text-lg text-foreground">
+                  Results for <span className="text-primary">"{q}"</span>{" "}
+                  <span className="text-xs text-muted-foreground">({results.length})</span>
+                </h2>
+                <Link
+                  to="/shop"
+                  search={{}}
+                  className="rounded-full border border-border px-3 py-1 text-[10px] uppercase tracking-[0.15em] text-muted-foreground hover:border-primary hover:text-primary"
+                >
+                  Clear
+                </Link>
+              </div>
+
+              {aiLoading && results.length === 0 ? (
+                <div className="flex flex-col items-center gap-3 py-16">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  <p className="text-xs text-muted-foreground">Searching…</p>
+                </div>
+              ) : results.length === 0 ? (
+                <div className="py-16 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    {aiError ?? "No pieces match your search."}
+                  </p>
+                  <Link to="/shop" search={{}} className="mt-3 inline-block text-xs text-primary underline">
+                    Browse all
                   </Link>
-                </p>
+                </div>
               ) : (
                 <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-                  {filtered.map((p) => {
+                  {results.map((p) => {
                     const original = Math.round(p.price * 1.4);
                     return (
                       <Link
@@ -143,19 +182,105 @@ function Shop() {
                         className="group block border border-border bg-card transition-smooth hover:border-primary"
                       >
                         <div className="aspect-square overflow-hidden">
-                          <img src={p.image} alt={p.name} loading="lazy" className="h-full w-full object-cover transition-smooth group-hover:scale-105" />
+                          <img
+                            src={p.image}
+                            alt={p.name}
+                            loading="lazy"
+                            className="h-full w-full object-cover transition-smooth group-hover:scale-105"
+                          />
                         </div>
                         <div className="space-y-1 p-2">
                           <p className="line-clamp-2 text-[11px] leading-tight text-foreground">{p.name}</p>
                           <div className="flex items-baseline gap-1">
-                            <span className="font-serif text-sm text-gold-gradient">${p.price.toLocaleString()}</span>
-                            <span className="text-[9px] text-muted-foreground line-through">${original.toLocaleString()}</span>
+                            <span className="font-serif text-sm text-gold-gradient">
+                              ${p.price.toLocaleString()}
+                            </span>
+                            <span className="text-[9px] text-muted-foreground line-through">
+                              ${original.toLocaleString()}
+                            </span>
                           </div>
                         </div>
                       </Link>
                     );
                   })}
                 </div>
+              )}
+            </>
+          ) : (
+            <>
+              <h2 className="mb-4 font-serif text-xl text-foreground">Shop by category</h2>
+
+              {/* Category tile grid */}
+              <div className="mb-8 grid grid-cols-3 gap-3">
+                {CATEGORIES.map((c) => {
+                  const sample = PRODUCTS.find((p) => p.category === c);
+                  return (
+                    <Link key={c} to="/shop" search={{ category: c }} className="group block text-center">
+                      <div className="relative aspect-square overflow-hidden rounded-full border border-border bg-card transition-smooth group-hover:border-primary">
+                        {sample && <img src={sample.image} alt={c} className="h-full w-full object-cover" />}
+                        {(c === "Timepieces" || c === "Fragrance") && (
+                          <span className="absolute -right-1 -top-1 bg-gold-gradient px-1.5 py-0.5 text-[8px] uppercase tracking-[0.15em] text-primary-foreground">
+                            Hot
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-2 text-[11px] leading-tight text-foreground transition-smooth group-hover:text-primary">
+                        {c}
+                      </p>
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {/* Category-only filtered results */}
+              {category && (
+                <>
+                  <h3 className="mb-3 font-serif text-lg text-foreground">
+                    {category} <span className="text-xs text-muted-foreground">({localFiltered.length})</span>
+                  </h3>
+                  {localFiltered.length === 0 ? (
+                    <p className="py-12 text-center text-sm text-muted-foreground">
+                      No pieces.{" "}
+                      <Link to="/shop" search={{}} className="text-primary underline">
+                        Clear
+                      </Link>
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+                      {localFiltered.map((p) => {
+                        const original = Math.round(p.price * 1.4);
+                        return (
+                          <Link
+                            key={p.id}
+                            to="/product/$id"
+                            params={{ id: p.id }}
+                            className="group block border border-border bg-card transition-smooth hover:border-primary"
+                          >
+                            <div className="aspect-square overflow-hidden">
+                              <img
+                                src={p.image}
+                                alt={p.name}
+                                loading="lazy"
+                                className="h-full w-full object-cover transition-smooth group-hover:scale-105"
+                              />
+                            </div>
+                            <div className="space-y-1 p-2">
+                              <p className="line-clamp-2 text-[11px] leading-tight text-foreground">{p.name}</p>
+                              <div className="flex items-baseline gap-1">
+                                <span className="font-serif text-sm text-gold-gradient">
+                                  ${p.price.toLocaleString()}
+                                </span>
+                                <span className="text-[9px] text-muted-foreground line-through">
+                                  ${original.toLocaleString()}
+                                </span>
+                              </div>
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}
