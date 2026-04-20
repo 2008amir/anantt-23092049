@@ -66,11 +66,11 @@ function ProfileHome() {
   return (
     <div className="mx-auto max-w-3xl pb-8">
       {/* Top: Avatar + Name + actions */}
-      <div className="flex items-center gap-4 px-5 pt-6 pb-5">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gold-gradient">
-          <span className="font-serif text-2xl text-primary-foreground">{initial}</span>
+      <div className="flex items-center gap-3 px-5 pt-6 pb-5">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gold-gradient">
+          <span className="font-serif text-base text-primary-foreground">{initial}</span>
         </div>
-        <h1 className="flex-1 truncate font-serif text-2xl text-foreground">{user.name}</h1>
+        <h1 className="flex-1 truncate font-serif text-base text-foreground">{user.name}</h1>
         <button
           type="button"
           aria-label="Concierge"
