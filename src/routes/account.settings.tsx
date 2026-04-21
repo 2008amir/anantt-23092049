@@ -4,7 +4,7 @@ import { CreditCard, Loader2, Plus, Trash2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/lib/store";
 import { initPaystack, verifyPaystack } from "@/lib/paystack.functions";
-import { openPaystackPopup } from "@/lib/paystack-popup.client";
+import { openPaystackPopup } from "@/lib/paystack-popup";
 
 export const Route = createFileRoute("/account/settings")({
   component: SettingsPanel,
