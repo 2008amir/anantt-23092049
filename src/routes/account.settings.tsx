@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { CreditCard, Loader2, Plus, Trash2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/lib/store";
-import { initCardV4, verifyChargeV4 } from "@/lib/flutterwave-v4.functions";
+import { initFlutterwave, verifyFlutterwave } from "@/lib/flutterwave.functions";
+import { openFlutterwavePopup } from "@/lib/flutterwave-popup";
 
 export const Route = createFileRoute("/account/settings")({
   component: SettingsPanel,
@@ -56,39 +57,6 @@ function SettingsPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  // On mount: if returning from a v4 card-verification redirect, finalize.
-  useEffect(() => {
-    if (!user) return;
-    const params = new URLSearchParams(window.location.search);
-    const chargeId = params.get("verify_charge");
-    if (!chargeId) return;
-    void (async () => {
-      setVerifying(true);
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        const accessToken = session?.access_token;
-        if (!accessToken) throw new Error("Please sign in again.");
-        const verified = await verifyChargeV4({
-          data: { chargeId, saveCard: true, accessToken },
-        });
-        if (verified.success) {
-          setCardSuccess("Card verified and saved.");
-          await loadCards();
-        } else {
-          setCardError("Card could not be verified. Please try a different card.");
-        }
-      } catch (e) {
-        setCardError(e instanceof Error ? e.message : "Verification failed");
-      } finally {
-        window.history.replaceState({}, "", window.location.pathname);
-        setVerifying(false);
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
-
   async function loadCards() {
     if (!user) return;
     setLoadingCards(true);
@@ -112,8 +80,8 @@ function SettingsPanel() {
     else await refresh();
   };
 
-  // Real card verification via a ₦50 Flutterwave v4 charge — proves the card
-  // is valid and gives us a reusable v4 payment_method_id for future payments.
+  // Real card verification via a ₦50 Flutterwave charge — proves the card is valid
+  // and gives us a reusable token for future payments.
   const addCard = async () => {
     if (!user?.email) return;
     setCardError(null);
@@ -126,24 +94,44 @@ function SettingsPanel() {
       const accessToken = session?.access_token;
       if (!accessToken) throw new Error("Please sign in again to save a card.");
 
-      const reference = `verify-${user.id}-${Date.now()}`;
-      const init = await initCardV4({
+      const tx_ref = `verify-${user.id}-${Date.now()}`;
+      await initFlutterwave({
         data: {
           amount: 50,
           email: user.email,
-          name: profile?.display_name ?? undefined,
-          reference,
-          saveCard: true,
+          tx_ref,
+          callbackUrl: window.location.origin + "/account/settings",
+          paymentOptions: "card",
           meta: { purpose: "card_verification" },
           accessToken,
         },
       });
-      const returnUrl = `${window.location.origin}/account/settings?verify_charge=${init.chargeId}`;
-      const sep = init.redirectUrl.includes("?") ? "&" : "?";
-      window.location.href = `${init.redirectUrl}${sep}return_url=${encodeURIComponent(returnUrl)}`;
+      const result = await openFlutterwavePopup({
+        email: user.email,
+        amount: 50,
+        tx_ref,
+        paymentOptions: "card",
+        title: "Verify card",
+        description: "₦50 authorization to save your card",
+        meta: { purpose: "card_verification" },
+      });
+      if (!result) {
+        setCardError("Card verification cancelled.");
+        return;
+      }
+      const verified = await verifyFlutterwave({
+        data: { tx_ref: result.tx_ref, transaction_id: result.transaction_id, saveCard: true, accessToken },
+      });
+      if (!verified.success) {
+        setCardError("Card could not be verified. Please try a different card.");
+        return;
+      }
+      setCardSuccess("Card verified and saved.");
+      await loadCards();
     } catch (e) {
       console.error(e);
       setCardError(e instanceof Error ? e.message : "Failed to verify card");
+    } finally {
       setVerifying(false);
     }
   };

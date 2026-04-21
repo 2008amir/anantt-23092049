@@ -1,18 +1,23 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getFlutterwaveAuthContext } from "./flutterwave-auth.server";
 
-// Flutterwave v4 (public beta).
+// Flutterwave v4 (public beta) — used here specifically for the Opay flow.
 // Sandbox host: developersandbox-api.flutterwave.com
+// Production host: api.flutterwave.cloud (subject to change while in beta)
 const FLW4_HOST = "https://developersandbox-api.flutterwave.com";
 const FLW4_OAUTH = "https://idp.flutterwave.com/realms/flutterwave/protocol/openid-connect/token";
 
 let cachedToken: { token: string; expiresAt: number } | null = null;
 
 async function getV4AccessToken(): Promise<string> {
-  if (cachedToken && cachedToken.expiresAt > Date.now() + 30_000) return cachedToken.token;
+  if (cachedToken && cachedToken.expiresAt > Date.now() + 30_000) {
+    return cachedToken.token;
+  }
   const clientId = process.env.FLUTTERWAVE_V4_CLIENT_ID;
   const clientSecret = process.env.FLUTTERWAVE_V4_CLIENT_SECRET;
-  if (!clientId || !clientSecret) throw new Error("Flutterwave v4 credentials not configured");
+  if (!clientId || !clientSecret) {
+    throw new Error("Flutterwave v4 credentials not configured");
+  }
   const body = new URLSearchParams({
     grant_type: "client_credentials",
     client_id: clientId,
@@ -31,7 +36,10 @@ async function getV4AccessToken(): Promise<string> {
   if (!res.ok || !json.access_token) {
     throw new Error(json.error_description ?? `Flutterwave v4 auth failed (${res.status})`);
   }
-  cachedToken = { token: json.access_token, expiresAt: Date.now() + (json.expires_in ?? 300) * 1000 };
+  cachedToken = {
+    token: json.access_token,
+    expiresAt: Date.now() + (json.expires_in ?? 300) * 1000,
+  };
   return cachedToken.token;
 }
 
@@ -49,77 +57,21 @@ async function flw4Fetch(path: string, init?: RequestInit & { body?: string }) {
       ...(init?.headers ?? {}),
     },
   });
-  const text = await res.text();
-  let json: {
+  const json = (await res.json().catch(() => ({}))) as {
     status?: string;
     message?: string;
-    error?: { message?: string; code?: string; validation_errors?: Array<{ field?: string; message?: string }> };
     data?: Record<string, unknown>;
-  } = {};
-  try {
-    json = text ? JSON.parse(text) : {};
-  } catch {
-    json = {};
-  }
+  };
   if (!res.ok || json.status === "error" || json.status === "failed") {
-    const validation = json.error?.validation_errors
-      ?.map((v) => `${v.field ?? ""}: ${v.message ?? ""}`)
-      .join("; ");
-    const detail =
-      validation ||
-      json.error?.message ||
-      json.message ||
-      text.slice(0, 300) ||
-      `status ${res.status}`;
-    console.error(`[flw4] ${path} -> ${res.status}: ${detail}`);
-    throw new Error(`Flutterwave v4 (${path}): ${detail}`);
+    throw new Error(json.message ?? `Flutterwave v4 error ${res.status}`);
   }
   return json;
 }
 
-async function createCustomer(opts: { email: string; name?: string; phone?: string }) {
-  const [first, ...rest] = (opts.name ?? "Customer").trim().split(/\s+/);
-  const last = rest.length > 0 ? rest.join(" ") : "User";
-  // v4 phone: digits-only number, country_code without leading "+"
-  const phoneDigits = opts.phone?.replace(/\D/g, "") ?? "";
-  const localNumber = phoneDigits.startsWith("234")
-    ? phoneDigits.slice(3)
-    : phoneDigits.replace(/^0+/, "");
-  const body: Record<string, unknown> = {
-    email: opts.email,
-    name: { first, last },
-    address: {
-      line1: "N/A",
-      city: "Lagos",
-      state: "Lagos",
-      country: "NG",
-      postal_code: "100001",
-    },
-  };
-  if (localNumber) {
-    body.phone = { country_code: "234", number: localNumber };
-  }
-  const res = await flw4Fetch("/customers", {
-    method: "POST",
-    body: JSON.stringify(body),
-  });
-  const id = res.data?.id as string;
-  if (!id) throw new Error("Failed to create customer");
-  return id;
-}
-
-async function createPaymentMethod(type: "opay" | "card" | "bank_transfer") {
-  const res = await flw4Fetch("/payment-methods", {
-    method: "POST",
-    body: JSON.stringify({ type }),
-  });
-  const id = res.data?.id as string;
-  if (!id) throw new Error(`Failed to create ${type} payment method`);
-  return id;
-}
-
-/* ---------------- OPAY ---------------- */
-
+/**
+ * Initiate an Opay charge via Flutterwave v4. Returns a redirect URL where
+ * the customer must authorize the payment on Opay's hosted page.
+ */
 export const initOpayV4 = createServerFn({ method: "POST" })
   .inputValidator(
     (input: {
@@ -140,8 +92,32 @@ export const initOpayV4 = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     await getFlutterwaveAuthContext(data.accessToken);
-    const customerId = await createCustomer({ email: data.email, name: data.name, phone: data.phone });
-    const paymentMethodId = await createPaymentMethod("opay");
+
+    // 1. Create customer
+    const [first, ...rest] = (data.name ?? "Customer").trim().split(/\s+/);
+    const last = rest.length > 0 ? rest.join(" ") : "User";
+    const customerRes = await flw4Fetch("/customers", {
+      method: "POST",
+      body: JSON.stringify({
+        email: data.email,
+        name: { first, last },
+        ...(data.phone
+          ? { phone: { country_code: "234", number: data.phone.replace(/^\+?234/, "") } }
+          : {}),
+      }),
+    });
+    const customerId = customerRes.data?.id as string;
+    if (!customerId) throw new Error("Failed to create customer");
+
+    // 2. Create Opay payment method
+    const pmRes = await flw4Fetch("/payment-methods", {
+      method: "POST",
+      body: JSON.stringify({ type: "opay" }),
+    });
+    const paymentMethodId = pmRes.data?.id as string;
+    if (!paymentMethodId) throw new Error("Failed to create Opay payment method");
+
+    // 3. Create the charge
     const chargeRes = await flw4Fetch("/charges", {
       method: "POST",
       body: JSON.stringify({
@@ -153,215 +129,44 @@ export const initOpayV4 = createServerFn({ method: "POST" })
         meta: data.meta ?? {},
       }),
     });
-    const chargeId = chargeRes.data?.id as string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const redirectUrl = (chargeRes.data as any)?.next_action?.redirect_url?.url as string | undefined;
-    if (!redirectUrl) throw new Error("Opay did not return a redirect URL");
-    return { chargeId, reference: data.reference, redirectUrl };
-  });
 
-/* ---------------- CARD (hosted page) ---------------- */
-
-export const initCardV4 = createServerFn({ method: "POST" })
-  .inputValidator(
-    (input: {
-      amount: number;
-      email: string;
-      name?: string;
-      phone?: string;
-      reference: string;
-      saveCard?: boolean;
-      meta?: Record<string, unknown>;
-      accessToken?: string;
-    }) => {
-      if (!input?.amount || input.amount <= 0) throw new Error("amount required");
-      if (!input.email || !/^\S+@\S+\.\S+$/.test(input.email)) throw new Error("valid email required");
-      if (!input.reference) throw new Error("reference required");
-      if (!input.accessToken) throw new Error("auth required");
-      return input;
-    },
-  )
-  .handler(async ({ data }) => {
-    const { userId } = await getFlutterwaveAuthContext(data.accessToken);
-    const customerId = await createCustomer({ email: data.email, name: data.name, phone: data.phone });
-    const paymentMethodId = await createPaymentMethod("card");
-    const chargeRes = await flw4Fetch("/charges", {
-      method: "POST",
-      body: JSON.stringify({
-        currency: "NGN",
-        customer_id: customerId,
-        payment_method_id: paymentMethodId,
-        amount: data.amount,
-        reference: data.reference,
-        meta: { ...(data.meta ?? {}), user_id: userId, save_card: data.saveCard ? "1" : "0" },
-      }),
-    });
     const chargeId = chargeRes.data?.id as string;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const nextAction = (chargeRes.data as any)?.next_action;
     const redirectUrl = nextAction?.redirect_url?.url as string | undefined;
-    if (!redirectUrl) throw new Error("Flutterwave did not return a card redirect URL");
-    return { chargeId, reference: data.reference, redirectUrl, customerId, paymentMethodId };
-  });
 
-/* ---------------- SAVED CARD (tokenized re-charge) ---------------- */
+    if (!redirectUrl) throw new Error("Opay did not return a redirect URL");
 
-export const chargeSavedCardV4 = createServerFn({ method: "POST" })
-  .inputValidator(
-    (input: {
-      amount: number;
-      email: string;
-      reference: string;
-      paymentMethodId: string; // saved v4 payment_method id
-      customerId: string; // saved v4 customer id
-      meta?: Record<string, unknown>;
-      accessToken?: string;
-    }) => {
-      if (!input?.paymentMethodId) throw new Error("paymentMethodId required");
-      if (!input?.customerId) throw new Error("customerId required");
-      if (!input?.amount || input.amount <= 0) throw new Error("amount required");
-      if (!input.reference) throw new Error("reference required");
-      if (!input.accessToken) throw new Error("auth required");
-      return input;
-    },
-  )
-  .handler(async ({ data }) => {
-    const { userId } = await getFlutterwaveAuthContext(data.accessToken);
-    const res = await flw4Fetch("/charges", {
-      method: "POST",
-      body: JSON.stringify({
-        currency: "NGN",
-        customer_id: data.customerId,
-        payment_method_id: data.paymentMethodId,
-        amount: data.amount,
-        reference: data.reference,
-        meta: { ...(data.meta ?? {}), user_id: userId },
-      }),
-    });
-    const status = res.data?.status as string | undefined;
     return {
-      chargeId: res.data?.id as string,
-      success: status === "succeeded" || status === "successful",
-      status: status ?? "pending",
+      chargeId,
       reference: data.reference,
+      redirectUrl,
     };
   });
 
-/* ---------------- BANK TRANSFER (dedicated virtual account) ---------------- */
-
-export const initBankTransferV4 = createServerFn({ method: "POST" })
+/**
+ * Retrieve a v4 charge to verify Opay payment status.
+ */
+export const verifyOpayV4 = createServerFn({ method: "POST" })
   .inputValidator(
-    (input: {
-      amount: number;
-      email: string;
-      name?: string;
-      phone?: string;
-      reference: string;
-      meta?: Record<string, unknown>;
-      accessToken?: string;
-    }) => {
-      if (!input?.amount || input.amount <= 0) throw new Error("amount required");
-      if (!input.email) throw new Error("email required");
-      if (!input.reference) throw new Error("reference required");
-      if (!input.accessToken) throw new Error("auth required");
-      return input;
-    },
-  )
-  .handler(async ({ data }) => {
-    await getFlutterwaveAuthContext(data.accessToken);
-    const customerId = await createCustomer({ email: data.email, name: data.name, phone: data.phone });
-    const paymentMethodId = await createPaymentMethod("bank_transfer");
-    const chargeRes = await flw4Fetch("/charges", {
-      method: "POST",
-      body: JSON.stringify({
-        currency: "NGN",
-        customer_id: customerId,
-        payment_method_id: paymentMethodId,
-        amount: data.amount,
-        reference: data.reference,
-        meta: data.meta ?? {},
-      }),
-    });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const nextAction = (chargeRes.data as any)?.next_action;
-    // v4 returns a `payment_instruction` for bank_transfer with account details.
-    const instruction =
-      nextAction?.payment_instruction ??
-      nextAction?.bank_transfer ??
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (chargeRes.data as any)?.payment_method_details?.bank_transfer ??
-      {};
-    return {
-      chargeId: chargeRes.data?.id as string,
-      reference: data.reference,
-      account_number: (instruction.account_number as string) ?? "",
-      bank_name: (instruction.bank_name as string) ?? "",
-      account_name: (instruction.account_name as string) ?? data.name ?? "Maison Luxe",
-      expiry_date: (instruction.expires_at as string) ?? (instruction.expiry_date as string) ?? "",
-      amount: data.amount,
-    };
-  });
-
-/* ---------------- VERIFY (works for any v4 charge) ---------------- */
-
-export const verifyChargeV4 = createServerFn({ method: "POST" })
-  .inputValidator(
-    (input: { chargeId: string; saveCard?: boolean; accessToken?: string }) => {
+    (input: { chargeId: string; accessToken?: string }) => {
       if (!input?.chargeId) throw new Error("chargeId required");
       if (!input.accessToken) throw new Error("auth required");
       return input;
     },
   )
   .handler(async ({ data }) => {
-    const { supabase, userId } = await getFlutterwaveAuthContext(data.accessToken);
+    await getFlutterwaveAuthContext(data.accessToken);
     try {
       const res = await flw4Fetch(`/charges/${data.chargeId}`);
-      const tx = res.data ?? {};
-      const status = tx.status as string | undefined;
+      const status = res.data?.status as string | undefined;
       const success = status === "succeeded" || status === "successful";
-
-      if (success && data.saveCard) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const pm = (tx as any).payment_method_details as
-          | {
-              id?: string;
-              type?: string;
-              customer_id?: string;
-              card?: { last4?: string; brand?: string; exp_month?: string | number; exp_year?: string | number; holder_name?: string };
-            }
-          | undefined;
-        if (pm?.type === "card" && pm.id && pm.card?.last4) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const sb = supabase as any;
-          const { data: existing } = await sb
-            .from("payment_methods")
-            .select("id")
-            .eq("user_id", userId)
-            .eq("authorization_code", pm.id)
-            .maybeSingle();
-          if (!existing) {
-            await sb.from("payment_methods").insert({
-              user_id: userId,
-              brand: pm.card.brand ?? "Card",
-              last4: pm.card.last4,
-              exp_month: String(pm.card.exp_month ?? ""),
-              exp_year: String(pm.card.exp_year ?? ""),
-              card_holder: pm.card.holder_name ?? "",
-              authorization_code: pm.id, // v4 payment_method_id
-              paystack_customer_code: pm.customer_id ?? null, // reuse column for v4 customer_id
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              email: ((tx as any).customer?.email as string) ?? null,
-            });
-          }
-        }
-      }
-
       return {
         success,
         status: status ?? "pending",
         chargeId: data.chargeId,
-        reference: (tx.reference as string) ?? "",
-        amount: (tx.amount as number) ?? 0,
+        reference: (res.data?.reference as string) ?? "",
+        amount: (res.data?.amount as number) ?? 0,
       };
     } catch (err) {
       const msg = err instanceof Error ? err.message.toLowerCase() : "";

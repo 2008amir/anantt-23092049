@@ -3,7 +3,7 @@ import { Check, Truck, Package, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Recommend } from "@/components/Recommend";
-import { verifyChargeV4 } from "@/lib/flutterwave-v4.functions";
+import { verifyOpayV4 } from "@/lib/flutterwave-v4.functions";
 
 type OrderItem = { product_image: string; product_name: string; price: number | string; quantity: number };
 type Shipping = { name: string; address: string; city: string; zip: string; country: string };
@@ -37,7 +37,7 @@ function OrderDetail() {
           const { data: { session } } = await supabase.auth.getSession();
           const accessToken = session?.access_token;
           if (accessToken) {
-            const result = await verifyChargeV4({ data: { chargeId, accessToken } });
+            const result = await verifyOpayV4({ data: { chargeId, accessToken } });
             if (result.success) {
               await supabase
                 .from("orders")
