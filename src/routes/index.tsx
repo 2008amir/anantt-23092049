@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Truck, ShieldCheck, ShoppingBag, Flame, Star, Award, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useStore, useProducts } from "@/lib/store";
 import { useAICategories } from "@/hooks/use-ai-categories";
 import { personalizedFeed } from "@/lib/ai.functions";
@@ -19,7 +20,6 @@ const TABS: { id: "all" | "deals" | "rated" | "best"; label: string; icon?: type
   { id: "all", label: "All" },
   { id: "deals", label: "Deals", icon: Flame },
   { id: "rated", label: "5-Star Rated", icon: Star },
-  { id: "best", label: "Best-Selling", icon: Award },
 ];
 
 function Index() {
@@ -30,13 +30,42 @@ function Index() {
   const { categories: aiCategories } = useAICategories();
   const [personalizedOrder, setPersonalizedOrder] = useState<string[] | null>(null);
 
-  // Personalized 40%-biased ordering when signed in
   useEffect(() => {
-    if (!user || products.length === 0) return;
-    const allIds = products.map((p) => p.id);
-    personalizedFeed({ data: { allIds } })
-      .then((res) => setPersonalizedOrder(res.orderedIds))
-      .catch((e) => console.error("personalized", e));
+    let cancelled = false;
+
+    const loadPersonalizedFeed = async () => {
+      if (!user || products.length === 0) {
+        setPersonalizedOrder(null);
+        return;
+      }
+
+      const allIds = products.map((p) => p.id);
+      const { data: interests } = await supabase
+        .from("user_interests")
+        .select("product_id, query, kind, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      const viewedIds = (interests ?? [])
+        .filter((row) => row.kind === "view" && row.product_id)
+        .map((row) => row.product_id as string);
+      const queries = (interests ?? [])
+        .filter((row) => row.kind === "search" && row.query)
+        .map((row) => row.query as string);
+
+      const res = await personalizedFeed({ data: { allIds, viewedIds, queries } });
+      if (!cancelled) setPersonalizedOrder(res.orderedIds);
+    };
+
+    void loadPersonalizedFeed().catch((e) => {
+      console.error("personalized", e);
+      if (!cancelled) setPersonalizedOrder(null);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [user, products]);
 
   const list = useMemo(() => {

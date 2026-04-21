@@ -357,34 +357,18 @@ export const logInterest = createServerFn({ method: "POST" })
 
 // ─── Personalized feed: 40% biased toward user's interests ─────────
 export const personalizedFeed = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: { allIds: string[] }) => {
+  .inputValidator((input: { allIds: string[]; viewedIds?: string[]; queries?: string[] }) => {
     if (!Array.isArray(input?.allIds)) throw new Error("allIds required");
-    return input;
+    return {
+      allIds: input.allIds,
+      viewedIds: Array.isArray(input.viewedIds) ? input.viewedIds.filter((id) => typeof id === "string") : [],
+      queries: Array.isArray(input.queries) ? input.queries.filter((q) => typeof q === "string") : [],
+    };
   })
-  .handler(async ({ data, context }): Promise<{ orderedIds: string[]; biasedIds: string[] }> => {
-    const { supabase } = context;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: rows } = await (supabase as any)
-      .from("user_interests")
-      .select("product_id, query, kind, created_at")
-      .order("created_at", { ascending: false })
-      .limit(50);
-
-    const interestList = (rows ?? []) as Array<{ product_id: string | null; query: string | null; kind: string; created_at: string }>;
-    if (interestList.length === 0) {
-      // Random shuffle if no history
-      const shuffled = shuffle(data.allIds);
-      return { orderedIds: shuffled, biasedIds: [] };
+  .handler(async ({ data }): Promise<{ orderedIds: string[]; biasedIds: string[] }> => {
+    if (data.viewedIds.length === 0 && data.queries.length === 0) {
+      return { orderedIds: shuffle(data.allIds), biasedIds: [] };
     }
-
-    // Get viewed product types
-    const viewedIds = interestList
-      .filter((r) => r.kind === "view" && r.product_id)
-      .map((r) => r.product_id as string);
-    const queries = interestList
-      .filter((r) => r.kind === "search" && r.query)
-      .map((r) => r.query as string);
 
     const catalog = await loadCatalog();
     const summary = catalog
@@ -393,7 +377,7 @@ export const personalizedFeed = createServerFn({ method: "POST" })
       .join("\n");
 
     const viewedSummary = catalog
-      .filter((p) => viewedIds.includes(p.id))
+      .filter((p) => data.viewedIds.includes(p.id))
       .map((p) => `- ${p.name} (${p.category})`)
       .join("\n");
 
@@ -403,7 +387,7 @@ USER VIEWED:
 ${viewedSummary || "(none)"}
 
 USER SEARCHED:
-${queries.join(", ") || "(none)"}
+${data.queries.join(", ") || "(none)"}
 
 CATALOG:
 ${summary}`;
@@ -417,8 +401,6 @@ ${summary}`;
 
     const validSet = new Set(data.allIds);
     const biasedIds = ((parsed?.ids ?? []) as string[]).filter((id) => validSet.has(id)).slice(0, 12);
-
-    // Build 40% biased list: interleave biased into a shuffled base
     const biasedSet = new Set(biasedIds);
     const rest = shuffle(data.allIds.filter((id) => !biasedSet.has(id)));
     const total = data.allIds.length;
@@ -426,18 +408,14 @@ ${summary}`;
     const ordered: string[] = [];
     let bi = 0;
     let ri = 0;
-    // Place biased every ~2-3 spots in the first portion
+
     for (let i = 0; i < total; i++) {
       const placeBiased = bi < targetBiased && (i % Math.max(1, Math.floor(total / Math.max(1, targetBiased))) === 0);
-      if (placeBiased) {
-        ordered.push(biasedIds[bi++]);
-      } else if (ri < rest.length) {
-        ordered.push(rest[ri++]);
-      } else if (bi < biasedIds.length) {
-        ordered.push(biasedIds[bi++]);
-      }
+      if (placeBiased) ordered.push(biasedIds[bi++]);
+      else if (ri < rest.length) ordered.push(rest[ri++]);
+      else if (bi < biasedIds.length) ordered.push(biasedIds[bi++]);
     }
-    // Fill any gaps
+
     while (ordered.length < total && bi < biasedIds.length) ordered.push(biasedIds[bi++]);
     while (ordered.length < total && ri < rest.length) ordered.push(rest[ri++]);
 
