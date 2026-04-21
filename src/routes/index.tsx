@@ -20,9 +20,9 @@ const TABS: { id: "all" | "deals" | "rated" | "best"; label: string; icon?: type
   { id: "all", label: "All" },
   { id: "deals", label: "Deals", icon: Flame },
   { id: "rated", label: "5-Star Rated", icon: Star },
-  { id: "best", label: "Best-Selling", icon: Award },
 ];
 
+function Index() {
   const { addToCart, user } = useStore();
   const { products, loading } = useProducts();
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("all");
