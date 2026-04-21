@@ -152,8 +152,8 @@ function Checkout() {
     if (!shipForm.name) e.name = "Required";
     if (!shipForm.email || !/^\S+@\S+\.\S+$/.test(shipForm.email)) e.email = "Valid email required";
     if (!shipForm.address) e.address = "Required";
-    if (!shipForm.city) e.city = "Required";
-    if (!shipForm.zip) e.zip = "Required";
+    if (!shipForm.state) e.state = "Select a state";
+    if (!shipForm.lga) e.lga = "Select an LGA";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -195,9 +195,13 @@ function Checkout() {
           payment_status: "pending",
           shipping_address: {
             name: shipForm.name,
+            first_name: shipForm.name.split(" ")[0] ?? shipForm.name,
+            last_name: shipForm.name.split(" ").slice(1).join(" "),
+            phone: shipForm.phone,
             address: shipForm.address,
-            city: shipForm.city,
-            zip: shipForm.zip,
+            state: shipForm.state,
+            lga: shipForm.lga,
+            city: shipForm.lga,
             country: shipForm.country,
           },
         })
@@ -417,11 +421,44 @@ function Checkout() {
                 <div className="sm:col-span-2">
                   <Field label="Address" value={shipForm.address} onChange={(v) => setShipForm({ ...shipForm, address: v })} error={errors.address} />
                 </div>
-                <Field label="City" value={shipForm.city} onChange={(v) => setShipForm({ ...shipForm, city: v })} error={errors.city} />
-                <Field label="Postal Code" value={shipForm.zip} onChange={(v) => setShipForm({ ...shipForm, zip: v })} error={errors.zip} />
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">State</span>
+                  <select
+                    value={shipForm.state}
+                    onChange={(e) => setShipForm({ ...shipForm, state: e.target.value, lga: "" })}
+                    className={`mt-2 w-full border bg-background px-4 py-3 text-sm text-foreground outline-none transition-smooth focus:border-primary ${errors.state ? "border-destructive" : "border-border"}`}
+                  >
+                    <option value="">Select state…</option>
+                    {NIGERIA_STATE_NAMES.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                  {errors.state && <span className="mt-1 block text-xs text-destructive">{errors.state}</span>}
+                </label>
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">LGA</span>
+                  <select
+                    value={shipForm.lga}
+                    onChange={(e) => setShipForm({ ...shipForm, lga: e.target.value })}
+                    disabled={!shipForm.state}
+                    className={`mt-2 w-full border bg-background px-4 py-3 text-sm text-foreground outline-none transition-smooth focus:border-primary disabled:opacity-50 ${errors.lga ? "border-destructive" : "border-border"}`}
+                  >
+                    <option value="">{shipForm.state ? "Select LGA…" : "Select state first"}</option>
+                    {lgaOptions.map((l) => (
+                      <option key={l} value={l}>{l}</option>
+                    ))}
+                  </select>
+                  {errors.lga && <span className="mt-1 block text-xs text-destructive">{errors.lga}</span>}
+                </label>
                 <div className="sm:col-span-2">
                   <Field label="Country" value={shipForm.country} onChange={(v) => setShipForm({ ...shipForm, country: v })} />
                 </div>
+                {deliveryNotice && (
+                  <div className="sm:col-span-2 flex items-center gap-2 rounded-md border border-primary/40 bg-primary/5 px-3 py-2 text-xs text-primary">
+                    {deliveryLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Truck className="h-3 w-3" />}
+                    {deliveryNotice}
+                  </div>
+                )}
               </div>
               <div className="mt-8 flex justify-end">
                 <button
@@ -536,7 +573,7 @@ function Checkout() {
                   <p>{shipForm.name}</p>
                   <p>{shipForm.address}</p>
                   <p>
-                    {shipForm.city}, {shipForm.zip}
+                    {shipForm.lga}, {shipForm.state}
                   </p>
                   <p>{shipForm.country}</p>
                 </ReviewBlock>
