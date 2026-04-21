@@ -49,13 +49,30 @@ async function flw4Fetch(path: string, init?: RequestInit & { body?: string }) {
       ...(init?.headers ?? {}),
     },
   });
-  const json = (await res.json().catch(() => ({}))) as {
+  const text = await res.text();
+  let json: {
     status?: string;
     message?: string;
+    error?: { message?: string; code?: string; validation_errors?: Array<{ field?: string; message?: string }> };
     data?: Record<string, unknown>;
-  };
+  } = {};
+  try {
+    json = text ? JSON.parse(text) : {};
+  } catch {
+    json = {};
+  }
   if (!res.ok || json.status === "error" || json.status === "failed") {
-    throw new Error(json.message ?? `Flutterwave v4 error ${res.status}`);
+    const validation = json.error?.validation_errors
+      ?.map((v) => `${v.field ?? ""}: ${v.message ?? ""}`)
+      .join("; ");
+    const detail =
+      validation ||
+      json.error?.message ||
+      json.message ||
+      text.slice(0, 300) ||
+      `status ${res.status}`;
+    console.error(`[flw4] ${path} -> ${res.status}: ${detail}`);
+    throw new Error(`Flutterwave v4 (${path}): ${detail}`);
   }
   return json;
 }
@@ -63,15 +80,28 @@ async function flw4Fetch(path: string, init?: RequestInit & { body?: string }) {
 async function createCustomer(opts: { email: string; name?: string; phone?: string }) {
   const [first, ...rest] = (opts.name ?? "Customer").trim().split(/\s+/);
   const last = rest.length > 0 ? rest.join(" ") : "User";
+  // v4 phone: digits-only number, country_code without leading "+"
+  const phoneDigits = opts.phone?.replace(/\D/g, "") ?? "";
+  const localNumber = phoneDigits.startsWith("234")
+    ? phoneDigits.slice(3)
+    : phoneDigits.replace(/^0+/, "");
+  const body: Record<string, unknown> = {
+    email: opts.email,
+    name: { first, last },
+    address: {
+      line1: "N/A",
+      city: "Lagos",
+      state: "Lagos",
+      country: "NG",
+      postal_code: "100001",
+    },
+  };
+  if (localNumber) {
+    body.phone = { country_code: "234", number: localNumber };
+  }
   const res = await flw4Fetch("/customers", {
     method: "POST",
-    body: JSON.stringify({
-      email: opts.email,
-      name: { first, last },
-      ...(opts.phone
-        ? { phone: { country_code: "234", number: opts.phone.replace(/^\+?234/, "") } }
-        : {}),
-    }),
+    body: JSON.stringify(body),
   });
   const id = res.data?.id as string;
   if (!id) throw new Error("Failed to create customer");
