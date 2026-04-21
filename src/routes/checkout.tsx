@@ -4,13 +4,12 @@ import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore, useCartTotal, useProducts } from "@/lib/store";
 import {
-  initFlutterwave,
-  verifyFlutterwave,
-  chargeSavedCard,
-  createVirtualAccount,
-} from "@/lib/flutterwave.functions";
-import { initOpayV4, verifyOpayV4 } from "@/lib/flutterwave-v4.functions";
-import { openFlutterwavePopup } from "@/lib/flutterwave-popup";
+  initOpayV4,
+  initCardV4,
+  initBankTransferV4,
+  chargeSavedCardV4,
+  verifyChargeV4,
+} from "@/lib/flutterwave-v4.functions";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Checkout — Maison Luxe" }] }),
@@ -26,7 +25,8 @@ type SavedCard = {
   last4: string;
   exp_month: string;
   exp_year: string;
-  authorization_code: string;
+  authorization_code: string; // v4 payment_method_id
+  paystack_customer_code: string | null; // reused: v4 customer_id
   is_default: boolean;
 };
 
@@ -83,7 +83,7 @@ function Checkout() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data } = await (supabase as any)
         .from("payment_methods")
-        .select("id, brand, last4, exp_month, exp_year, authorization_code, is_default")
+        .select("id, brand, last4, exp_month, exp_year, authorization_code, paystack_customer_code, is_default")
         .eq("user_id", user.id)
         .order("is_default", { ascending: false });
       const list = (data ?? []) as SavedCard[];
@@ -185,23 +185,27 @@ function Checkout() {
 
       const tx_ref = `ml-${order.id}-${Date.now()}`;
 
-      // 2. Branch by method
+      // 2. Branch by method — all routes use Flutterwave v4
       if (method === "saved_card" && selectedCardId) {
         const card = savedCards.find((c) => c.id === selectedCardId);
         if (!card) throw new Error("Saved card not found");
-        const res = await chargeSavedCard({
+        if (!card.paystack_customer_code) {
+          throw new Error("Saved card is missing customer info. Please add the card again.");
+        }
+        const charge = await chargeSavedCardV4({
           data: {
             amount: total,
             email: shipForm.email,
-            tx_ref,
-            token: card.authorization_code,
+            reference: tx_ref,
+            paymentMethodId: card.authorization_code,
+            customerId: card.paystack_customer_code,
             meta: { order_id: order.id },
             accessToken,
           },
         });
-        const verified = await verifyFlutterwave({
-          data: { tx_ref: res.tx_ref, saveCard: false, accessToken },
-        });
+        const verified = charge.success
+          ? { success: true }
+          : await verifyChargeV4({ data: { chargeId: charge.chargeId, accessToken } });
         await finalize(order.id, tx_ref, verified.success);
         goToOrder(order.id, verified.success);
         if (!verified.success) setErrors({ form: "Card was declined. Please try another method." });
@@ -209,19 +213,20 @@ function Checkout() {
       }
 
       if (method === "bank_transfer") {
-        // Generate a dedicated virtual bank account for this exact order
-        const va = await createVirtualAccount({
+        const va = await initBankTransferV4({
           data: {
             amount: total,
             email: shipForm.email,
-            tx_ref,
             name: shipForm.name,
+            phone: shipForm.phone,
+            reference: tx_ref,
+            meta: { order_id: order.id },
             accessToken,
           },
         });
         await supabase
           .from("orders")
-          .update({ payment_reference: tx_ref })
+          .update({ payment_reference: tx_ref, payment_method: `bank_transfer:${va.chargeId}` })
           .eq("id", order.id);
         setVirtualAccount({
           account_number: va.account_number,
@@ -231,15 +236,12 @@ function Checkout() {
           amount: va.amount,
         });
         setWaitingForBankPayment(true);
-        // Poll for payment completion
-        void pollVirtualAccountPayment(order.id, tx_ref, accessToken);
+        void pollChargePayment(order.id, va.chargeId, accessToken);
         setPlacing(false);
         return;
       }
 
       if (method === "opay") {
-        // Flutterwave v4 Opay flow: create customer + payment method + charge,
-        // then redirect the browser to Opay's hosted authorization page.
         const opay = await initOpayV4({
           data: {
             amount: total,
@@ -251,82 +253,48 @@ function Checkout() {
             accessToken,
           },
         });
-        // Persist the v4 charge id on the order so we can verify on return.
         await supabase
           .from("orders")
           .update({
             payment_reference: tx_ref,
             payment_status: "pending",
-            // store charge id in payment_method field suffix so we don't need a migration
             payment_method: `opay:${opay.chargeId}`,
           })
           .eq("id", order.id);
-        // Redirect — Flutterwave will bring the user back to our return URL
-        // (set by the merchant in the Flutterwave dashboard) or directly to
-        // the Opay-completed page; we'll also handle ?opay_charge=... on
-        // /orders/$id to verify and finalize.
-        window.location.href = `${opay.redirectUrl}${opay.redirectUrl.includes("?") ? "&" : "?"}return_url=${encodeURIComponent(window.location.origin + "/orders/" + order.id + "?opay_charge=" + opay.chargeId + "&order_id=" + order.id)}`;
+        // Redirect to Opay-hosted authorization page. Flutterwave will return
+        // the user to the redirect URL we registered in our Flutterwave
+        // dashboard; we also append ?opay_charge=... so /orders/$id can verify.
+        const returnUrl = `${window.location.origin}/orders/${order.id}?opay_charge=${opay.chargeId}`;
+        const sep = opay.redirectUrl.includes("?") ? "&" : "?";
+        window.location.href = `${opay.redirectUrl}${sep}return_url=${encodeURIComponent(returnUrl)}`;
         return;
       }
 
-      // Card (new) → Flutterwave v3 inline popup with payment_options filter
-      const paymentOptions = method === "card" ? "card" : "card,banktransfer,ussd";
-
-      const callbackUrl = `${window.location.origin}/orders/${order.id}`;
-      // Pre-create on Flutterwave (also gives us a hosted fallback link)
-      await initFlutterwave({
+      // Card (new) → v4 hosted card page
+      const cardInit = await initCardV4({
         data: {
           amount: total,
           email: shipForm.email,
           name: shipForm.name,
-          tx_ref,
-          callbackUrl,
-          paymentOptions,
+          phone: shipForm.phone,
+          reference: tx_ref,
+          saveCard: true,
           meta: { order_id: order.id },
           accessToken,
         },
       });
-
-      const popup = await openFlutterwavePopup({
-        email: shipForm.email,
-        name: shipForm.name,
-        amount: total,
-        tx_ref,
-        paymentOptions,
-        meta: { order_id: order.id },
-        title: "Maison Luxe",
-        description: `Order #${order.id.slice(0, 8).toUpperCase()}`,
-      });
-
-      if (!popup || popup.status !== "successful" && popup.status !== "completed") {
-        if (!popup) {
-          setErrors({ form: "Payment was cancelled. Your order will not ship until payment completes." });
-        } else {
-          setErrors({ form: "Payment did not complete. Your order will not ship until payment completes." });
-        }
-        await supabase
-          .from("orders")
-          .update({ payment_status: "cancelled", status: "Pending Payment", payment_reference: tx_ref })
-          .eq("id", order.id);
-        setPlacing(false);
-        return;
-      }
-
-      const verified = await verifyFlutterwave({
-        data: {
-          tx_ref: popup.tx_ref,
-          transaction_id: popup.transaction_id,
-          saveCard: method === "card",
-          accessToken,
-        },
-      });
-      await finalize(order.id, tx_ref, verified.success);
-      if (!verified.success) {
-        setErrors({ form: "Payment could not be verified. Your order will not ship." });
-        setPlacing(false);
-        return;
-      }
-      goToOrder(order.id, true);
+      await supabase
+        .from("orders")
+        .update({
+          payment_reference: tx_ref,
+          payment_status: "pending",
+          payment_method: `card:${cardInit.chargeId}`,
+        })
+        .eq("id", order.id);
+      const cardReturnUrl = `${window.location.origin}/orders/${order.id}?opay_charge=${cardInit.chargeId}`;
+      const cardSep = cardInit.redirectUrl.includes("?") ? "&" : "?";
+      window.location.href = `${cardInit.redirectUrl}${cardSep}return_url=${encodeURIComponent(cardReturnUrl)}`;
+      return;
     } catch (err) {
       console.error(err);
       setErrors({ form: err instanceof Error ? err.message : "Failed to place order" });
@@ -353,15 +321,15 @@ function Checkout() {
     if (success) await clearCart();
   };
 
-  const pollVirtualAccountPayment = async (orderId: string, tx_ref: string, accessToken: string) => {
+  const pollChargePayment = async (orderId: string, chargeId: string, accessToken: string) => {
     const start = Date.now();
     const TIMEOUT = 1000 * 60 * 30; // 30 min
     while (Date.now() - start < TIMEOUT) {
       await new Promise((r) => setTimeout(r, 8000));
       try {
-        const verified = await verifyFlutterwave({ data: { tx_ref, accessToken } });
+        const verified = await verifyChargeV4({ data: { chargeId, accessToken } });
         if (verified.success) {
-          await finalize(orderId, tx_ref, true);
+          await finalize(orderId, verified.reference || chargeId, true);
           setWaitingForBankPayment(false);
           navigate({ to: "/orders/$id", params: { id: orderId } });
           return;
