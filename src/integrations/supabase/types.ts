@@ -349,44 +349,65 @@ export type Database = {
         Row: {
           brand: string
           category: string
+          colors: Json
           created_at: string
+          delivery_price: number
           description: string
           details: Json
+          discount_price: number | null
           id: string
           image: string
+          images: Json
+          is_active: boolean
           name: string
           price: number
           rating: number
           review_count: number
           reviews: Json
+          sizes: Json
+          stock: number
         }
         Insert: {
           brand: string
           category: string
+          colors?: Json
           created_at?: string
+          delivery_price?: number
           description: string
           details?: Json
+          discount_price?: number | null
           id: string
           image: string
+          images?: Json
+          is_active?: boolean
           name: string
           price: number
           rating?: number
           review_count?: number
           reviews?: Json
+          sizes?: Json
+          stock?: number
         }
         Update: {
           brand?: string
           category?: string
+          colors?: Json
           created_at?: string
+          delivery_price?: number
           description?: string
           details?: Json
+          discount_price?: number | null
           id?: string
           image?: string
+          images?: Json
+          is_active?: boolean
           name?: string
           price?: number
           rating?: number
           review_count?: number
           reviews?: Json
+          sizes?: Json
+          stock?: number
         }
         Relationships: []
       }

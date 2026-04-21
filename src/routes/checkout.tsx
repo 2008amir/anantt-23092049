@@ -1,8 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Building2, Check, CreditCard, Loader2, MapPin, Package, Smartphone, Copy } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { Building2, Check, CreditCard, Loader2, MapPin, Package, Smartphone, Copy, Truck } from "lucide-react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore, useCartTotal, useProducts } from "@/lib/store";
+import { NIGERIA_STATE_NAMES, NIGERIA_STATES } from "@/lib/nigeria-states";
 import {
   initFlutterwave,
   verifyFlutterwave,
@@ -56,17 +57,26 @@ function Checkout() {
   const navigate = useNavigate();
   const { user, clearCart } = useStore();
   const { products } = useProducts();
-  const { items, subtotal, shipping, tax, total } = useCartTotal(products);
+  const { items, subtotal, tax } = useCartTotal(products);
   const [step, setStep] = useState<Step>(1);
   const [shipForm, setShipForm] = useState({
     name: "",
     email: user?.email ?? "",
     phone: "",
     address: "",
-    city: "",
-    zip: "",
+    state: "",
+    lga: "",
     country: "Nigeria",
   });
+  const [deliveryPrice, setDeliveryPrice] = useState(0);
+  const [deliveryLoading, setDeliveryLoading] = useState(false);
+  const [deliveryNotice, setDeliveryNotice] = useState<string | null>(null);
+  const shipping = deliveryPrice;
+  const total = subtotal + shipping + tax;
+  const lgaOptions = useMemo(
+    () => (shipForm.state ? NIGERIA_STATES[shipForm.state] ?? [] : []),
+    [shipForm.state],
+  );
   const [method, setMethod] = useState<PayMethod>("card");
   const [savedCards, setSavedCards] = useState<SavedCard[]>([]);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
@@ -74,6 +84,33 @@ function Checkout() {
   const [placing, setPlacing] = useState(false);
   const [virtualAccount, setVirtualAccount] = useState<VirtualAccount | null>(null);
   const [waitingForBankPayment, setWaitingForBankPayment] = useState(false);
+
+  // Fetch LGA delivery price when state + lga selected
+  useEffect(() => {
+    if (!shipForm.state || !shipForm.lga) {
+      setDeliveryPrice(0);
+      setDeliveryNotice(null);
+      return;
+    }
+    setDeliveryLoading(true);
+    void (async () => {
+      const { data } = await supabase
+        .from("lga_delivery_prices")
+        .select("price")
+        .eq("state", shipForm.state)
+        .eq("lga", shipForm.lga)
+        .maybeSingle();
+      const price = Number(data?.price ?? 0);
+      setDeliveryPrice(price);
+      setDeliveryNotice(
+        price > 0
+          ? `Delivery price ₦${price.toLocaleString()} has been added for ${shipForm.lga}, ${shipForm.state}.`
+          : `No delivery fee set for ${shipForm.lga}.`,
+      );
+      setDeliveryLoading(false);
+    })();
+  }, [shipForm.state, shipForm.lga]);
+
 
   useEffect(() => {
     if (!user) return;
@@ -115,8 +152,8 @@ function Checkout() {
     if (!shipForm.name) e.name = "Required";
     if (!shipForm.email || !/^\S+@\S+\.\S+$/.test(shipForm.email)) e.email = "Valid email required";
     if (!shipForm.address) e.address = "Required";
-    if (!shipForm.city) e.city = "Required";
-    if (!shipForm.zip) e.zip = "Required";
+    if (!shipForm.state) e.state = "Select a state";
+    if (!shipForm.lga) e.lga = "Select an LGA";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -158,9 +195,13 @@ function Checkout() {
           payment_status: "pending",
           shipping_address: {
             name: shipForm.name,
+            first_name: shipForm.name.split(" ")[0] ?? shipForm.name,
+            last_name: shipForm.name.split(" ").slice(1).join(" "),
+            phone: shipForm.phone,
             address: shipForm.address,
-            city: shipForm.city,
-            zip: shipForm.zip,
+            state: shipForm.state,
+            lga: shipForm.lga,
+            city: shipForm.lga,
             country: shipForm.country,
           },
         })
@@ -380,11 +421,44 @@ function Checkout() {
                 <div className="sm:col-span-2">
                   <Field label="Address" value={shipForm.address} onChange={(v) => setShipForm({ ...shipForm, address: v })} error={errors.address} />
                 </div>
-                <Field label="City" value={shipForm.city} onChange={(v) => setShipForm({ ...shipForm, city: v })} error={errors.city} />
-                <Field label="Postal Code" value={shipForm.zip} onChange={(v) => setShipForm({ ...shipForm, zip: v })} error={errors.zip} />
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">State</span>
+                  <select
+                    value={shipForm.state}
+                    onChange={(e) => setShipForm({ ...shipForm, state: e.target.value, lga: "" })}
+                    className={`mt-2 w-full border bg-background px-4 py-3 text-sm text-foreground outline-none transition-smooth focus:border-primary ${errors.state ? "border-destructive" : "border-border"}`}
+                  >
+                    <option value="">Select state…</option>
+                    {NIGERIA_STATE_NAMES.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                  {errors.state && <span className="mt-1 block text-xs text-destructive">{errors.state}</span>}
+                </label>
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">LGA</span>
+                  <select
+                    value={shipForm.lga}
+                    onChange={(e) => setShipForm({ ...shipForm, lga: e.target.value })}
+                    disabled={!shipForm.state}
+                    className={`mt-2 w-full border bg-background px-4 py-3 text-sm text-foreground outline-none transition-smooth focus:border-primary disabled:opacity-50 ${errors.lga ? "border-destructive" : "border-border"}`}
+                  >
+                    <option value="">{shipForm.state ? "Select LGA…" : "Select state first"}</option>
+                    {lgaOptions.map((l) => (
+                      <option key={l} value={l}>{l}</option>
+                    ))}
+                  </select>
+                  {errors.lga && <span className="mt-1 block text-xs text-destructive">{errors.lga}</span>}
+                </label>
                 <div className="sm:col-span-2">
                   <Field label="Country" value={shipForm.country} onChange={(v) => setShipForm({ ...shipForm, country: v })} />
                 </div>
+                {deliveryNotice && (
+                  <div className="sm:col-span-2 flex items-center gap-2 rounded-md border border-primary/40 bg-primary/5 px-3 py-2 text-xs text-primary">
+                    {deliveryLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Truck className="h-3 w-3" />}
+                    {deliveryNotice}
+                  </div>
+                )}
               </div>
               <div className="mt-8 flex justify-end">
                 <button
@@ -499,7 +573,7 @@ function Checkout() {
                   <p>{shipForm.name}</p>
                   <p>{shipForm.address}</p>
                   <p>
-                    {shipForm.city}, {shipForm.zip}
+                    {shipForm.lga}, {shipForm.state}
                   </p>
                   <p>{shipForm.country}</p>
                 </ReviewBlock>
