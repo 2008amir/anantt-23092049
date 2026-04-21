@@ -3,6 +3,7 @@ import { Check, Truck, Package, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Recommend } from "@/components/Recommend";
+import { verifyOpayV4 } from "@/lib/flutterwave-v4.functions";
 
 type OrderItem = { product_image: string; product_name: string; price: number | string; quantity: number };
 type Shipping = { name: string; address: string; city: string; zip: string; country: string };
@@ -24,20 +25,58 @@ function OrderDetail() {
   const { id } = Route.useParams();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [verifyingOpay, setVerifyingOpay] = useState(false);
 
   useEffect(() => {
-    void supabase
-      .from("orders")
-      .select("*, order_items(*)")
-      .eq("id", id)
-      .maybeSingle()
-      .then(({ data }) => {
-        setOrder((data as unknown as Order) ?? null);
-        setLoading(false);
-      });
+    void (async () => {
+      const params = new URLSearchParams(window.location.search);
+      const chargeId = params.get("opay_charge");
+      if (chargeId) {
+        setVerifyingOpay(true);
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const accessToken = session?.access_token;
+          if (accessToken) {
+            const result = await verifyOpayV4({ data: { chargeId, accessToken } });
+            if (result.success) {
+              await supabase
+                .from("orders")
+                .update({ payment_status: "paid", status: "Processing", payment_method: "opay" })
+                .eq("id", id);
+            } else {
+              await supabase
+                .from("orders")
+                .update({ payment_status: "failed", status: "Payment Failed" })
+                .eq("id", id);
+            }
+          }
+        } catch (e) {
+          console.error("Opay verification failed", e);
+        } finally {
+          window.history.replaceState({}, "", window.location.pathname);
+          setVerifyingOpay(false);
+        }
+      }
+
+      const { data } = await supabase
+        .from("orders")
+        .select("*, order_items(*)")
+        .eq("id", id)
+        .maybeSingle();
+      setOrder((data as unknown as Order) ?? null);
+      setLoading(false);
+    })();
   }, [id]);
 
-  if (loading) return <div className="container mx-auto flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+  if (loading || verifyingOpay)
+    return (
+      <div className="container mx-auto flex flex-col items-center gap-3 py-24">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        {verifyingOpay && (
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Verifying Opay payment…</p>
+        )}
+      </div>
+    );
 
   if (!order) {
     return (

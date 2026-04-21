@@ -9,6 +9,7 @@ import {
   chargeSavedCard,
   createVirtualAccount,
 } from "@/lib/flutterwave.functions";
+import { initOpayV4, verifyOpayV4 } from "@/lib/flutterwave-v4.functions";
 import { openFlutterwavePopup } from "@/lib/flutterwave-popup";
 
 export const Route = createFileRoute("/checkout")({
@@ -236,9 +237,40 @@ function Checkout() {
         return;
       }
 
-      // Card (new) or Opay → Flutterwave inline popup with payment_options filter
-      const paymentOptions =
-        method === "opay" ? "opay" : method === "card" ? "card" : "card,banktransfer,opay,ussd";
+      if (method === "opay") {
+        // Flutterwave v4 Opay flow: create customer + payment method + charge,
+        // then redirect the browser to Opay's hosted authorization page.
+        const opay = await initOpayV4({
+          data: {
+            amount: total,
+            email: shipForm.email,
+            name: shipForm.name,
+            phone: shipForm.phone,
+            reference: tx_ref,
+            meta: { order_id: order.id },
+            accessToken,
+          },
+        });
+        // Persist the v4 charge id on the order so we can verify on return.
+        await supabase
+          .from("orders")
+          .update({
+            payment_reference: tx_ref,
+            payment_status: "pending",
+            // store charge id in payment_method field suffix so we don't need a migration
+            payment_method: `opay:${opay.chargeId}`,
+          })
+          .eq("id", order.id);
+        // Redirect — Flutterwave will bring the user back to our return URL
+        // (set by the merchant in the Flutterwave dashboard) or directly to
+        // the Opay-completed page; we'll also handle ?opay_charge=... on
+        // /orders/$id to verify and finalize.
+        window.location.href = `${opay.redirectUrl}${opay.redirectUrl.includes("?") ? "&" : "?"}return_url=${encodeURIComponent(window.location.origin + "/orders/" + order.id + "?opay_charge=" + opay.chargeId + "&order_id=" + order.id)}`;
+        return;
+      }
+
+      // Card (new) → Flutterwave v3 inline popup with payment_options filter
+      const paymentOptions = method === "card" ? "card" : "card,banktransfer,ussd";
 
       const callbackUrl = `${window.location.origin}/orders/${order.id}`;
       // Pre-create on Flutterwave (also gives us a hosted fallback link)
