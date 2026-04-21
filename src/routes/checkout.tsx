@@ -223,10 +223,15 @@ function Checkout() {
           .from("orders")
           .update({ payment_reference: tx_ref })
           .eq("id", order.id);
+        // Override account name to luxesparkle-{username}
+        const usernameSlug = (user?.email ?? shipForm.email)
+          .split("@")[0]
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, "");
         setVirtualAccount({
           account_number: va.account_number,
           bank_name: va.bank_name,
-          account_name: va.account_name,
+          account_name: `luxesparkle-${usernameSlug}`,
           expiry_date: va.expiry_date,
           amount: va.amount,
         });
@@ -251,21 +256,27 @@ function Checkout() {
             accessToken,
           },
         });
-        // Persist the v4 charge id on the order so we can verify on return.
+        // Persist the v4 charge id in payment_reference so we can verify on
+        // return. Keep payment_method as plain "opay" — do NOT mutate it,
+        // otherwise the redirect/verify flow loses the method label.
         await supabase
           .from("orders")
           .update({
-            payment_reference: tx_ref,
+            payment_reference: opay.chargeId,
             payment_status: "pending",
-            // store charge id in payment_method field suffix so we don't need a migration
-            payment_method: `opay:${opay.chargeId}`,
+            payment_method: "opay",
           })
           .eq("id", order.id);
-        // Redirect — Flutterwave will bring the user back to our return URL
-        // (set by the merchant in the Flutterwave dashboard) or directly to
-        // the Opay-completed page; we'll also handle ?opay_charge=... on
-        // /orders/$id to verify and finalize.
-        window.location.href = `${opay.redirectUrl}${opay.redirectUrl.includes("?") ? "&" : "?"}return_url=${encodeURIComponent(window.location.origin + "/orders/" + order.id + "?opay_charge=" + opay.chargeId + "&order_id=" + order.id)}`;
+        // Stash the charge id locally so /orders/$id can verify even if the
+        // Flutterwave redirect strips our query string.
+        try {
+          sessionStorage.setItem(`opay_charge_${order.id}`, opay.chargeId);
+        } catch {
+          // ignore storage errors
+        }
+        // Plain redirect — do NOT append return_url; Flutterwave's hosted
+        // page validates its own JWT and any extra params can break the flow.
+        window.location.href = opay.redirectUrl;
         return;
       }
 
@@ -526,7 +537,7 @@ function Checkout() {
               </div>
 
               <p className="mt-6 text-[11px] text-muted-foreground">
-                Payments are securely processed by Flutterwave. Your order will not ship until payment is confirmed.
+                Your order will not ship until payment is confirmed.
               </p>
 
               <div className="mt-8 flex justify-between">
@@ -552,26 +563,10 @@ function Checkout() {
                   </p>
                   <p>{shipForm.country}</p>
                 </ReviewBlock>
-                <ReviewBlock title="Payment">
-                  {method === "saved_card" && selectedCardId ? (
-                    (() => {
-                      const c = savedCards.find((s) => s.id === selectedCardId);
-                      return c ? (
-                        <p className="flex items-center gap-2">
-                          {brandLogo(c.brand) && <img src={brandLogo(c.brand)!} alt={c.brand} className="h-5 w-8 object-contain" />}
-                          Saved {c.brand} •••• {c.last4}
-                        </p>
-                      ) : (
-                        <p>Saved card</p>
-                      );
-                    })()
-                  ) : method === "bank_transfer" ? (
-                    <p>Bank Transfer (dedicated account)</p>
-                  ) : method === "opay" ? (
-                    <p>Opay paylink</p>
-                  ) : (
-                    <p>New Card</p>
-                  )}
+                <ReviewBlock title="Amount to Pay">
+                  <p className="font-serif text-2xl text-gold-gradient">
+                    ₦{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
                 </ReviewBlock>
               </div>
 
