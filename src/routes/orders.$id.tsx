@@ -30,14 +30,7 @@ function OrderDetail() {
   useEffect(() => {
     void (async () => {
       const params = new URLSearchParams(window.location.search);
-      let chargeId = params.get("opay_charge");
-      if (!chargeId) {
-        try {
-          chargeId = localStorage.getItem(`opay:${id}`);
-        } catch {
-          // ignore
-        }
-      }
+      const chargeId = params.get("opay_charge");
       if (chargeId) {
         setVerifyingOpay(true);
         try {
@@ -50,7 +43,7 @@ function OrderDetail() {
                 .from("orders")
                 .update({ payment_status: "paid", status: "Processing", payment_method: "opay" })
                 .eq("id", id);
-            } else if (result.status !== "pending") {
+            } else {
               await supabase
                 .from("orders")
                 .update({ payment_status: "failed", status: "Payment Failed" })
@@ -60,11 +53,6 @@ function OrderDetail() {
         } catch (e) {
           console.error("Opay verification failed", e);
         } finally {
-          try {
-            localStorage.removeItem(`opay:${id}`);
-          } catch {
-            // ignore
-          }
           window.history.replaceState({}, "", window.location.pathname);
           setVerifyingOpay(false);
         }
