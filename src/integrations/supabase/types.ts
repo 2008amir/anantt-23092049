@@ -109,6 +109,90 @@ export type Database = {
           },
         ]
       }
+      deliverers: {
+        Row: {
+          active: boolean
+          city: string | null
+          created_at: string
+          id: string
+          name: string
+          phone: string
+          state: string
+        }
+        Insert: {
+          active?: boolean
+          city?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          phone: string
+          state: string
+        }
+        Update: {
+          active?: boolean
+          city?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          phone?: string
+          state?: string
+        }
+        Relationships: []
+      }
+      lga_delivery_prices: {
+        Row: {
+          id: string
+          lga: string
+          price: number
+          state: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          lga: string
+          price?: number
+          state: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          lga?: string
+          price?: number
+          state?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          read_by_admin: boolean
+          read_by_user: boolean
+          sender: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          read_by_admin?: boolean
+          read_by_user?: boolean
+          sender: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          read_by_admin?: boolean
+          read_by_user?: boolean
+          sender?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           id: string
@@ -157,6 +241,8 @@ export type Database = {
       orders: {
         Row: {
           created_at: string
+          deliverer_id: string | null
+          delivery_stage: string
           id: string
           payment_method: string | null
           payment_reference: string | null
@@ -171,6 +257,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deliverer_id?: string | null
+          delivery_stage?: string
           id?: string
           payment_method?: string | null
           payment_reference?: string | null
@@ -185,6 +273,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deliverer_id?: string | null
+          delivery_stage?: string
           id?: string
           payment_method?: string | null
           payment_reference?: string | null
@@ -197,7 +287,15 @@ export type Database = {
           total?: number
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "orders_deliverer_id_fkey"
+            columns: ["deliverer_id"]
+            isOneToOne: false
+            referencedRelation: "deliverers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payment_methods: {
         Row: {
