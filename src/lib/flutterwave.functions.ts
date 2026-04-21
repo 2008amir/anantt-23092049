@@ -166,6 +166,12 @@ export const createVirtualAccount = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     await getFlutterwaveAuthContext(data.accessToken);
 
+    // Derive a "username" from the customer name (preferred) or email local-part.
+    const username = (data.name?.trim().split(/\s+/)[0] ?? data.email.split("@")[0])
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+    const brandedName = `luxespakle/${username || "customer"}`;
+
     const res = await flwFetch("/virtual-account-numbers", {
       method: "POST",
       body: JSON.stringify({
@@ -173,7 +179,7 @@ export const createVirtualAccount = createServerFn({ method: "POST" })
         amount: data.amount,
         tx_ref: data.tx_ref,
         is_permanent: false,
-        narration: data.name ?? "Maison Luxe Order",
+        narration: brandedName,
         currency: "NGN",
       }),
     });
@@ -181,11 +187,101 @@ export const createVirtualAccount = createServerFn({ method: "POST" })
     return {
       account_number: res.data?.account_number as string,
       bank_name: res.data?.bank_name as string,
-      account_name: (res.data?.account_name ?? data.name ?? "Maison Luxe") as string,
+      // Always present our branded name to the customer regardless of what the
+      // bank returns (bank may default to a generic Flutterwave label).
+      account_name: brandedName,
       expiry_date: res.data?.expiry_date as string,
       amount: res.data?.amount ?? data.amount,
       order_ref: res.data?.order_ref as string,
       flw_ref: res.data?.flw_ref as string,
+    };
+  });
+
+/**
+ * Direct card charge using v3 encrypted payload. Returns either a success
+ * status or an `auth_url` (3DS / OTP redirect) the client should navigate to.
+ */
+export const chargeCardDirect = createServerFn({ method: "POST" })
+  .inputValidator(
+    (input: {
+      amount: number;
+      email: string;
+      name?: string;
+      phone?: string;
+      tx_ref: string;
+      callbackUrl: string;
+      card_number: string;
+      cvv: string;
+      expiry_month: string;
+      expiry_year: string;
+      meta?: Record<string, unknown>;
+      accessToken?: string;
+    }) => {
+      if (!input?.amount || input.amount <= 0) throw new Error("amount required");
+      if (!input.email || !/^\S+@\S+\.\S+$/.test(input.email)) throw new Error("valid email required");
+      if (!input.tx_ref) throw new Error("tx_ref required");
+      if (!input.card_number || input.card_number.replace(/\s/g, "").length < 13)
+        throw new Error("valid card number required");
+      if (!input.cvv || input.cvv.length < 3) throw new Error("cvv required");
+      if (!input.expiry_month || !input.expiry_year) throw new Error("expiry required");
+      if (!input.callbackUrl) throw new Error("callbackUrl required");
+      if (!input.accessToken) throw new Error("auth required");
+      return input;
+    },
+  )
+  .handler(async ({ data }) => {
+    const { userId } = await getFlutterwaveAuthContext(data.accessToken);
+
+    const payload = {
+      card_number: data.card_number.replace(/\s/g, ""),
+      cvv: data.cvv,
+      expiry_month: data.expiry_month,
+      expiry_year: data.expiry_year.length === 4 ? data.expiry_year.slice(-2) : data.expiry_year,
+      currency: "NGN",
+      amount: data.amount,
+      email: data.email,
+      fullname: data.name ?? "Customer",
+      phone_number: data.phone ?? "",
+      tx_ref: data.tx_ref,
+      redirect_url: data.callbackUrl,
+      enckey: encryptionKey(),
+      meta: { ...(data.meta ?? {}), user_id: userId },
+    };
+
+    const client = encryptPayload(payload);
+
+    const res = await fetch(`${FLW_BASE}/charges?type=card`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${secretKey()}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ client }),
+    });
+    const json = (await res.json().catch(() => ({}))) as {
+      status?: string;
+      message?: string;
+      meta?: { authorization?: { mode?: string; redirect?: string } };
+      data?: { status?: string; tx_ref?: string; flw_ref?: string };
+    };
+
+    if (json.meta?.authorization?.mode === "redirect" && json.meta.authorization.redirect) {
+      return {
+        status: "redirect" as const,
+        auth_url: json.meta.authorization.redirect,
+        tx_ref: data.tx_ref,
+      };
+    }
+
+    if (!res.ok || json.status === "error") {
+      throw new Error(json.message ?? "Card was declined");
+    }
+
+    return {
+      status: (json.data?.status ?? "pending") as string,
+      tx_ref: json.data?.tx_ref ?? data.tx_ref,
+      flw_ref: json.data?.flw_ref ?? "",
+      auth_url: null as string | null,
     };
   });
 
