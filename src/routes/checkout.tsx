@@ -242,8 +242,10 @@ function Checkout() {
       }
 
       if (method === "opay") {
-        // Flutterwave v4 Opay flow: create customer + payment method + charge,
-        // then redirect the browser to Opay's hosted authorization page.
+        // Flutterwave v4 Opay: tell Opay to send the user back to our order
+        // page after authorization. We persist chargeId locally so /orders/$id
+        // can verify even if the gateway strips query params.
+        const returnUrl = `${window.location.origin}/orders/${order.id}?order_id=${order.id}`;
         const opay = await initOpayV4({
           data: {
             amount: total,
@@ -252,85 +254,73 @@ function Checkout() {
             phone: shipForm.phone,
             reference: tx_ref,
             meta: { order_id: order.id },
+            returnUrl,
             accessToken,
           },
         });
-        // Persist the v4 charge id on the order so we can verify on return.
         await supabase
           .from("orders")
           .update({
             payment_reference: tx_ref,
             payment_status: "pending",
-            // store charge id in payment_method field suffix so we don't need a migration
             payment_method: `opay:${opay.chargeId}`,
           })
           .eq("id", order.id);
-        // Redirect — Flutterwave will bring the user back to our return URL
-        // (set by the merchant in the Flutterwave dashboard) or directly to
-        // the Opay-completed page; we'll also handle ?opay_charge=... on
-        // /orders/$id to verify and finalize.
-        window.location.href = `${opay.redirectUrl}${opay.redirectUrl.includes("?") ? "&" : "?"}return_url=${encodeURIComponent(window.location.origin + "/orders/" + order.id + "?opay_charge=" + opay.chargeId + "&order_id=" + order.id)}`;
-        return;
-      }
-
-      // Card (new) → Flutterwave v3 inline popup with payment_options filter
-      const paymentOptions = method === "card" ? "card" : "card,banktransfer,ussd";
-
-      const callbackUrl = `${window.location.origin}/orders/${order.id}`;
-      // Pre-create on Flutterwave (also gives us a hosted fallback link)
-      await initFlutterwave({
-        data: {
-          amount: total,
-          email: shipForm.email,
-          name: shipForm.name,
-          tx_ref,
-          callbackUrl,
-          paymentOptions,
-          meta: { order_id: order.id },
-          accessToken,
-        },
-      });
-
-      const popup = await openFlutterwavePopup({
-        email: shipForm.email,
-        name: shipForm.name,
-        amount: total,
-        tx_ref,
-        paymentOptions,
-        meta: { order_id: order.id },
-        title: "Maison Luxe",
-        description: `Order #${order.id.slice(0, 8).toUpperCase()}`,
-      });
-
-      if (!popup || popup.status !== "successful" && popup.status !== "completed") {
-        if (!popup) {
-          setErrors({ form: "Payment was cancelled. Your order will not ship until payment completes." });
-        } else {
-          setErrors({ form: "Payment did not complete. Your order will not ship until payment completes." });
+        try {
+          localStorage.setItem(`opay:${order.id}`, opay.chargeId);
+        } catch {
+          // ignore
         }
-        await supabase
-          .from("orders")
-          .update({ payment_status: "cancelled", status: "Pending Payment", payment_reference: tx_ref })
-          .eq("id", order.id);
-        setPlacing(false);
+        window.location.href = opay.redirectUrl;
         return;
       }
 
-      const verified = await verifyFlutterwave({
-        data: {
-          tx_ref: popup.tx_ref,
-          transaction_id: popup.transaction_id,
-          saveCard: method === "card",
-          accessToken,
-        },
-      });
-      await finalize(order.id, tx_ref, verified.success);
-      if (!verified.success) {
-        setErrors({ form: "Payment could not be verified. Your order will not ship." });
-        setPlacing(false);
+
+      // Card → on-site Flutterwave fields, direct encrypted v3 charge.
+      if (method === "card") {
+        const callbackUrl = `${window.location.origin}/orders/${order.id}`;
+        const [expMonth, expYearRaw] = cardForm.expiry.split("/").map((s) => s.trim());
+        if (!expMonth || !expYearRaw) {
+          setErrors({ expiry: "Use MM/YY" });
+          setPlacing(false);
+          return;
+        }
+        const charge = await chargeCardDirect({
+          data: {
+            amount: total,
+            email: shipForm.email,
+            name: shipForm.name,
+            phone: shipForm.phone,
+            tx_ref,
+            callbackUrl,
+            card_number: cardForm.number,
+            cvv: cardForm.cvv,
+            expiry_month: expMonth,
+            expiry_year: expYearRaw,
+            meta: { order_id: order.id },
+            accessToken,
+          },
+        });
+
+        if (charge.status === "redirect" && charge.auth_url) {
+          // 3DS / OTP step on Flutterwave's hosted page.
+          window.location.href = charge.auth_url;
+          return;
+        }
+
+        const verified = await verifyFlutterwave({
+          data: { tx_ref, saveCard: true, accessToken },
+        });
+        await finalize(order.id, tx_ref, verified.success);
+        if (!verified.success) {
+          setErrors({ form: "Payment could not be verified. Your order will not ship." });
+          setPlacing(false);
+          return;
+        }
+        goToOrder(order.id, true);
         return;
       }
-      goToOrder(order.id, true);
+
     } catch (err) {
       console.error(err);
       setErrors({ form: err instanceof Error ? err.message : "Failed to place order" });
