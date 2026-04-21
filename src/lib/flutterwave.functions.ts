@@ -22,7 +22,9 @@ async function flwFetch(path: string, init?: RequestInit) {
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok || json?.status === "error") {
-    throw new Error(json?.message ?? `Flutterwave error ${res.status}`);
+    const err = new Error(json?.message ?? `Flutterwave error ${res.status}`) as Error & { code?: string };
+    err.code = json?.message ?? "";
+    throw err;
   }
   return json;
 }
@@ -191,12 +193,21 @@ export const verifyFlutterwave = createServerFn({ method: "POST" })
     const { supabase, userId } = await getFlutterwaveAuthContext(data.accessToken);
 
     let tx: Record<string, unknown> | null = null;
-    if (data.transaction_id) {
-      const res = await flwFetch(`/transactions/${data.transaction_id}/verify`);
-      tx = res.data;
-    } else {
-      const res = await flwFetch(`/transactions/verify_by_reference?tx_ref=${encodeURIComponent(data.tx_ref)}`);
-      tx = res.data;
+    try {
+      if (data.transaction_id) {
+        const res = await flwFetch(`/transactions/${data.transaction_id}/verify`);
+        tx = res.data;
+      } else {
+        const res = await flwFetch(`/transactions/verify_by_reference?tx_ref=${encodeURIComponent(data.tx_ref)}`);
+        tx = res.data;
+      }
+    } catch (err) {
+      // No transaction yet (e.g. waiting for bank transfer) — return pending
+      const msg = err instanceof Error ? err.message.toLowerCase() : "";
+      if (msg.includes("no transaction") || msg.includes("not found")) {
+        return { success: false, status: "pending", tx_ref: data.tx_ref, flw_ref: "", amount: 0, payment_type: "" };
+      }
+      throw err;
     }
 
     const success = tx?.status === "successful";
