@@ -1,8 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Building2, Check, CreditCard, Loader2, MapPin, Package, Smartphone, Copy } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { Building2, Check, CreditCard, Loader2, MapPin, Package, Smartphone, Copy, Truck } from "lucide-react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore, useCartTotal, useProducts } from "@/lib/store";
+import { NIGERIA_STATE_NAMES, NIGERIA_STATES } from "@/lib/nigeria-states";
 import {
   initFlutterwave,
   verifyFlutterwave,
@@ -56,17 +57,26 @@ function Checkout() {
   const navigate = useNavigate();
   const { user, clearCart } = useStore();
   const { products } = useProducts();
-  const { items, subtotal, shipping, tax, total } = useCartTotal(products);
+  const { items, subtotal, tax } = useCartTotal(products);
   const [step, setStep] = useState<Step>(1);
   const [shipForm, setShipForm] = useState({
     name: "",
     email: user?.email ?? "",
     phone: "",
     address: "",
-    city: "",
-    zip: "",
+    state: "",
+    lga: "",
     country: "Nigeria",
   });
+  const [deliveryPrice, setDeliveryPrice] = useState(0);
+  const [deliveryLoading, setDeliveryLoading] = useState(false);
+  const [deliveryNotice, setDeliveryNotice] = useState<string | null>(null);
+  const shipping = deliveryPrice;
+  const total = subtotal + shipping + tax;
+  const lgaOptions = useMemo(
+    () => (shipForm.state ? NIGERIA_STATES[shipForm.state] ?? [] : []),
+    [shipForm.state],
+  );
   const [method, setMethod] = useState<PayMethod>("card");
   const [savedCards, setSavedCards] = useState<SavedCard[]>([]);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
@@ -74,6 +84,33 @@ function Checkout() {
   const [placing, setPlacing] = useState(false);
   const [virtualAccount, setVirtualAccount] = useState<VirtualAccount | null>(null);
   const [waitingForBankPayment, setWaitingForBankPayment] = useState(false);
+
+  // Fetch LGA delivery price when state + lga selected
+  useEffect(() => {
+    if (!shipForm.state || !shipForm.lga) {
+      setDeliveryPrice(0);
+      setDeliveryNotice(null);
+      return;
+    }
+    setDeliveryLoading(true);
+    void (async () => {
+      const { data } = await supabase
+        .from("lga_delivery_prices")
+        .select("price")
+        .eq("state", shipForm.state)
+        .eq("lga", shipForm.lga)
+        .maybeSingle();
+      const price = Number(data?.price ?? 0);
+      setDeliveryPrice(price);
+      setDeliveryNotice(
+        price > 0
+          ? `Delivery price ₦${price.toLocaleString()} has been added for ${shipForm.lga}, ${shipForm.state}.`
+          : `No delivery fee set for ${shipForm.lga}.`,
+      );
+      setDeliveryLoading(false);
+    })();
+  }, [shipForm.state, shipForm.lga]);
+
 
   useEffect(() => {
     if (!user) return;
