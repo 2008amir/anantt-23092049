@@ -37,7 +37,7 @@ function OrderDetail() {
           const { data: { session } } = await supabase.auth.getSession();
           const accessToken = session?.access_token;
           if (accessToken) {
-            const result = await verifyOpayV4({ data: { chargeId, accessToken } });
+            const result = await verifyChargeV4({ data: { chargeId, accessToken } });
             if (result.success) {
               await supabase
                 .from("orders")
