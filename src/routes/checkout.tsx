@@ -1,10 +1,15 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Check, CreditCard, Loader2, MapPin, Package } from "lucide-react";
+import { Building2, Check, CreditCard, Loader2, MapPin, Package, Smartphone, Copy } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore, useCartTotal, useProducts } from "@/lib/store";
-import { initPaystack, verifyPaystack } from "@/lib/paystack.functions";
-import { openPaystackPopup } from "@/lib/paystack-popup";
+import {
+  initFlutterwave,
+  verifyFlutterwave,
+  chargeSavedCard,
+  createVirtualAccount,
+} from "@/lib/flutterwave.functions";
+import { openFlutterwavePopup } from "@/lib/flutterwave-popup";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Checkout — Maison Luxe" }] }),
@@ -24,6 +29,30 @@ type SavedCard = {
   is_default: boolean;
 };
 
+type VirtualAccount = {
+  account_number: string;
+  bank_name: string;
+  account_name: string;
+  expiry_date: string;
+  amount: number;
+};
+
+const CARD_BRAND_LOGOS: Record<string, string> = {
+  visa: "https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg",
+  mastercard: "https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg",
+  verve: "https://res.cloudinary.com/dkw8oolgs/image/upload/v1700000000/verve_logo.png",
+  amex: "https://upload.wikimedia.org/wikipedia/commons/f/fa/American_Express_logo_%282018%29.svg",
+};
+
+function brandLogo(brand: string) {
+  const k = brand.toLowerCase();
+  if (k.includes("visa")) return CARD_BRAND_LOGOS.visa;
+  if (k.includes("master")) return CARD_BRAND_LOGOS.mastercard;
+  if (k.includes("verve")) return CARD_BRAND_LOGOS.verve;
+  if (k.includes("amex") || k.includes("american")) return CARD_BRAND_LOGOS.amex;
+  return null;
+}
+
 function Checkout() {
   const navigate = useNavigate();
   const { user, clearCart } = useStore();
@@ -33,6 +62,7 @@ function Checkout() {
   const [shipForm, setShipForm] = useState({
     name: "",
     email: user?.email ?? "",
+    phone: "",
     address: "",
     city: "",
     zip: "",
@@ -43,6 +73,8 @@ function Checkout() {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [placing, setPlacing] = useState(false);
+  const [virtualAccount, setVirtualAccount] = useState<VirtualAccount | null>(null);
+  const [waitingForBankPayment, setWaitingForBankPayment] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -90,10 +122,14 @@ function Checkout() {
     return Object.keys(e).length === 0;
   };
 
-  const channelsFor = (m: PayMethod): string[] => {
-    if (m === "bank_transfer") return ["bank_transfer"];
-    if (m === "opay") return ["mobile_money", "ussd", "bank_transfer"];
-    return ["card"];
+  const goToOrder = (orderId: string, paid: boolean) => {
+    if (paid) {
+      navigate({ to: "/orders/$id", params: { id: orderId } });
+    } else {
+      // Payment not complete: do NOT take user to shipping/order success.
+      // Send them back to the cart with an error visible on the form.
+      navigate({ to: "/cart" });
+    }
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -101,6 +137,7 @@ function Checkout() {
     if (!user) return;
     setErrors({});
     setPlacing(true);
+    let createdOrderId: string | null = null;
     try {
       const {
         data: { session },
@@ -108,7 +145,7 @@ function Checkout() {
       const accessToken = session?.access_token;
       if (!accessToken) throw new Error("Please sign in again to continue.");
 
-      // 1. Create order in DB first (status pending)
+      // 1. Create order in DB first (status pending — NOT processing until paid)
       const { data: order, error } = await supabase
         .from("orders")
         .insert({
@@ -117,7 +154,7 @@ function Checkout() {
           shipping,
           tax,
           total,
-          status: "Processing",
+          status: "Pending Payment",
           payment_method: method,
           payment_status: "pending",
           shipping_address: {
@@ -131,6 +168,7 @@ function Checkout() {
         .select()
         .single();
       if (error || !order) throw error ?? new Error("Failed to create order");
+      createdOrderId = order.id;
 
       const { error: itemsError } = await supabase.from("order_items").insert(
         items.map((i) => ({
@@ -144,74 +182,164 @@ function Checkout() {
       );
       if (itemsError) throw itemsError;
 
-      // 2. Trigger Paystack
-      const callbackUrl = `${window.location.origin}/orders/${order.id}`;
-      let reference: string | null = null;
+      const tx_ref = `ml-${order.id}-${Date.now()}`;
 
+      // 2. Branch by method
       if (method === "saved_card" && selectedCardId) {
         const card = savedCards.find((c) => c.id === selectedCardId);
         if (!card) throw new Error("Saved card not found");
-        const res = await initPaystack({
+        const res = await chargeSavedCard({
           data: {
             amount: total,
             email: shipForm.email,
-            callbackUrl,
-            authorization_code: card.authorization_code,
-            metadata: { order_id: order.id },
+            tx_ref,
+            token: card.authorization_code,
+            meta: { order_id: order.id },
             accessToken,
           },
         });
-        reference = res.reference;
-      } else {
-        const res = await initPaystack({
-          data: {
-            amount: total,
-            email: shipForm.email,
-            callbackUrl,
-            channels: channelsFor(method),
-            metadata: { order_id: order.id },
-            accessToken,
-          },
+        const verified = await verifyFlutterwave({
+          data: { tx_ref: res.tx_ref, saveCard: false, accessToken },
         });
-        if (res.mode !== "redirect") throw new Error("Unexpected init response");
-        const popup = await openPaystackPopup({
-          email: shipForm.email,
-          amount: total,
-          reference: res.reference,
-          channels: channelsFor(method),
-          metadata: { order_id: order.id },
-        });
-        if (!popup) {
-          setErrors({ form: "Payment cancelled. You can retry from your order." });
-          await supabase.from("orders").update({ payment_status: "cancelled" }).eq("id", order.id);
-          setPlacing(false);
-          navigate({ to: "/orders/$id", params: { id: order.id } });
-          return;
-        }
-        reference = popup.reference;
+        await finalize(order.id, tx_ref, verified.success);
+        goToOrder(order.id, verified.success);
+        if (!verified.success) setErrors({ form: "Card was declined. Please try another method." });
+        return;
       }
 
-      // 3. Verify on server
-      const verified = await verifyPaystack({
-        data: { reference: reference!, saveCard: method === "card", accessToken },
-      });
-      await supabase
-        .from("orders")
-        .update({
-          payment_reference: reference,
-          payment_status: verified.success ? "paid" : "failed",
-          status: verified.success ? "Paid" : "Payment Failed",
-        })
-        .eq("id", order.id);
+      if (method === "bank_transfer") {
+        // Generate a dedicated virtual bank account for this exact order
+        const va = await createVirtualAccount({
+          data: {
+            amount: total,
+            email: shipForm.email,
+            tx_ref,
+            name: shipForm.name,
+            accessToken,
+          },
+        });
+        await supabase
+          .from("orders")
+          .update({ payment_reference: tx_ref })
+          .eq("id", order.id);
+        setVirtualAccount({
+          account_number: va.account_number,
+          bank_name: va.bank_name,
+          account_name: va.account_name,
+          expiry_date: va.expiry_date,
+          amount: va.amount,
+        });
+        setWaitingForBankPayment(true);
+        // Poll for payment completion
+        void pollVirtualAccountPayment(order.id, tx_ref, accessToken);
+        setPlacing(false);
+        return;
+      }
 
-      if (verified.success) await clearCart();
-      navigate({ to: "/orders/$id", params: { id: order.id } });
+      // Card (new) or Opay → Flutterwave inline popup with payment_options filter
+      const paymentOptions =
+        method === "opay" ? "opay" : method === "card" ? "card" : "card,banktransfer,opay,ussd";
+
+      const callbackUrl = `${window.location.origin}/orders/${order.id}`;
+      // Pre-create on Flutterwave (also gives us a hosted fallback link)
+      await initFlutterwave({
+        data: {
+          amount: total,
+          email: shipForm.email,
+          name: shipForm.name,
+          tx_ref,
+          callbackUrl,
+          paymentOptions,
+          meta: { order_id: order.id },
+          accessToken,
+        },
+      });
+
+      const popup = await openFlutterwavePopup({
+        email: shipForm.email,
+        name: shipForm.name,
+        amount: total,
+        tx_ref,
+        paymentOptions,
+        meta: { order_id: order.id },
+        title: "Maison Luxe",
+        description: `Order #${order.id.slice(0, 8).toUpperCase()}`,
+      });
+
+      if (!popup || popup.status !== "successful" && popup.status !== "completed") {
+        if (!popup) {
+          setErrors({ form: "Payment was cancelled. Your order will not ship until payment completes." });
+        } else {
+          setErrors({ form: "Payment did not complete. Your order will not ship until payment completes." });
+        }
+        await supabase
+          .from("orders")
+          .update({ payment_status: "cancelled", status: "Pending Payment", payment_reference: tx_ref })
+          .eq("id", order.id);
+        setPlacing(false);
+        return;
+      }
+
+      const verified = await verifyFlutterwave({
+        data: {
+          tx_ref: popup.tx_ref,
+          transaction_id: popup.transaction_id,
+          saveCard: method === "card",
+          accessToken,
+        },
+      });
+      await finalize(order.id, tx_ref, verified.success);
+      if (!verified.success) {
+        setErrors({ form: "Payment could not be verified. Your order will not ship." });
+        setPlacing(false);
+        return;
+      }
+      goToOrder(order.id, true);
     } catch (err) {
       console.error(err);
       setErrors({ form: err instanceof Error ? err.message : "Failed to place order" });
+      if (createdOrderId) {
+        await supabase
+          .from("orders")
+          .update({ payment_status: "failed", status: "Payment Failed" })
+          .eq("id", createdOrderId);
+      }
     } finally {
       setPlacing(false);
     }
+  };
+
+  const finalize = async (orderId: string, tx_ref: string, success: boolean) => {
+    await supabase
+      .from("orders")
+      .update({
+        payment_reference: tx_ref,
+        payment_status: success ? "paid" : "failed",
+        status: success ? "Processing" : "Payment Failed",
+      })
+      .eq("id", orderId);
+    if (success) await clearCart();
+  };
+
+  const pollVirtualAccountPayment = async (orderId: string, tx_ref: string, accessToken: string) => {
+    const start = Date.now();
+    const TIMEOUT = 1000 * 60 * 30; // 30 min
+    while (Date.now() - start < TIMEOUT) {
+      await new Promise((r) => setTimeout(r, 8000));
+      try {
+        const verified = await verifyFlutterwave({ data: { tx_ref, accessToken } });
+        if (verified.success) {
+          await finalize(orderId, tx_ref, true);
+          setWaitingForBankPayment(false);
+          navigate({ to: "/orders/$id", params: { id: orderId } });
+          return;
+        }
+      } catch {
+        // ignore intermittent
+      }
+    }
+    setWaitingForBankPayment(false);
+    setErrors({ form: "Bank transfer not received in time. Order will not ship until payment is confirmed." });
   };
 
   const steps = [
@@ -265,6 +393,7 @@ function Checkout() {
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
                 <Field label="Full Name" value={shipForm.name} onChange={(v) => setShipForm({ ...shipForm, name: v })} error={errors.name} />
                 <Field label="Email" type="email" value={shipForm.email} onChange={(v) => setShipForm({ ...shipForm, email: v })} error={errors.email} />
+                <Field label="Phone" value={shipForm.phone} onChange={(v) => setShipForm({ ...shipForm, phone: v })} />
                 <div className="sm:col-span-2">
                   <Field label="Address" value={shipForm.address} onChange={(v) => setShipForm({ ...shipForm, address: v })} error={errors.address} />
                 </div>
@@ -296,6 +425,7 @@ function Checkout() {
                   <div className="mt-2 space-y-2">
                     {savedCards.map((c) => {
                       const active = method === "saved_card" && selectedCardId === c.id;
+                      const logo = brandLogo(c.brand);
                       return (
                         <button
                           key={c.id}
@@ -309,7 +439,11 @@ function Checkout() {
                           }`}
                         >
                           <span className="flex items-center gap-3">
-                            <CreditCard className={`h-4 w-4 ${active ? "text-primary" : "text-muted-foreground"}`} />
+                            {logo ? (
+                              <img src={logo} alt={c.brand} className="h-6 w-10 object-contain" />
+                            ) : (
+                              <CreditCard className={`h-4 w-4 ${active ? "text-primary" : "text-muted-foreground"}`} />
+                            )}
                             <span className="text-sm text-foreground">
                               {c.brand} •••• {c.last4}
                             </span>
@@ -326,29 +460,41 @@ function Checkout() {
 
               <p className="mt-6 text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Other methods</p>
               <div className="mt-2 grid gap-3 sm:grid-cols-3">
-                {[
-                  { id: "card" as const, label: "New Card" },
-                  { id: "bank_transfer" as const, label: "Bank Transfer" },
-                  { id: "opay" as const, label: "Opay / USSD" },
-                ].map((m) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => {
-                      setMethod(m.id);
-                      setSelectedCardId(null);
-                    }}
-                    className={`border p-4 text-xs uppercase tracking-[0.2em] transition-smooth ${
-                      method === m.id ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {m.label}
-                  </button>
-                ))}
+                <MethodCard
+                  active={method === "card"}
+                  onClick={() => {
+                    setMethod("card");
+                    setSelectedCardId(null);
+                  }}
+                  icon={<CreditCard className="h-5 w-5" />}
+                  title="New Card"
+                  subtitle="Visa · Mastercard · Verve"
+                  logos={[CARD_BRAND_LOGOS.visa, CARD_BRAND_LOGOS.mastercard, CARD_BRAND_LOGOS.verve]}
+                />
+                <MethodCard
+                  active={method === "bank_transfer"}
+                  onClick={() => {
+                    setMethod("bank_transfer");
+                    setSelectedCardId(null);
+                  }}
+                  icon={<Building2 className="h-5 w-5" />}
+                  title="Bank Transfer"
+                  subtitle="Dedicated account"
+                />
+                <MethodCard
+                  active={method === "opay"}
+                  onClick={() => {
+                    setMethod("opay");
+                    setSelectedCardId(null);
+                  }}
+                  icon={<Smartphone className="h-5 w-5" />}
+                  title="Opay"
+                  subtitle="Pay via Opay link"
+                />
               </div>
 
               <p className="mt-6 text-[11px] text-muted-foreground">
-                Payments are securely processed by Paystack. You'll be prompted to enter card or bank details on the next step.
+                Payments are securely processed by Flutterwave. Your order will not ship until payment is confirmed.
               </p>
 
               <div className="mt-8 flex justify-between">
@@ -378,17 +524,42 @@ function Checkout() {
                   {method === "saved_card" && selectedCardId ? (
                     (() => {
                       const c = savedCards.find((s) => s.id === selectedCardId);
-                      return c ? <p>Saved {c.brand} •••• {c.last4}</p> : <p>Saved card</p>;
+                      return c ? (
+                        <p className="flex items-center gap-2">
+                          {brandLogo(c.brand) && <img src={brandLogo(c.brand)!} alt={c.brand} className="h-5 w-8 object-contain" />}
+                          Saved {c.brand} •••• {c.last4}
+                        </p>
+                      ) : (
+                        <p>Saved card</p>
+                      );
                     })()
                   ) : method === "bank_transfer" ? (
-                    <p>Bank Transfer</p>
+                    <p>Bank Transfer (dedicated account)</p>
                   ) : method === "opay" ? (
-                    <p>Opay / USSD / Mobile</p>
+                    <p>Opay paylink</p>
                   ) : (
                     <p>New Card</p>
                   )}
                 </ReviewBlock>
               </div>
+
+              {waitingForBankPayment && virtualAccount && (
+                <div className="mt-6 border border-primary/40 bg-primary/5 p-6">
+                  <p className="text-[10px] uppercase tracking-[0.25em] text-primary">Transfer To This Dedicated Account</p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                    <Detail label="Bank" value={virtualAccount.bank_name} />
+                    <Detail label="Account Number" value={virtualAccount.account_number} copyable />
+                    <Detail label="Amount" value={`₦${virtualAccount.amount.toLocaleString()}`} />
+                    <Detail label="Account Name" value={virtualAccount.account_name} />
+                    <Detail label="Expires" value={virtualAccount.expiry_date} />
+                  </div>
+                  <p className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Waiting for payment… Your order will not ship until we confirm the transfer.
+                  </p>
+                </div>
+              )}
+
               {errors.form && <p className="mt-4 text-xs text-destructive">{errors.form}</p>}
               <div className="mt-8 flex justify-between">
                 <button type="button" onClick={() => setStep(2)} className="border border-border px-8 py-4 text-xs uppercase tracking-[0.25em] text-foreground hover:border-primary">
@@ -396,11 +567,15 @@ function Checkout() {
                 </button>
                 <button
                   type="submit"
-                  disabled={placing}
+                  disabled={placing || waitingForBankPayment}
                   className="flex items-center gap-2 bg-gold-gradient px-8 py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold hover:opacity-90 disabled:opacity-60"
                 >
-                  {placing && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {placing ? "Processing…" : `Pay ₦${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                  {(placing || waitingForBankPayment) && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {placing
+                    ? "Processing…"
+                    : waitingForBankPayment
+                      ? "Awaiting Transfer…"
+                      : `Pay ₦${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                 </button>
               </div>
             </div>
@@ -438,6 +613,62 @@ function Checkout() {
             <span className="font-serif text-2xl text-gold-gradient">₦{total.toFixed(2)}</span>
           </div>
         </aside>
+      </div>
+    </div>
+  );
+}
+
+function MethodCard({
+  active,
+  onClick,
+  icon,
+  title,
+  subtitle,
+  logos,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  logos?: string[];
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex flex-col gap-2 border p-4 text-left transition-smooth ${
+        active ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground hover:text-foreground hover:border-primary/60"
+      }`}
+    >
+      <span className="flex items-center gap-2">
+        {icon}
+        <span className="text-xs uppercase tracking-[0.2em]">{title}</span>
+      </span>
+      <span className="text-[10px] text-muted-foreground">{subtitle}</span>
+      {logos && (
+        <span className="mt-1 flex items-center gap-1.5">
+          {logos.map((l) => (
+            <img key={l} src={l} alt="" className="h-4 w-7 object-contain" />
+          ))}
+        </span>
+      )}
+    </button>
+  );
+}
+
+function Detail({ label, value, copyable }: { label: string; value: string; copyable?: boolean }) {
+  const copy = () => navigator.clipboard.writeText(value);
+  return (
+    <div>
+      <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
+      <div className="mt-1 flex items-center gap-2">
+        <p className="text-sm font-medium text-foreground">{value}</p>
+        {copyable && (
+          <button type="button" onClick={copy} aria-label="Copy" className="text-muted-foreground hover:text-primary">
+            <Copy className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
     </div>
   );
