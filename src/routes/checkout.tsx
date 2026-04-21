@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore, useCartTotal, useProducts } from "@/lib/store";
 import { initPaystack, verifyPaystack } from "@/lib/paystack.functions";
-import { openPaystackPopup } from "@/lib/paystack-popup";
+import { openPaystackPopup } from "@/lib/paystack-popup.client";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Checkout — Maison Luxe" }] }),

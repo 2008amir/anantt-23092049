@@ -1,5 +1,6 @@
 import { PAYSTACK_PUBLIC_KEY } from "./paystack.client";
 
+
 type PaystackHandler = {
   openIframe: () => void;
 };
