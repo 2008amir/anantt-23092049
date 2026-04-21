@@ -9,6 +9,7 @@ import {
   chargeSavedCard,
   createVirtualAccount,
 } from "@/lib/flutterwave.functions";
+import { initOpayV4, verifyOpayV4 } from "@/lib/flutterwave-v4.functions";
 import { openFlutterwavePopup } from "@/lib/flutterwave-popup";
 
 export const Route = createFileRoute("/checkout")({
