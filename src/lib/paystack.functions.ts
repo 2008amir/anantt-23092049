@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-export const PAYSTACK_PUBLIC_KEY = "pk_live_bf83087e2c333f9db3c6ee41d95d1befa13e8c8f";
+export { PAYSTACK_PUBLIC_KEY } from "./paystack.client";
 
 const PAYSTACK_BASE = "https://api.paystack.co";
 
