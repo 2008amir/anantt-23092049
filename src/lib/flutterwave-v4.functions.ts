@@ -81,6 +81,7 @@ export const initOpayV4 = createServerFn({ method: "POST" })
       phone?: string;
       reference: string;
       meta?: Record<string, unknown>;
+      returnUrl?: string;
       accessToken?: string;
     }) => {
       if (!input?.amount || input.amount <= 0) throw new Error("amount required");
@@ -93,7 +94,6 @@ export const initOpayV4 = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     await getFlutterwaveAuthContext(data.accessToken);
 
-    // 1. Create customer
     const [first, ...rest] = (data.name ?? "Customer").trim().split(/\s+/);
     const last = rest.length > 0 ? rest.join(" ") : "User";
     const customerRes = await flw4Fetch("/customers", {
@@ -109,7 +109,6 @@ export const initOpayV4 = createServerFn({ method: "POST" })
     const customerId = customerRes.data?.id as string;
     if (!customerId) throw new Error("Failed to create customer");
 
-    // 2. Create Opay payment method
     const pmRes = await flw4Fetch("/payment-methods", {
       method: "POST",
       body: JSON.stringify({ type: "opay" }),
@@ -117,17 +116,24 @@ export const initOpayV4 = createServerFn({ method: "POST" })
     const paymentMethodId = pmRes.data?.id as string;
     if (!paymentMethodId) throw new Error("Failed to create Opay payment method");
 
-    // 3. Create the charge
+    const chargeBody: Record<string, unknown> = {
+      currency: "NGN",
+      customer_id: customerId,
+      payment_method_id: paymentMethodId,
+      amount: data.amount,
+      reference: data.reference,
+      meta: data.meta ?? {},
+    };
+    if (data.returnUrl) {
+      chargeBody.redirect_urls = {
+        success: data.returnUrl,
+        failure: data.returnUrl,
+        pending: data.returnUrl,
+      };
+    }
     const chargeRes = await flw4Fetch("/charges", {
       method: "POST",
-      body: JSON.stringify({
-        currency: "NGN",
-        customer_id: customerId,
-        payment_method_id: paymentMethodId,
-        amount: data.amount,
-        reference: data.reference,
-        meta: data.meta ?? {},
-      }),
+      body: JSON.stringify(chargeBody),
     });
 
     const chargeId = chargeRes.data?.id as string;
