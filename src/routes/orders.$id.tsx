@@ -30,7 +30,16 @@ function OrderDetail() {
   useEffect(() => {
     void (async () => {
       const params = new URLSearchParams(window.location.search);
-      const chargeId = params.get("opay_charge");
+      let chargeId = params.get("opay_charge");
+      // Fallback: Flutterwave's hosted page may strip our query string on
+      // redirect. We stashed the charge id in sessionStorage at checkout.
+      if (!chargeId) {
+        try {
+          chargeId = sessionStorage.getItem(`opay_charge_${id}`);
+        } catch {
+          chargeId = null;
+        }
+      }
       if (chargeId) {
         setVerifyingOpay(true);
         try {
@@ -43,12 +52,15 @@ function OrderDetail() {
                 .from("orders")
                 .update({ payment_status: "paid", status: "Processing", payment_method: "opay" })
                 .eq("id", id);
-            } else {
+              try { sessionStorage.removeItem(`opay_charge_${id}`); } catch { /* noop */ }
+            } else if (result.status === "failed" || result.status === "cancelled") {
               await supabase
                 .from("orders")
                 .update({ payment_status: "failed", status: "Payment Failed" })
                 .eq("id", id);
+              try { sessionStorage.removeItem(`opay_charge_${id}`); } catch { /* noop */ }
             }
+            // pending: leave order as-is, will retry on next visit
           }
         } catch (e) {
           console.error("Opay verification failed", e);
