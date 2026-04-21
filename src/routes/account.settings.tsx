@@ -56,6 +56,39 @@ function SettingsPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  // On mount: if returning from a v4 card-verification redirect, finalize.
+  useEffect(() => {
+    if (!user) return;
+    const params = new URLSearchParams(window.location.search);
+    const chargeId = params.get("verify_charge");
+    if (!chargeId) return;
+    void (async () => {
+      setVerifying(true);
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        const accessToken = session?.access_token;
+        if (!accessToken) throw new Error("Please sign in again.");
+        const verified = await verifyChargeV4({
+          data: { chargeId, saveCard: true, accessToken },
+        });
+        if (verified.success) {
+          setCardSuccess("Card verified and saved.");
+          await loadCards();
+        } else {
+          setCardError("Card could not be verified. Please try a different card.");
+        }
+      } catch (e) {
+        setCardError(e instanceof Error ? e.message : "Verification failed");
+      } finally {
+        window.history.replaceState({}, "", window.location.pathname);
+        setVerifying(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
   async function loadCards() {
     if (!user) return;
     setLoadingCards(true);
