@@ -122,7 +122,7 @@ function ProfileHome() {
 
       <div className="mx-5 mt-4 divide-y divide-border border border-border bg-card/40">
         <Row to="/account/orders" icon={<Package className="h-5 w-5" strokeWidth={1.5} />} label="Your Orders" badge={orderCount > 0 ? String(orderCount) : undefined} />
-        <Row to="/account/notifications" icon={<MessageSquare className="h-5 w-5" strokeWidth={1.5} />} label="Messages" badgeStrong="99+" />
+        <Row to="/account/messages" icon={<MessageSquare className="h-5 w-5" strokeWidth={1.5} />} label="Messages" />
         <Row to="/account/wishlist" icon={<Star className="h-5 w-5" strokeWidth={1.5} />} label="Reviews" />
       </div>
 

@@ -4,7 +4,7 @@ import { StoreProvider } from "@/lib/store";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Splash } from "@/components/Splash";
-import { ContactWidget } from "@/components/ContactWidget";
+
 
 function NotFoundComponent() {
   return (
@@ -72,7 +72,6 @@ function RootComponent() {
           </main>
           <Footer />
         </div>
-        <ContactWidget />
       </Splash>
     </StoreProvider>
   );
