@@ -75,6 +75,11 @@ function Checkout() {
   const [placing, setPlacing] = useState(false);
   const [virtualAccount, setVirtualAccount] = useState<VirtualAccount | null>(null);
   const [waitingForBankPayment, setWaitingForBankPayment] = useState(false);
+  const [cardForm, setCardForm] = useState({
+    number: "",
+    expiry: "",
+    cvv: "",
+  });
 
   useEffect(() => {
     if (!user) return;
