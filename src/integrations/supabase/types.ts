@@ -114,28 +114,34 @@ export type Database = {
           active: boolean
           city: string | null
           created_at: string
+          email: string | null
           id: string
           name: string
           phone: string
           state: string
+          user_id: string | null
         }
         Insert: {
           active?: boolean
           city?: string | null
           created_at?: string
+          email?: string | null
           id?: string
           name: string
           phone: string
           state: string
+          user_id?: string | null
         }
         Update: {
           active?: boolean
           city?: string | null
           created_at?: string
+          email?: string | null
           id?: string
           name?: string
           phone?: string
           state?: string
+          user_id?: string | null
         }
         Relationships: []
       }
