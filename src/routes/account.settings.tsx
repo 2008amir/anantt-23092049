@@ -3,8 +3,7 @@ import { useEffect, useState } from "react";
 import { CreditCard, Loader2, Plus, Trash2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/lib/store";
-import { initFlutterwave, verifyFlutterwave } from "@/lib/flutterwave.functions";
-import { openFlutterwavePopup } from "@/lib/flutterwave-popup";
+import { initCardV4, verifyChargeV4 } from "@/lib/flutterwave-v4.functions";
 
 export const Route = createFileRoute("/account/settings")({
   component: SettingsPanel,
