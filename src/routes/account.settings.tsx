@@ -3,12 +3,28 @@ import { useEffect, useState } from "react";
 import { CreditCard, Loader2, Plus, Trash2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/lib/store";
-import { initPaystack, verifyPaystack } from "@/lib/paystack.functions";
-import { openPaystackPopup } from "@/lib/paystack-popup";
+import { initFlutterwave, verifyFlutterwave } from "@/lib/flutterwave.functions";
+import { openFlutterwavePopup } from "@/lib/flutterwave-popup";
 
 export const Route = createFileRoute("/account/settings")({
   component: SettingsPanel,
 });
+
+const CARD_BRAND_LOGOS: Record<string, string> = {
+  visa: "https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg",
+  mastercard: "https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg",
+  verve: "https://res.cloudinary.com/dkw8oolgs/image/upload/v1700000000/verve_logo.png",
+  amex: "https://upload.wikimedia.org/wikipedia/commons/f/fa/American_Express_logo_%282018%29.svg",
+};
+
+function brandLogo(brand: string) {
+  const k = brand.toLowerCase();
+  if (k.includes("visa")) return CARD_BRAND_LOGOS.visa;
+  if (k.includes("master")) return CARD_BRAND_LOGOS.mastercard;
+  if (k.includes("verve")) return CARD_BRAND_LOGOS.verve;
+  if (k.includes("amex") || k.includes("american")) return CARD_BRAND_LOGOS.amex;
+  return null;
+}
 
 type SavedCard = {
   id: string;
