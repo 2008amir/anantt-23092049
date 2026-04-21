@@ -1,16 +1,15 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Building2, Check, CreditCard, Loader2, MapPin, Package, Smartphone, Copy } from "lucide-react";
+import { Building2, Check, CreditCard, Loader2, MapPin, Package, Smartphone, Copy, Lock } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore, useCartTotal, useProducts } from "@/lib/store";
 import {
-  initFlutterwave,
   verifyFlutterwave,
   chargeSavedCard,
   createVirtualAccount,
+  chargeCardDirect,
 } from "@/lib/flutterwave.functions";
-import { initOpayV4, verifyOpayV4 } from "@/lib/flutterwave-v4.functions";
-import { openFlutterwavePopup } from "@/lib/flutterwave-popup";
+import { initOpayV4 } from "@/lib/flutterwave-v4.functions";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Checkout — Maison Luxe" }] }),
