@@ -1,7 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/lib/store";
+import { useIsAdmin } from "@/hooks/use-admin";
 
 export const Route = createFileRoute("/account/")({
   component: ProfilePanel,
@@ -9,6 +11,7 @@ export const Route = createFileRoute("/account/")({
 
 function ProfilePanel() {
   const { user, profile, wishlist } = useStore();
+  const { isAdmin } = useIsAdmin();
   const [orderCount, setOrderCount] = useState(0);
   const [lifetime, setLifetime] = useState(0);
 
@@ -32,6 +35,16 @@ function ProfilePanel() {
     <div>
       <h2 className="font-serif text-3xl">Profile</h2>
       <p className="mt-2 text-sm text-muted-foreground">Your personal details and activity.</p>
+
+      {isAdmin && (
+        <Link
+          to="/admin"
+          className="mt-6 inline-flex items-center gap-2 rounded-md bg-gold-gradient px-4 py-2 text-xs uppercase tracking-wider text-primary-foreground hover:opacity-90"
+        >
+          <ShieldCheck className="h-4 w-4" />
+          Open Admin Panel
+        </Link>
+      )}
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
         <Field label="Name" value={name} />
