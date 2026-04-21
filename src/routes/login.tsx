@@ -1,6 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { useStore } from "@/lib/store";
+import { supabase } from "@/integrations/supabase/client";
+import { ADMIN_EMAIL } from "@/hooks/use-admin";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Sign In — Maison Luxe" }] }),
@@ -10,16 +12,35 @@ export const Route = createFileRoute("/login")({
 function Login() {
   const { user, signIn, signUp } = useStore();
   const navigate = useNavigate();
+
+  // Auto-route signed-in users to the right place (admin / deliverer / account)
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      // Admin email always lands on admin
+      if (user.email?.toLowerCase() === ADMIN_EMAIL) {
+        if (!cancelled) void navigate({ to: "/admin" });
+        return;
+      }
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      if (cancelled) return;
+      const r = (roles ?? []).map((x) => x.role);
+      if (r.includes("admin")) void navigate({ to: "/admin" });
+      else if (r.includes("deliverer")) void navigate({ to: "/deliverer" });
+      else void navigate({ to: "/account" });
+    })();
+    return () => { cancelled = true; };
+  }, [user, navigate]);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    if (user) navigate({ to: "/account" });
-  }, [user, navigate]);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
