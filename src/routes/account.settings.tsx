@@ -3,12 +3,28 @@ import { useEffect, useState } from "react";
 import { CreditCard, Loader2, Plus, Trash2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/lib/store";
-import { initPaystack, verifyPaystack } from "@/lib/paystack.functions";
-import { openPaystackPopup } from "@/lib/paystack-popup";
+import { initFlutterwave, verifyFlutterwave } from "@/lib/flutterwave.functions";
+import { openFlutterwavePopup } from "@/lib/flutterwave-popup";
 
 export const Route = createFileRoute("/account/settings")({
   component: SettingsPanel,
 });
+
+const CARD_BRAND_LOGOS: Record<string, string> = {
+  visa: "https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg",
+  mastercard: "https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg",
+  verve: "https://res.cloudinary.com/dkw8oolgs/image/upload/v1700000000/verve_logo.png",
+  amex: "https://upload.wikimedia.org/wikipedia/commons/f/fa/American_Express_logo_%282018%29.svg",
+};
+
+function brandLogo(brand: string) {
+  const k = brand.toLowerCase();
+  if (k.includes("visa")) return CARD_BRAND_LOGOS.visa;
+  if (k.includes("master")) return CARD_BRAND_LOGOS.mastercard;
+  if (k.includes("verve")) return CARD_BRAND_LOGOS.verve;
+  if (k.includes("amex") || k.includes("american")) return CARD_BRAND_LOGOS.amex;
+  return null;
+}
 
 type SavedCard = {
   id: string;
@@ -64,8 +80,8 @@ function SettingsPanel() {
     else await refresh();
   };
 
-  // Real card verification via a ₦50 Paystack charge — proves the card is valid
-  // and gives us a reusable authorization token for future payments.
+  // Real card verification via a ₦50 Flutterwave charge — proves the card is valid
+  // and gives us a reusable token for future payments.
   const addCard = async () => {
     if (!user?.email) return;
     setCardError(null);
@@ -78,29 +94,34 @@ function SettingsPanel() {
       const accessToken = session?.access_token;
       if (!accessToken) throw new Error("Please sign in again to save a card.");
 
-      const init = await initPaystack({
+      const tx_ref = `verify-${user.id}-${Date.now()}`;
+      await initFlutterwave({
         data: {
-          amount: 50, // ₦50 verification charge
+          amount: 50,
           email: user.email,
-          channels: ["card"],
+          tx_ref,
           callbackUrl: window.location.origin + "/account/settings",
-          metadata: { purpose: "card_verification" },
+          paymentOptions: "card",
+          meta: { purpose: "card_verification" },
           accessToken,
         },
       });
-      if (init.mode !== "redirect") throw new Error("Unexpected response");
-      const result = await openPaystackPopup({
+      const result = await openFlutterwavePopup({
         email: user.email,
         amount: 50,
-        reference: init.reference,
-        channels: ["card"],
-        metadata: { purpose: "card_verification" },
+        tx_ref,
+        paymentOptions: "card",
+        title: "Verify card",
+        description: "₦50 authorization to save your card",
+        meta: { purpose: "card_verification" },
       });
       if (!result) {
         setCardError("Card verification cancelled.");
         return;
       }
-      const verified = await verifyPaystack({ data: { reference: result.reference, saveCard: true, accessToken } });
+      const verified = await verifyFlutterwave({
+        data: { tx_ref: result.tx_ref, transaction_id: result.transaction_id, saveCard: true, accessToken },
+      });
       if (!verified.success) {
         setCardError("Card could not be verified. Please try a different card.");
         return;
@@ -159,7 +180,7 @@ function SettingsPanel() {
             </div>
 
             <p className="mt-2 text-[11px] text-muted-foreground">
-              We securely verify your card with Paystack. A small ₦50 authorization charge confirms the card is real.
+              We securely verify your card with Flutterwave. A small ₦50 authorization charge confirms the card is real.
               We never store your card number or CVV.
             </p>
 
@@ -181,7 +202,11 @@ function SettingsPanel() {
                 {cards.map((c) => (
                   <div key={c.id} className="flex items-center justify-between border border-border bg-background px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <CreditCard className="h-4 w-4 text-primary" />
+                      {brandLogo(c.brand) ? (
+                        <img src={brandLogo(c.brand)!} alt={c.brand} className="h-7 w-12 object-contain" />
+                      ) : (
+                        <CreditCard className="h-4 w-4 text-primary" />
+                      )}
                       <div>
                         <p className="text-sm text-foreground">
                           {c.brand} •••• {c.last4}{" "}

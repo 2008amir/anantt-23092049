@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
-export async function getPaystackAuthContext(accessToken?: string) {
+export async function getFlutterwaveAuthContext(accessToken?: string) {
   if (!accessToken) throw new Error("Please sign in again.");
 
   const url = process.env.SUPABASE_URL;
