@@ -519,6 +519,85 @@ function Checkout() {
                 />
               </div>
 
+              {method === "card" && (
+                <div className="mt-6 border border-border bg-background/40 p-6">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] uppercase tracking-[0.25em] text-primary">Card Details</p>
+                    <div className="flex items-center gap-1.5">
+                      <img src={CARD_BRAND_LOGOS.visa} alt="Visa" className="h-4 w-7 object-contain" />
+                      <img src={CARD_BRAND_LOGOS.mastercard} alt="Mastercard" className="h-4 w-7 object-contain" />
+                      <img src={CARD_BRAND_LOGOS.verve} alt="Verve" className="h-4 w-7 object-contain" />
+                    </div>
+                  </div>
+                  <div className="mt-4 grid gap-4">
+                    <Field
+                      label="Card Number"
+                      value={cardForm.number}
+                      onChange={(v) =>
+                        setCardForm({
+                          ...cardForm,
+                          number: v.replace(/\D/g, "").replace(/(.{4})/g, "$1 ").trim().slice(0, 19),
+                        })
+                      }
+                      placeholder="0000 0000 0000 0000"
+                    />
+                    <div className="grid grid-cols-2 gap-4">
+                      <Field
+                        label="Expiry (MM/YY)"
+                        value={cardForm.expiry}
+                        onChange={(v) => {
+                          const digits = v.replace(/\D/g, "").slice(0, 4);
+                          const formatted = digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
+                          setCardForm({ ...cardForm, expiry: formatted });
+                        }}
+                        placeholder="MM/YY"
+                        error={errors.expiry}
+                      />
+                      <Field
+                        label="CVV"
+                        value={cardForm.cvv}
+                        onChange={(v) => setCardForm({ ...cardForm, cvv: v.replace(/\D/g, "").slice(0, 4) })}
+                        placeholder="123"
+                      />
+                    </div>
+                  </div>
+                  <p className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <Lock className="h-3 w-3" /> Encrypted end-to-end and processed by Flutterwave.
+                  </p>
+                </div>
+              )}
+
+              {method === "opay" && (
+                <div className="mt-6 border border-border bg-background/40 p-6">
+                  <p className="text-[10px] uppercase tracking-[0.25em] text-primary">Opay Wallet</p>
+                  <p className="mt-2 text-sm text-foreground">
+                    You'll be redirected to Opay to authorize this payment, then returned here automatically.
+                  </p>
+                  <Field
+                    label="Opay Phone Number"
+                    value={shipForm.phone}
+                    onChange={(v) => setShipForm({ ...shipForm, phone: v })}
+                    placeholder="08012345678"
+                  />
+                </div>
+              )}
+
+              {method === "bank_transfer" && (
+                <div className="mt-6 border border-border bg-background/40 p-6">
+                  <p className="text-[10px] uppercase tracking-[0.25em] text-primary">Dedicated Bank Transfer</p>
+                  <p className="mt-2 text-sm text-foreground">
+                    A one-time virtual account will be generated in the name{" "}
+                    <span className="text-primary">
+                      luxespakle/
+                      {(shipForm.name?.trim().split(/\s+/)[0] ?? shipForm.email.split("@")[0] ?? "customer")
+                        .toLowerCase()
+                        .replace(/[^a-z0-9]/g, "") || "customer"}
+                    </span>
+                    . Your order ships once we confirm the transfer.
+                  </p>
+                </div>
+              )}
+
               <p className="mt-6 text-[11px] text-muted-foreground">
                 Payments are securely processed by Flutterwave. Your order will not ship until payment is confirmed.
               </p>
