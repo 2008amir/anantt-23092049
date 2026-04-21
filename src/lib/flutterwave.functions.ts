@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { createCipheriv } from "crypto";
 import { getFlutterwaveAuthContext } from "./flutterwave-auth.server";
 
 export const FLUTTERWAVE_PUBLIC_KEY = "FLWPUBK-179082bdf3e13ed7270551d4d05dd4a5-X";
@@ -9,6 +10,22 @@ function secretKey() {
   const key = process.env.FLUTTERWAVE_SECRET_KEY;
   if (!key) throw new Error("FLUTTERWAVE_SECRET_KEY not configured");
   return key;
+}
+
+function encryptionKey() {
+  const k = process.env.FLUTTERWAVE_ENCRYPTION_KEY;
+  if (!k) throw new Error("FLUTTERWAVE_ENCRYPTION_KEY not configured");
+  return k;
+}
+
+/** Flutterwave v3 client encryption: 3DES-ECB, base64-encoded JSON payload. */
+function encryptPayload(payload: Record<string, unknown>): string {
+  const key = encryptionKey();
+  const cipher = createCipheriv("des-ede3", Buffer.from(key, "utf8"), null);
+  cipher.setAutoPadding(true);
+  const text = JSON.stringify(payload);
+  const encrypted = Buffer.concat([cipher.update(text, "utf8"), cipher.final()]);
+  return encrypted.toString("base64");
 }
 
 async function flwFetch(path: string, init?: RequestInit) {
