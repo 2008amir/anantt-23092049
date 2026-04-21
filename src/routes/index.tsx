@@ -7,8 +7,22 @@ import { useAICategories } from "@/hooks/use-ai-categories";
 import { personalizedFeed } from "@/lib/ai.functions";
 
 export const Route = createFileRoute("/")({
-...
-function Index() {
+  head: () => ({
+    meta: [
+      { title: "Maison Luxe — A Curated Atelier of Considered Objects" },
+      { name: "description", content: "Browse curated luxury timepieces, leather goods, fragrance, and home objects." },
+    ],
+  }),
+  component: Index,
+});
+
+const TABS: { id: "all" | "deals" | "rated" | "best"; label: string; icon?: typeof Flame }[] = [
+  { id: "all", label: "All" },
+  { id: "deals", label: "Deals", icon: Flame },
+  { id: "rated", label: "5-Star Rated", icon: Star },
+  { id: "best", label: "Best-Selling", icon: Award },
+];
+
   const { addToCart, user } = useStore();
   const { products, loading } = useProducts();
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("all");
