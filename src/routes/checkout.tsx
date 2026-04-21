@@ -4,13 +4,12 @@ import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore, useCartTotal, useProducts } from "@/lib/store";
 import {
-  initFlutterwave,
-  verifyFlutterwave,
-  chargeSavedCard,
-  createVirtualAccount,
-} from "@/lib/flutterwave.functions";
-import { initOpayV4, verifyOpayV4 } from "@/lib/flutterwave-v4.functions";
-import { openFlutterwavePopup } from "@/lib/flutterwave-popup";
+  initOpayV4,
+  initCardV4,
+  initBankTransferV4,
+  chargeSavedCardV4,
+  verifyChargeV4,
+} from "@/lib/flutterwave-v4.functions";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Checkout — Maison Luxe" }] }),
@@ -26,7 +25,8 @@ type SavedCard = {
   last4: string;
   exp_month: string;
   exp_year: string;
-  authorization_code: string;
+  authorization_code: string; // v4 payment_method_id
+  paystack_customer_code: string | null; // reused: v4 customer_id
   is_default: boolean;
 };
 
@@ -83,7 +83,7 @@ function Checkout() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data } = await (supabase as any)
         .from("payment_methods")
-        .select("id, brand, last4, exp_month, exp_year, authorization_code, is_default")
+        .select("id, brand, last4, exp_month, exp_year, authorization_code, paystack_customer_code, is_default")
         .eq("user_id", user.id)
         .order("is_default", { ascending: false });
       const list = (data ?? []) as SavedCard[];
