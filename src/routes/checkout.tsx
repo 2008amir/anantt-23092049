@@ -102,6 +102,12 @@ function Checkout() {
     setErrors({});
     setPlacing(true);
     try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+      if (!accessToken) throw new Error("Please sign in again to continue.");
+
       // 1. Create order in DB first (status pending)
       const { data: order, error } = await supabase
         .from("orders")
@@ -152,6 +158,7 @@ function Checkout() {
             callbackUrl,
             authorization_code: card.authorization_code,
             metadata: { order_id: order.id },
+            accessToken,
           },
         });
         reference = res.reference;
@@ -163,6 +170,7 @@ function Checkout() {
             callbackUrl,
             channels: channelsFor(method),
             metadata: { order_id: order.id },
+            accessToken,
           },
         });
         if (res.mode !== "redirect") throw new Error("Unexpected init response");
@@ -185,7 +193,7 @@ function Checkout() {
 
       // 3. Verify on server
       const verified = await verifyPaystack({
-        data: { reference: reference!, saveCard: method === "card" },
+        data: { reference: reference!, saveCard: method === "card", accessToken },
       });
       await supabase
         .from("orders")

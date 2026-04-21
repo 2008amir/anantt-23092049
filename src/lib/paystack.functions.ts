@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { getPaystackAuthContext } from "./paystack-auth.server";
 
 export const PAYSTACK_PUBLIC_KEY = "pk_live_bf83087e2c333f9db3c6ee41d95d1befa13e8c8f";
 
@@ -27,9 +27,7 @@ async function paystackFetch(path: string, init?: RequestInit) {
   return json;
 }
 
-// ─── Initialize a transaction (returns authorization_url + reference) ────────
 export const initPaystack = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((input: {
     amount: number;
     email: string;
@@ -37,23 +35,24 @@ export const initPaystack = createServerFn({ method: "POST" })
     callbackUrl: string;
     metadata?: Record<string, unknown>;
     authorization_code?: string;
+    accessToken?: string;
   }) => {
     if (!input?.amount || input.amount <= 0) throw new Error("amount required");
     if (!input.email || !/^\S+@\S+\.\S+$/.test(input.email)) throw new Error("valid email required");
     if (!input.callbackUrl) throw new Error("callbackUrl required");
+    if (!input.accessToken) throw new Error("auth required");
     return input;
   })
-  .handler(async ({ data, context }) => {
-    const { userId } = context;
+  .handler(async ({ data }) => {
+    const { userId } = await getPaystackAuthContext(data.accessToken);
 
-    // If using a saved card, charge the authorization directly
     if (data.authorization_code) {
       const res = await paystackFetch("/transaction/charge_authorization", {
         method: "POST",
         body: JSON.stringify({
           authorization_code: data.authorization_code,
           email: data.email,
-          amount: Math.round(data.amount * 100), // kobo/cents
+          amount: Math.round(data.amount * 100),
           metadata: { ...(data.metadata ?? {}), user_id: userId },
         }),
       });
@@ -82,15 +81,14 @@ export const initPaystack = createServerFn({ method: "POST" })
     };
   });
 
-// ─── Verify a transaction & optionally save the card ────────────────────────
 export const verifyPaystack = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: { reference: string; saveCard?: boolean }) => {
+  .inputValidator((input: { reference: string; saveCard?: boolean; accessToken?: string }) => {
     if (!input?.reference) throw new Error("reference required");
+    if (!input.accessToken) throw new Error("auth required");
     return input;
   })
-  .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
+  .handler(async ({ data }) => {
+    const { supabase, userId } = await getPaystackAuthContext(data.accessToken);
     const res = await paystackFetch(`/transaction/verify/${encodeURIComponent(data.reference)}`);
     const tx = res.data;
     const success = tx?.status === "success";

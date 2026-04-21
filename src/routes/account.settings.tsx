@@ -72,6 +72,12 @@ function SettingsPanel() {
     setCardSuccess(null);
     setVerifying(true);
     try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+      if (!accessToken) throw new Error("Please sign in again to save a card.");
+
       const init = await initPaystack({
         data: {
           amount: 50, // ₦50 verification charge
@@ -79,6 +85,7 @@ function SettingsPanel() {
           channels: ["card"],
           callbackUrl: window.location.origin + "/account/settings",
           metadata: { purpose: "card_verification" },
+          accessToken,
         },
       });
       if (init.mode !== "redirect") throw new Error("Unexpected response");
@@ -93,7 +100,7 @@ function SettingsPanel() {
         setCardError("Card verification cancelled.");
         return;
       }
-      const verified = await verifyPaystack({ data: { reference: result.reference, saveCard: true } });
+      const verified = await verifyPaystack({ data: { reference: result.reference, saveCard: true, accessToken } });
       if (!verified.success) {
         setCardError("Card could not be verified. Please try a different card.");
         return;
