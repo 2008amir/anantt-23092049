@@ -19,6 +19,7 @@ import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrdersIndexRouteImport } from './routes/orders.index'
 import { Route as AccountIndexRouteImport } from './routes/account.index'
+import { Route as WebhookFlutterwaveRouteImport } from './routes/webhook.flutterwave'
 import { Route as ProductIdRouteImport } from './routes/product.$id'
 import { Route as OrdersIdRouteImport } from './routes/orders.$id'
 import { Route as AccountWishlistRouteImport } from './routes/account.wishlist'
@@ -78,6 +79,11 @@ const AccountIndexRoute = AccountIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AccountRoute,
+} as any)
+const WebhookFlutterwaveRoute = WebhookFlutterwaveRouteImport.update({
+  id: '/webhook/flutterwave',
+  path: '/webhook/flutterwave',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ProductIdRoute = ProductIdRouteImport.update({
   id: '/product/$id',
@@ -143,6 +149,7 @@ export interface FileRoutesByFullPath {
   '/account/wishlist': typeof AccountWishlistRoute
   '/orders/$id': typeof OrdersIdRoute
   '/product/$id': typeof ProductIdRoute
+  '/webhook/flutterwave': typeof WebhookFlutterwaveRoute
   '/account/': typeof AccountIndexRoute
   '/orders/': typeof OrdersIndexRoute
   '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
@@ -163,6 +170,7 @@ export interface FileRoutesByTo {
   '/account/wishlist': typeof AccountWishlistRoute
   '/orders/$id': typeof OrdersIdRoute
   '/product/$id': typeof ProductIdRoute
+  '/webhook/flutterwave': typeof WebhookFlutterwaveRoute
   '/account': typeof AccountIndexRoute
   '/orders': typeof OrdersIndexRoute
   '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
@@ -185,6 +193,7 @@ export interface FileRoutesById {
   '/account/wishlist': typeof AccountWishlistRoute
   '/orders/$id': typeof OrdersIdRoute
   '/product/$id': typeof ProductIdRoute
+  '/webhook/flutterwave': typeof WebhookFlutterwaveRoute
   '/account/': typeof AccountIndexRoute
   '/orders/': typeof OrdersIndexRoute
   '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
@@ -208,6 +217,7 @@ export interface FileRouteTypes {
     | '/account/wishlist'
     | '/orders/$id'
     | '/product/$id'
+    | '/webhook/flutterwave'
     | '/account/'
     | '/orders/'
     | '/api/public/flutterwave-webhook'
@@ -228,6 +238,7 @@ export interface FileRouteTypes {
     | '/account/wishlist'
     | '/orders/$id'
     | '/product/$id'
+    | '/webhook/flutterwave'
     | '/account'
     | '/orders'
     | '/api/public/flutterwave-webhook'
@@ -249,6 +260,7 @@ export interface FileRouteTypes {
     | '/account/wishlist'
     | '/orders/$id'
     | '/product/$id'
+    | '/webhook/flutterwave'
     | '/account/'
     | '/orders/'
     | '/api/public/flutterwave-webhook'
@@ -265,6 +277,7 @@ export interface RootRouteChildren {
   WishlistRoute: typeof WishlistRoute
   OrdersIdRoute: typeof OrdersIdRoute
   ProductIdRoute: typeof ProductIdRoute
+  WebhookFlutterwaveRoute: typeof WebhookFlutterwaveRoute
   OrdersIndexRoute: typeof OrdersIndexRoute
   ApiPublicFlutterwaveWebhookRoute: typeof ApiPublicFlutterwaveWebhookRoute
 }
@@ -340,6 +353,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/account/'
       preLoaderRoute: typeof AccountIndexRouteImport
       parentRoute: typeof AccountRoute
+    }
+    '/webhook/flutterwave': {
+      id: '/webhook/flutterwave'
+      path: '/webhook/flutterwave'
+      fullPath: '/webhook/flutterwave'
+      preLoaderRoute: typeof WebhookFlutterwaveRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/product/$id': {
       id: '/product/$id'
@@ -441,6 +461,7 @@ const rootRouteChildren: RootRouteChildren = {
   WishlistRoute: WishlistRoute,
   OrdersIdRoute: OrdersIdRoute,
   ProductIdRoute: ProductIdRoute,
+  WebhookFlutterwaveRoute: WebhookFlutterwaveRoute,
   OrdersIndexRoute: OrdersIndexRoute,
   ApiPublicFlutterwaveWebhookRoute: ApiPublicFlutterwaveWebhookRoute,
 }

@@ -7,7 +7,7 @@ import type { Database } from "@/integrations/supabase/types";
  *
  * Configure this URL in your Flutterwave dashboard
  * (Settings → Webhooks):
- *   https://project--7ec3279f-b67f-4ffe-8911-e1b882a2f4b0.lovable.app/api/public/flutterwave-webhook
+ *   https://luxesparkles.codebreakers.uk/webhook/flutterwave
  *
  * Set the "Secret hash" to the same value as the FLUTTERWAVE_WEBHOOK_SECRET
  * runtime secret. Flutterwave sends it back in the `verif-hash` header on
