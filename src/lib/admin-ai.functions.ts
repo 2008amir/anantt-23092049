@@ -59,55 +59,61 @@ export const generateProductReviews = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data }): Promise<{ reviews: Review[]; rating: number }> => {
-    const total = data.countries * data.messages;
-    const systemPrompt = `You are generating realistic, varied customer reviews for a luxury e-commerce product. Distribute ${data.messages} reviews across each of ${data.countries} different countries (use real country names from diverse regions). Vary tone: most positive (4-5 stars), some neutral (3 stars), occasional minor critique. Authentic first names from each country. Short titles. 1-3 sentence bodies.`;
+    try {
+      const total = data.countries * data.messages;
+      const systemPrompt = `You are generating realistic, varied customer reviews for a luxury e-commerce product. Distribute ${data.messages} reviews across each of ${data.countries} different countries (use real country names from diverse regions). Vary tone: most positive (4-5 stars), some neutral (3 stars), occasional minor critique. Authentic first names from each country. Short titles. 1-3 sentence bodies.`;
 
-    const userPrompt = `Product: ${data.productName}
+      const userPrompt = `Product: ${data.productName}
 ${data.productDescription ? `Description: ${data.productDescription}` : ""}
 
 Generate exactly ${total} reviews (${data.messages} per country across ${data.countries} countries).`;
 
-    const parsed = await callGateway(systemPrompt, userPrompt, "make_reviews", {
-      type: "object",
-      properties: {
-        reviews: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              author: { type: "string" },
-              country: { type: "string" },
-              rating: { type: "integer", minimum: 1, maximum: 5 },
-              title: { type: "string" },
-              body: { type: "string" },
+      const parsed = await callGateway(systemPrompt, userPrompt, "make_reviews", {
+        type: "object",
+        properties: {
+          reviews: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                author: { type: "string" },
+                country: { type: "string" },
+                rating: { type: "integer", minimum: 1, maximum: 5 },
+                title: { type: "string" },
+                body: { type: "string" },
+              },
+              required: ["author", "country", "rating", "title", "body"],
+              additionalProperties: false,
             },
-            required: ["author", "country", "rating", "title", "body"],
-            additionalProperties: false,
           },
         },
-      },
-      required: ["reviews"],
-      additionalProperties: false,
-    });
+        required: ["reviews"],
+        additionalProperties: false,
+      });
 
-    const raw = (parsed?.reviews ?? []) as Array<{ author: string; country: string; rating: number; title: string; body: string }>;
-    const now = new Date();
-    const reviews: Review[] = raw.slice(0, total).map((r, i) => {
-      const daysAgo = Math.floor(Math.random() * 120);
-      const d = new Date(now.getTime() - daysAgo * 86400000);
-      return {
-        id: `gen-${Date.now()}-${i}`,
-        author: `${r.author} (${r.country})`,
-        rating: Math.max(1, Math.min(5, Math.round(r.rating))),
-        date: d.toISOString().slice(0, 10),
-        title: r.title,
-        body: r.body,
-      };
-    });
+      const raw = (parsed?.reviews ?? []) as Array<{ author: string; country: string; rating: number; title: string; body: string }>;
+      const now = new Date();
+      const reviews: Review[] = raw.slice(0, total).map((r, i) => {
+        const daysAgo = Math.floor(Math.random() * 120);
+        const d = new Date(now.getTime() - daysAgo * 86400000);
+        return {
+          id: `gen-${Date.now()}-${i}`,
+          author: `${r.author} (${r.country})`,
+          rating: Math.max(1, Math.min(5, Math.round(r.rating))),
+          date: d.toISOString().slice(0, 10),
+          title: r.title,
+          body: r.body,
+        };
+      });
 
-    const rating = reviews.length > 0
-      ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10
-      : 0;
+      const rating = reviews.length > 0
+        ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10
+        : 0;
 
-    return { reviews, rating };
+      return { reviews, rating };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "AI generation failed";
+      console.error("generateProductReviews error:", msg);
+      throw new Error(msg);
+    }
   });
