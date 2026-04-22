@@ -503,12 +503,15 @@ function AddProductForm({ onCreated }: { onCreated: () => void }) {
         <TextField label="Name *" value={name} onChange={setName} />
         <TextField label="Brand *" value={brand} onChange={setBrand} />
         <TextField label="Category *" value={category} onChange={setCategory} />
-        <NumberField label="Old price ₦ (strike-through, optional)" value={delivery} onChange={setDelivery} />
+        <NumberField label="Stock quantity *" value={stock} onChange={setStock} />
+        <NumberField label="Old price ₦ (strike-through)" value={delivery} onChange={setDelivery} />
         <NumberField label="Price (₦) *" value={price} onChange={setPrice} />
-        <NumberField label="Discount price (₦)" value={discount} onChange={setDiscount} />
-        <NumberField label="Stock quantity" value={stock} onChange={setStock} />
+        <NumberField label="Sale / discount price (₦)" value={discount} onChange={setDiscount} />
         <NumberField label="Rating (0–5)" value={rating} onChange={setRating} />
       </div>
+      <p className="mt-2 text-[11px] text-muted-foreground">
+        Delivery is set per LGA in <span className="text-primary">Delivery Prices</span> and applied per order, not per product.
+      </p>
 
       <div className="mt-4">
         <p className="mb-1 text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Description</p>
