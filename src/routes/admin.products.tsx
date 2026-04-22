@@ -234,8 +234,8 @@ function EditModal({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <NumberField label="Price (₦)" value={price} onChange={setPrice} />
-          <NumberField label="Discount price (₦)" value={discount} onChange={setDiscount} />
-          <NumberField label="Delivery price (₦)" value={delivery} onChange={setDelivery} />
+          <NumberField label="Sale / discount price (₦)" value={discount} onChange={setDiscount} />
+          <NumberField label="Old price ₦ (strike-through)" value={delivery} onChange={setDelivery} />
           <NumberField label="Stock" value={stock} onChange={setStock} />
         </div>
 
