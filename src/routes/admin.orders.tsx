@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { Truck, CheckCircle2, ChevronRight } from "lucide-react";
+import { Truck, CheckCircle2, ChevronRight, PackageCheck } from "lucide-react";
 
 export const Route = createFileRoute("/admin/orders")({
   component: OrdersPage,
@@ -25,7 +26,7 @@ type Deliverer = { id: string; name: string; phone: string; state: string; city:
 type Profile = { id: string; display_name: string | null; email: string | null };
 
 function OrdersPage() {
-  const [tab, setTab] = useState<"current" | "ongoing">("current");
+  const [tab, setTab] = useState<"current" | "ongoing" | "delivered">("current");
   const [orders, setOrders] = useState<Order[]>([]);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [deliverers, setDeliverers] = useState<Deliverer[]>([]);
@@ -55,29 +56,55 @@ function OrdersPage() {
 
   useEffect(() => {
     void reload();
+    // realtime: refresh on any order change
+    const ch = supabase
+      .channel("admin-orders")
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
+        void reload();
+      })
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(ch);
+    };
   }, []);
 
   const current = orders.filter((o) => o.delivery_stage === "pending" || o.delivery_stage === "");
   const ongoing = orders.filter((o) => o.delivery_stage === "assigned" || o.delivery_stage === "in_transit");
+  const delivered = orders.filter((o) => o.delivery_stage === "delivered");
 
   const assign = async (orderId: string, delivererId: string) => {
-    await supabase
+    const { error } = await supabase
       .from("orders")
       .update({ deliverer_id: delivererId, delivery_stage: "assigned", status: "Assigned" })
       .eq("id", orderId);
+    if (error) {
+      toast.error("Could not assign deliverer", { description: error.message });
+      return;
+    }
+    const d = deliverers.find((x) => x.id === delivererId);
+    toast.success(`Assigned to ${d?.name ?? "deliverer"}`, {
+      description: "Order moved to Ongoing Delivery.",
+    });
     setAssigning(null);
+    setTab("ongoing");
     void reload();
   };
 
   const markDelivered = async (orderId: string) => {
-    await supabase
+    const { error } = await supabase
       .from("orders")
       .update({ delivery_stage: "delivered", status: "Delivered" })
       .eq("id", orderId);
+    if (error) {
+      toast.error("Could not update order", { description: error.message });
+      return;
+    }
+    toast.success("Order marked as delivered");
+    setTab("delivered");
     void reload();
   };
 
-  const list = tab === "current" ? current : ongoing;
+  const list = tab === "current" ? current : tab === "ongoing" ? ongoing : delivered;
 
   return (
     <div className="space-y-6">
