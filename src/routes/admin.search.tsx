@@ -1,21 +1,33 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { Search as SearchIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
+type AdminSearch = { q?: string };
+
 export const Route = createFileRoute("/admin/search")({
+  validateSearch: (s: Record<string, unknown>): AdminSearch => ({
+    q: typeof s.q === "string" ? s.q : undefined,
+  }),
   component: SearchPage,
 });
 
-type ProductRow = { id: string; name: string; brand: string; price: number };
+type ProductRow = { id: string; name: string; brand: string; price: number; stock: number };
 type ProfileRow = { id: string; email: string | null; display_name: string | null };
-type OrderRow = { id: string; user_id: string; total: number; created_at: string };
+type OrderRow = { id: string; user_id: string; total: number; created_at: string; status: string };
 
 function SearchPage() {
-  const [q, setQ] = useState("");
+  const { q: urlQ } = Route.useSearch();
+  const navigate = useNavigate();
+  const [q, setQ] = useState(urlQ ?? "");
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [users, setUsers] = useState<ProfileRow[]>([]);
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setQ(urlQ ?? "");
+  }, [urlQ]);
 
   const term = useMemo(() => q.trim(), [q]);
 
