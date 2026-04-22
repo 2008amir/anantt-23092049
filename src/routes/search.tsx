@@ -6,6 +6,7 @@ import { fetchProductsByIds, type Product } from "@/lib/products";
 import { Recommend } from "@/components/Recommend";
 import { useStore } from "@/lib/store";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { supabase } from "@/integrations/supabase/client";
 
 type ShopSearch = { q?: string };
 
