@@ -102,12 +102,15 @@ function Checkout() {
         .maybeSingle();
       const price = Number(data?.price ?? 0);
       setDeliveryPrice(price);
-      setDeliveryNotice(
+      const msg =
         price > 0
           ? `Delivery price ₦${price.toLocaleString()} has been added for ${shipForm.lga}, ${shipForm.state}.`
-          : `No delivery fee set for ${shipForm.lga}.`,
-      );
+          : `No delivery fee set for ${shipForm.lga}.`;
+      setDeliveryNotice(msg);
       setDeliveryLoading(false);
+      // Toast confirmation per user request
+      const { toast } = await import("sonner");
+      if (price > 0) toast.success("Delivery price has been added", { description: msg });
     })();
   }, [shipForm.state, shipForm.lga]);
 
