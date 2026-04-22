@@ -1,5 +1,5 @@
-import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { Search, Camera } from "lucide-react";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Search, Camera, Gift, Truck } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const KEY = "lux_search_v1";
@@ -26,9 +26,15 @@ export function Header() {
     }
   }, [query]);
 
+  const onAdmin = location.pathname.startsWith("/admin");
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    navigate({ to: "/search", search: { q: query || undefined, tab: "text" } });
+    if (onAdmin) {
+      navigate({ to: "/admin/search", search: { q: query || undefined } });
+    } else {
+      navigate({ to: "/search", search: { q: query || undefined, tab: "text" } });
+    }
   };
 
   // Hide on login, account, and search pages for cleaner flow.
@@ -36,7 +42,8 @@ export function Header() {
   if (
     location.pathname === "/login" ||
     location.pathname.startsWith("/account") ||
-    location.pathname === "/search"
+    location.pathname === "/search" ||
+    location.pathname === "/admin/search"
   ) return null;
 
   return (
@@ -49,17 +56,19 @@ export function Header() {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search Maison Luxe"
+          placeholder={onAdmin ? "Search products, users, orders…" : "Search Maison Luxe"}
           className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
         />
-        <button
-          type="button"
-          aria-label="Visual AI search"
-          onClick={() => navigate({ to: "/search", search: { tab: "image" } })}
-          className="text-muted-foreground transition-smooth hover:text-primary"
-        >
-          <Camera className="h-4 w-4" />
-        </button>
+        {!onAdmin && (
+          <button
+            type="button"
+            aria-label="Visual AI search"
+            onClick={() => navigate({ to: "/search", search: { tab: "image" } })}
+            className="text-muted-foreground transition-smooth hover:text-primary"
+          >
+            <Camera className="h-4 w-4" />
+          </button>
+        )}
         <button
           type="submit"
           aria-label="Search"
@@ -68,6 +77,22 @@ export function Header() {
           <Search className="h-4 w-4" />
         </button>
       </form>
+      {onAdmin && (
+        <div className="mt-2 flex gap-2">
+          <Link
+            to="/admin/rewards"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-[11px] uppercase tracking-wider text-primary hover:bg-primary/10"
+          >
+            <Gift className="h-3.5 w-3.5" /> Rewards
+          </Link>
+          <Link
+            to="/admin/deliverers"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-[11px] uppercase tracking-wider text-primary hover:bg-primary/10"
+          >
+            <Truck className="h-3.5 w-3.5" /> Deliverers
+          </Link>
+        </div>
+      )}
     </header>
   );
 }

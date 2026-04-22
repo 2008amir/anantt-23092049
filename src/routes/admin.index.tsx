@@ -53,7 +53,11 @@ function OverviewPage() {
         orders: orders.length,
         revenue,
       });
-      setChart(Object.entries(buckets).map(([date, count]) => ({ date, count })));
+      // Sort: most active day first → least
+      const sorted = Object.entries(buckets)
+        .map(([date, count]) => ({ date, count }))
+        .sort((a, b) => b.count - a.count);
+      setChart(sorted);
       setLoading(false);
     })();
     return () => {

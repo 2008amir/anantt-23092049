@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { Truck, CheckCircle2, ChevronRight } from "lucide-react";
+import { Truck, CheckCircle2, ChevronRight, PackageCheck } from "lucide-react";
 
 export const Route = createFileRoute("/admin/orders")({
   component: OrdersPage,
@@ -25,7 +26,7 @@ type Deliverer = { id: string; name: string; phone: string; state: string; city:
 type Profile = { id: string; display_name: string | null; email: string | null };
 
 function OrdersPage() {
-  const [tab, setTab] = useState<"current" | "ongoing">("current");
+  const [tab, setTab] = useState<"current" | "ongoing" | "delivered">("current");
   const [orders, setOrders] = useState<Order[]>([]);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [deliverers, setDeliverers] = useState<Deliverer[]>([]);
@@ -55,29 +56,55 @@ function OrdersPage() {
 
   useEffect(() => {
     void reload();
+    // realtime: refresh on any order change
+    const ch = supabase
+      .channel("admin-orders")
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
+        void reload();
+      })
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(ch);
+    };
   }, []);
 
   const current = orders.filter((o) => o.delivery_stage === "pending" || o.delivery_stage === "");
   const ongoing = orders.filter((o) => o.delivery_stage === "assigned" || o.delivery_stage === "in_transit");
+  const delivered = orders.filter((o) => o.delivery_stage === "delivered");
 
   const assign = async (orderId: string, delivererId: string) => {
-    await supabase
+    const { error } = await supabase
       .from("orders")
       .update({ deliverer_id: delivererId, delivery_stage: "assigned", status: "Assigned" })
       .eq("id", orderId);
+    if (error) {
+      toast.error("Could not assign deliverer", { description: error.message });
+      return;
+    }
+    const d = deliverers.find((x) => x.id === delivererId);
+    toast.success(`Assigned to ${d?.name ?? "deliverer"}`, {
+      description: "Order moved to Ongoing Delivery.",
+    });
     setAssigning(null);
+    setTab("ongoing");
     void reload();
   };
 
   const markDelivered = async (orderId: string) => {
-    await supabase
+    const { error } = await supabase
       .from("orders")
       .update({ delivery_stage: "delivered", status: "Delivered" })
       .eq("id", orderId);
+    if (error) {
+      toast.error("Could not update order", { description: error.message });
+      return;
+    }
+    toast.success("Order marked as delivered");
+    setTab("delivered");
     void reload();
   };
 
-  const list = tab === "current" ? current : ongoing;
+  const list = tab === "current" ? current : tab === "ongoing" ? ongoing : delivered;
 
   return (
     <div className="space-y-6">
@@ -86,19 +113,21 @@ function OrdersPage() {
         <p className="mt-1 text-sm text-muted-foreground">Manage current and ongoing deliveries.</p>
       </div>
 
-      <div className="flex gap-2 border-b border-border/40">
-        {(["current", "ongoing"] as const).map((t) => (
+      <div className="flex gap-2 overflow-x-auto border-b border-border/40">
+        {(["current", "ongoing", "delivered"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={cn(
-              "border-b-2 px-4 py-2 text-sm capitalize transition-colors",
+              "whitespace-nowrap border-b-2 px-4 py-2 text-sm capitalize transition-colors",
               tab === t
                 ? "border-primary text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground",
             )}
           >
-            {t === "current" ? `Current (${current.length})` : `Ongoing delivery (${ongoing.length})`}
+            {t === "current" && `Current (${current.length})`}
+            {t === "ongoing" && `Ongoing delivery (${ongoing.length})`}
+            {t === "delivered" && `Delivered (${delivered.length})`}
           </button>
         ))}
       </div>
@@ -145,7 +174,7 @@ function OrdersPage() {
                   </div>
                   <div className="text-right">
                     <p className="font-serif text-lg">₦{Number(order.total).toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground">{order.status}</p>
+                    <StatusPill stage={order.delivery_stage} />
                   </div>
                 </div>
 
@@ -225,5 +254,22 @@ function OrdersPage() {
         </div>
       )}
     </div>
+  );
+}
+
+function StatusPill({ stage }: { stage: string }) {
+  const map: Record<string, { label: string; cls: string; Icon: typeof Truck }> = {
+    pending: { label: "Awaiting assignment", cls: "bg-amber-500/10 text-amber-600 border-amber-500/30", Icon: Truck },
+    assigned: { label: "Assigned", cls: "bg-blue-500/10 text-blue-600 border-blue-500/30", Icon: Truck },
+    in_transit: { label: "In transit", cls: "bg-blue-500/10 text-blue-600 border-blue-500/30", Icon: Truck },
+    delivered: { label: "Delivered", cls: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30", Icon: PackageCheck },
+  };
+  const v = map[stage] ?? map.pending;
+  const Icon = v.Icon;
+  return (
+    <span className={cn("mt-1 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wider", v.cls)}>
+      <Icon className="h-3 w-3" />
+      {v.label}
+    </span>
   );
 }
