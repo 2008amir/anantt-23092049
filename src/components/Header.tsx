@@ -23,6 +23,7 @@ export function Header() {
   if (
     location.pathname === "/login" ||
     location.pathname.startsWith("/account") ||
+    location.pathname.startsWith("/deliverer") ||
     location.pathname === "/search" ||
     location.pathname === "/admin/search"
   ) return null;
