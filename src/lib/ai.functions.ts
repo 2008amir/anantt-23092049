@@ -334,25 +334,49 @@ ${text}`;
 );
 
 // ─── Log user interest (view / search) ─────────────────────────────
+// No auth middleware: silently no-op when unauthenticated to avoid throwing
+// Response objects that surface as "[object Response]" runtime errors.
 export const logInterest = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((input: { kind: "view" | "search"; productId?: string; query?: string }) => {
-    if (input.kind !== "view" && input.kind !== "search") throw new Error("invalid kind");
-    if (input.kind === "view" && !input.productId) throw new Error("productId required for view");
-    if (input.kind === "search" && !input.query) throw new Error("query required for search");
-    if (input.query && input.query.length > 200) throw new Error("query too long");
+    if (input.kind !== "view" && input.kind !== "search") return { kind: "search" as const };
+    if (input.query && input.query.length > 200) {
+      return { ...input, query: input.query.slice(0, 200) };
+    }
     return input;
   })
-  .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase as any).from("user_interests").insert({
-      user_id: userId,
-      kind: data.kind,
-      product_id: data.productId ?? null,
-      query: data.query ?? null,
-    });
-    return { ok: true };
+  .handler(async ({ data }) => {
+    try {
+      const SUPABASE_URL = process.env.SUPABASE_URL;
+      const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
+      if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) return { ok: false };
+
+      const authHeader = (await import("@tanstack/react-start/server")).getRequestHeader("authorization");
+      if (!authHeader?.startsWith("Bearer ")) return { ok: false };
+      const token = authHeader.slice(7);
+
+      const sb = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+        global: { headers: { Authorization: `Bearer ${token}` } },
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const { data: claims } = await sb.auth.getClaims(token);
+      const userId = claims?.claims?.sub;
+      if (!userId) return { ok: false };
+
+      if (data.kind === "view" && !data.productId) return { ok: false };
+      if (data.kind === "search" && !data.query) return { ok: false };
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (sb as any).from("user_interests").insert({
+        user_id: userId,
+        kind: data.kind,
+        product_id: data.productId ?? null,
+        query: data.query ?? null,
+      });
+      return { ok: true };
+    } catch (e) {
+      console.error("logInterest error", e);
+      return { ok: false };
+    }
   });
 
 // ─── Personalized feed: 40% biased toward user's interests ─────────
