@@ -503,10 +503,10 @@ function AddProductForm({ onCreated }: { onCreated: () => void }) {
         <TextField label="Name *" value={name} onChange={setName} />
         <TextField label="Brand *" value={brand} onChange={setBrand} />
         <TextField label="Category *" value={category} onChange={setCategory} />
+        <NumberField label="Old price ₦ (strike-through, optional)" value={delivery} onChange={setDelivery} />
         <NumberField label="Price (₦) *" value={price} onChange={setPrice} />
         <NumberField label="Discount price (₦)" value={discount} onChange={setDiscount} />
-        <NumberField label="Delivery price (₦)" value={delivery} onChange={setDelivery} />
-        <NumberField label="Stock" value={stock} onChange={setStock} />
+        <NumberField label="Stock quantity" value={stock} onChange={setStock} />
         <NumberField label="Rating (0–5)" value={rating} onChange={setRating} />
       </div>
 
