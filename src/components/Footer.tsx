@@ -43,6 +43,7 @@ export function Footer() {
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
 
   if (location.pathname === "/login") return null;
+  if (location.pathname.startsWith("/deliverer")) return null;
 
   // Admin layout: replace bottom nav with admin nav (scrollable horizontally)
   const onAdmin = location.pathname.startsWith("/admin");
