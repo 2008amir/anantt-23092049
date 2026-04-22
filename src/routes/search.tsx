@@ -6,6 +6,7 @@ import { fetchProductsByIds, type Product } from "@/lib/products";
 import { Recommend } from "@/components/Recommend";
 import { useStore } from "@/lib/store";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { supabase } from "@/integrations/supabase/client";
 
 type ShopSearch = { q?: string };
 
@@ -65,10 +66,37 @@ function SearchPage() {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  // Load history on mount
+  // Load history on mount: merge localStorage with DB
   useEffect(() => {
-    setHistory(loadHistory());
-  }, []);
+    const local = loadHistory();
+    setHistory(local);
+    if (!user) return;
+    let cancelled = false;
+    void (async () => {
+      const { data } = await supabase
+        .from("search_history")
+        .select("query, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(HISTORY_MAX * 2);
+      if (cancelled) return;
+      const remote = (data ?? []).map((r) => r.query as string);
+      const merged: string[] = [];
+      const seen = new Set<string>();
+      for (const q of [...local, ...remote]) {
+        const key = q.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        merged.push(q);
+        if (merged.length >= HISTORY_MAX) break;
+      }
+      setHistory(merged);
+      saveHistory(merged);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   // Auto-run text search if q is in URL
   useEffect(() => {
@@ -84,6 +112,14 @@ function SearchPage() {
       saveHistory(next);
       return next;
     });
+    if (user) {
+      void supabase
+        .from("search_history")
+        .insert({ user_id: user.id, query: trimmed })
+        .then(({ error }) => {
+          if (error) console.error("save search history", error);
+        });
+    }
   };
 
   const removeHistoryItem = (text: string) => {
@@ -92,11 +128,21 @@ function SearchPage() {
       saveHistory(next);
       return next;
     });
+    if (user) {
+      void supabase
+        .from("search_history")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("query", text);
+    }
   };
 
   const clearHistory = () => {
     setHistory([]);
     saveHistory([]);
+    if (user) {
+      void supabase.from("search_history").delete().eq("user_id", user.id);
+    }
   };
 
   const runTextSearch = async (text: string, addToHistory = true) => {
