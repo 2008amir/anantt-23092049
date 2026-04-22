@@ -108,28 +108,7 @@ function AdminLayout() {
         </div>
       </aside>
 
-      {/* Mobile top nav */}
-      <div className="md:hidden fixed top-16 left-0 right-0 z-30 overflow-x-auto border-b border-border/40 bg-card px-4 py-2">
-        <div className="flex gap-2">
-          {NAV.map((item) => {
-            const active = item.exact ? pathname === item.to : pathname.startsWith(item.to);
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={cn(
-                  "whitespace-nowrap rounded-md px-3 py-1.5 text-xs",
-                  active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
-                )}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-
-      <main className="flex-1 overflow-x-hidden p-4 pt-16 md:p-8 md:pt-8">
+      <main className="flex-1 overflow-x-hidden p-4 pb-24 md:p-8 md:pb-8">
         <Outlet />
       </main>
     </div>

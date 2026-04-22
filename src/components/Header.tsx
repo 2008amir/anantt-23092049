@@ -31,11 +31,11 @@ export function Header() {
     navigate({ to: "/search", search: { q: query || undefined, tab: "text" } });
   };
 
-  // Hide on login, account, admin, and search pages for cleaner flow
+  // Hide on login, account, and search pages for cleaner flow.
+  // Keep visible on /admin so the global search bar is always available.
   if (
     location.pathname === "/login" ||
     location.pathname.startsWith("/account") ||
-    location.pathname.startsWith("/admin") ||
     location.pathname === "/search"
   ) return null;
 
