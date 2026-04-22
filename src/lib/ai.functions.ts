@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
 
 type AICategory = { name: string; productIds: string[] };
 type SimilarResult = { ids: string[] };
