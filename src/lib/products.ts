@@ -83,16 +83,21 @@ export async function fetchProduct(id: string): Promise<Product | null> {
 
 export async function fetchProductsByIds(ids: string[]): Promise<Product[]> {
   if (ids.length === 0) return [];
+  // Only return products that are still active and in-stock so removed/disabled
+  // admin products never appear in recommendations or related sections.
   const { data, error } = await supabase
     .from("products")
     .select("*")
-    .in("id", ids);
+    .in("id", ids)
+    .eq("is_active", true)
+    .gt("stock", 0);
   if (error) throw error;
   const map = new Map<string, Product>();
   for (const r of data ?? []) {
     const p = rowToProduct(r as unknown as Row);
     map.set(p.id, p);
   }
-  // preserve requested order
+  // preserve requested order, dropping any missing ids
   return ids.map((id) => map.get(id)).filter(Boolean) as Product[];
 }
+
