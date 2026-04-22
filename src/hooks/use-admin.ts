@@ -22,8 +22,19 @@ export function useIsAdmin() {
       return;
     }
 
+    // Designated admin email: grant immediately, no waiting on DB
+    if (user.email?.toLowerCase() === ADMIN_EMAIL) {
+      setIsAdmin(true);
+      setChecking(false);
+      // Best-effort: ensure the role row exists in the background
+      void supabase
+        .from("user_roles")
+        .insert({ user_id: user.id, role: "admin" })
+        .then(() => {});
+      return;
+    }
+
     (async () => {
-      // Check if role exists
       const { data: roleRow } = await supabase
         .from("user_roles")
         .select("role")
@@ -33,25 +44,7 @@ export function useIsAdmin() {
 
       if (cancelled) return;
 
-      if (roleRow) {
-        setIsAdmin(true);
-        setChecking(false);
-        return;
-      }
-
-      // If this is the designated admin email, self-grant
-      if (user.email?.toLowerCase() === ADMIN_EMAIL) {
-        const { error } = await supabase
-          .from("user_roles")
-          .insert({ user_id: user.id, role: "admin" });
-        if (!cancelled) {
-          setIsAdmin(!error);
-          setChecking(false);
-        }
-        return;
-      }
-
-      setIsAdmin(false);
+      setIsAdmin(!!roleRow);
       setChecking(false);
     })();
 
