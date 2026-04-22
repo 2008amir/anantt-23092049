@@ -3,38 +3,13 @@ import { generateCategories } from "@/lib/ai.functions";
 
 export type AICategory = { name: string; productIds: string[] };
 
-const CACHE_KEY = "lux_ai_categories_v2";
-const CACHE_TTL = 1000 * 60 * 60 * 24; // 24h
-
 let inflight: Promise<AICategory[]> | null = null;
 
 async function load(): Promise<AICategory[]> {
-  if (typeof window !== "undefined") {
-    try {
-      const raw = localStorage.getItem(CACHE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as { ts: number; data: AICategory[] };
-        if (Date.now() - parsed.ts < CACHE_TTL && parsed.data?.length) {
-          return parsed.data;
-        }
-      }
-    } catch {
-      // ignore
-    }
-  }
+  // Server caches via ai_cache table. No client-side localStorage cache.
   if (!inflight) {
     inflight = generateCategories()
-      .then((res: { categories: AICategory[] }) => {
-        const data = res.categories ?? [];
-        if (typeof window !== "undefined" && data.length) {
-          try {
-            localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
-          } catch {
-            // ignore
-          }
-        }
-        return data;
-      })
+      .then((res: { categories: AICategory[] }) => res.categories ?? [])
       .finally(() => {
         inflight = null;
       });

@@ -1,8 +1,10 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { recommendations } from "@/lib/ai.functions";
-import { fetchProductsByIds, type Product } from "@/lib/products";
+import { recommendations, personalizedFeed } from "@/lib/ai.functions";
+import { fetchProducts, fetchProductsByIds, type Product } from "@/lib/products";
+import { useStore } from "@/lib/store";
+import { supabase } from "@/integrations/supabase/client";
 
 // Pages where Recommend SHOULD appear
 const SHOW_PREFIXES = [
@@ -18,6 +20,7 @@ const SHOW_PREFIXES = [
 
 export function Recommend() {
   const { location } = useRouterState();
+  const { user } = useStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [theme, setTheme] = useState("Recommended for You");
   const [loading, setLoading] = useState(true);
@@ -30,21 +33,74 @@ export function Recommend() {
     if (!visible) return;
     let cancelled = false;
     setLoading(true);
-    recommendations()
-      .then(async (res) => {
-        if (cancelled) return;
+
+    const run = async () => {
+      // Always start from the live product catalog so removed / disabled
+      // products never appear in recommendations.
+      const catalog = await fetchProducts();
+      if (cancelled) return;
+      const allIds = catalog.map((p) => p.id);
+      if (allIds.length === 0) {
+        setProducts([]);
+        return;
+      }
+
+      // Personalized path: signed-in user with recorded interests
+      if (user) {
+        const { data: interests } = await supabase
+          .from("user_interests")
+          .select("product_id, query, kind, created_at")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(50);
+
+        const viewedIds = (interests ?? [])
+          .filter((r) => r.kind === "view" && r.product_id)
+          .map((r) => r.product_id as string);
+        const queries = (interests ?? [])
+          .filter((r) => r.kind === "search" && r.query)
+          .map((r) => r.query as string);
+
+        if (viewedIds.length > 0 || queries.length > 0) {
+          const res = await personalizedFeed({
+            data: { allIds, viewedIds, queries },
+          });
+          if (cancelled) return;
+          const ids = (res.biasedIds && res.biasedIds.length > 0
+            ? res.biasedIds
+            : res.orderedIds
+          ).slice(0, 6);
+          const items = await fetchProductsByIds(ids);
+          if (!cancelled) {
+            setTheme("Picked for You");
+            setProducts(items);
+          }
+          return;
+        }
+      }
+
+      // Fallback: AI-curated daily set, still validated against live catalog
+      const res = await recommendations();
+      if (cancelled) return;
+      const validSet = new Set(allIds);
+      const ids = (res.ids ?? []).filter((id) => validSet.has(id)).slice(0, 6);
+      const items = await fetchProductsByIds(ids);
+      if (!cancelled) {
         setTheme(res.theme || "Recommended for You");
-        const items = await fetchProductsByIds(res.ids);
-        if (!cancelled) setProducts(items);
-      })
+        setProducts(items);
+      }
+    };
+
+    run()
       .catch((e) => console.error("recommend", e))
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+
     return () => {
       cancelled = true;
     };
-  }, [visible]);
+  }, [visible, user]);
 
   if (!visible) return null;
 
