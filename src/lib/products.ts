@@ -37,6 +37,8 @@ type Row = {
   rating: number | string;
   review_count: number;
   reviews: unknown;
+  stock?: number;
+  is_active?: boolean;
 };
 
 function rowToProduct(r: Row): Product {
@@ -52,14 +54,18 @@ function rowToProduct(r: Row): Product {
     rating: Number(r.rating),
     reviewCount: r.review_count,
     reviews: Array.isArray(r.reviews) ? (r.reviews as Review[]) : [],
-    inStock: true,
+    inStock: (r.stock ?? 0) > 0,
   };
 }
 
 export async function fetchProducts(): Promise<Product[]> {
+  // Public shop only sees active products that still have stock.
+  // Finished products (stock = 0) only show in admin "Finished" tab.
   const { data, error } = await supabase
     .from("products")
     .select("*")
+    .eq("is_active", true)
+    .gt("stock", 0)
     .order("created_at", { ascending: true });
   if (error) throw error;
   return (data ?? []).map((r) => rowToProduct(r as unknown as Row));
