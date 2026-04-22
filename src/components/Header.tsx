@@ -1,30 +1,11 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { Search, Camera, Gift, Truck } from "lucide-react";
-import { useEffect, useState } from "react";
-
-const KEY = "lux_search_v1";
+import { useState } from "react";
 
 export function Header() {
   const navigate = useNavigate();
   const { location } = useRouterState();
   const [query, setQuery] = useState("");
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(KEY);
-      if (saved) setQuery(saved);
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(KEY, query);
-    } catch {
-      // ignore
-    }
-  }, [query]);
 
   const onAdmin = location.pathname.startsWith("/admin");
 
