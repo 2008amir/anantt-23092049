@@ -1,22 +1,36 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ArrowRight } from "lucide-react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import hero from "@/assets/hero.jpg";
 
+const KEY = "lux_entered_v1";
+
 export function Splash({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const { location } = useRouterState();
-  // Always show splash on initial app entry (no localStorage persistence).
-  const [entered, setEntered] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [entered, setEntered] = useState(true);
+
+  useEffect(() => {
+    const has = typeof window !== "undefined" && localStorage.getItem(KEY) === "1";
+    setEntered(has);
+    setReady(true);
+  }, []);
 
   const enter = () => {
+    try {
+      localStorage.setItem(KEY, "1");
+    } catch {
+      // ignore
+    }
     setEntered(true);
-    // Always land on the home page (first bottom-nav tab) after entering.
+    // Land on the home page (first bottom-nav tab) after the very first entry.
     if (location.pathname !== "/") {
       void navigate({ to: "/" });
     }
   };
 
+  if (!ready) return null;
   if (entered) return <>{children}</>;
 
   return (
