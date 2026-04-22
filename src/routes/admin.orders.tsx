@@ -256,3 +256,20 @@ function OrdersPage() {
     </div>
   );
 }
+
+function StatusPill({ stage }: { stage: string }) {
+  const map: Record<string, { label: string; cls: string; Icon: typeof Truck }> = {
+    pending: { label: "Awaiting assignment", cls: "bg-amber-500/10 text-amber-600 border-amber-500/30", Icon: Truck },
+    assigned: { label: "Assigned", cls: "bg-blue-500/10 text-blue-600 border-blue-500/30", Icon: Truck },
+    in_transit: { label: "In transit", cls: "bg-blue-500/10 text-blue-600 border-blue-500/30", Icon: Truck },
+    delivered: { label: "Delivered", cls: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30", Icon: PackageCheck },
+  };
+  const v = map[stage] ?? map.pending;
+  const Icon = v.Icon;
+  return (
+    <span className={cn("mt-1 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wider", v.cls)}>
+      <Icon className="h-3 w-3" />
+      {v.label}
+    </span>
+  );
+}
