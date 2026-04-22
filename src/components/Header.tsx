@@ -14,7 +14,7 @@ export function Header() {
     if (onAdmin) {
       navigate({ to: "/admin/search", search: { q: query || undefined } });
     } else {
-      navigate({ to: "/search", search: { q: query || undefined, tab: "text" } });
+      navigate({ to: "/search", search: { q: query || undefined } });
     }
   };
 
