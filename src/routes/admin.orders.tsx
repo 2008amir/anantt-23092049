@@ -113,19 +113,21 @@ function OrdersPage() {
         <p className="mt-1 text-sm text-muted-foreground">Manage current and ongoing deliveries.</p>
       </div>
 
-      <div className="flex gap-2 border-b border-border/40">
-        {(["current", "ongoing"] as const).map((t) => (
+      <div className="flex gap-2 overflow-x-auto border-b border-border/40">
+        {(["current", "ongoing", "delivered"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={cn(
-              "border-b-2 px-4 py-2 text-sm capitalize transition-colors",
+              "whitespace-nowrap border-b-2 px-4 py-2 text-sm capitalize transition-colors",
               tab === t
                 ? "border-primary text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground",
             )}
           >
-            {t === "current" ? `Current (${current.length})` : `Ongoing delivery (${ongoing.length})`}
+            {t === "current" && `Current (${current.length})`}
+            {t === "ongoing" && `Ongoing delivery (${ongoing.length})`}
+            {t === "delivered" && `Delivered (${delivered.length})`}
           </button>
         ))}
       </div>
@@ -172,7 +174,7 @@ function OrdersPage() {
                   </div>
                   <div className="text-right">
                     <p className="font-serif text-lg">₦{Number(order.total).toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground">{order.status}</p>
+                    <StatusPill stage={order.delivery_stage} />
                   </div>
                 </div>
 
