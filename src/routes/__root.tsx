@@ -4,6 +4,7 @@ import { StoreProvider } from "@/lib/store";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Splash } from "@/components/Splash";
+import { Toaster } from "@/components/ui/sonner";
 
 
 function NotFoundComponent() {
@@ -71,6 +72,7 @@ function RootComponent() {
             <Outlet />
           </main>
           <Footer />
+          <Toaster position="top-center" richColors closeButton />
         </div>
       </Splash>
     </StoreProvider>
