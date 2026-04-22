@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Search, Camera, Gift, Truck } from "lucide-react";
+import { Search, Gift, Truck } from "lucide-react";
 import { useState } from "react";
 
 export function Header() {
