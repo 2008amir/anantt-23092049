@@ -55,7 +55,7 @@ function AccountLayout() {
 }
 
 function ProfileHome() {
-  const { user, profile, wishlist, signOut } = useStore();
+  const { user, profile, signOut } = useStore();
   const navigate = useNavigate();
   const [orderCount, setOrderCount] = useState(0);
   const [lifetime, setLifetime] = useState(0);
