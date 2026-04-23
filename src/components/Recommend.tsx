@@ -8,7 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 // Pages where Recommend SHOULD appear
 const SHOW_PREFIXES = [
-  "/account/orders",
+  "/account/history",
+  "/account/your-orders",
   "/account/notifications",
   "/account/wishlist",
   "/account/earn",
