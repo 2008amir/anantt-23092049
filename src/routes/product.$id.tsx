@@ -1,12 +1,13 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Heart, Minus, Plus, ShieldCheck, Truck, RotateCcw, Sparkles, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Stars } from "@/components/Stars";
 import { ProductCard } from "@/components/ProductCard";
 import { fetchProduct, fetchProductsByIds, type Product } from "@/lib/products";
 import { similarProducts } from "@/lib/ai.functions";
 import { useStore } from "@/lib/store";
 import { Recommend } from "@/components/Recommend";
+import { flyToCart } from "@/components/CartBubble";
 
 export const Route = createFileRoute("/product/$id")({
   loader: async ({ params }): Promise<{ product: Product }> => {
@@ -46,6 +47,7 @@ function ProductPage() {
   const { addToCart, toggleWishlist, wishlist } = useStore();
   const [qty, setQty] = useState(1);
   const liked = wishlist.includes(product.id);
+  const imgRef = useRef<HTMLImageElement | null>(null);
 
   const [similar, setSimilar] = useState<Product[]>([]);
   const [loadingSimilar, setLoadingSimilar] = useState(false);
@@ -83,7 +85,7 @@ function ProductPage() {
 
       <div className="grid gap-12 lg:grid-cols-2">
         <div className="aspect-[4/5] overflow-hidden bg-card shadow-luxury">
-          <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
+          <img ref={imgRef} src={product.image} alt={product.name} className="h-full w-full object-cover" />
         </div>
 
         <div>
@@ -128,7 +130,10 @@ function ProductPage() {
             </div>
             <button
               type="button"
-              onClick={() => void addToCart(product.id, qty)}
+              onClick={() => {
+                flyToCart(imgRef.current, product.image);
+                void addToCart(product.id, qty);
+              }}
               className="flex-1 bg-gold-gradient px-8 py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold transition-smooth hover:opacity-90"
             >
               Add to Cart
