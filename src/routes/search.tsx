@@ -2,11 +2,21 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Search as SearchIcon, Camera, Upload, X, ImagePlus, Clock, Trash2 } from "lucide-react";
 import { textSearch, visualSearch, logInterest } from "@/lib/ai.functions";
-import { fetchProductsByIds, type Product } from "@/lib/products";
+import { fetchProducts, fetchProductsByIds, type Product } from "@/lib/products";
 import { Recommend } from "@/components/Recommend";
 import { useStore } from "@/lib/store";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
+
+function localTextMatch(catalog: Product[], q: string): Product[] {
+  const needle = q.trim().toLowerCase();
+  if (!needle) return [];
+  const tokens = needle.split(/\s+/).filter(Boolean);
+  return catalog.filter((p) => {
+    const hay = `${p.name} ${p.brand} ${p.category} ${p.description}`.toLowerCase();
+    return tokens.some((t) => hay.includes(t));
+  });
+}
 
 type ShopSearch = { q?: string };
 
