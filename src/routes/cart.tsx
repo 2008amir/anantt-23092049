@@ -16,6 +16,15 @@ function CartPage() {
 
   const handleProceedCheckout = async (e: React.MouseEvent) => {
     e.preventDefault();
+    // Snapshot cart for the checkout page, then clear so /cart shows empty.
+    try {
+      sessionStorage.setItem(
+        "checkout_snapshot",
+        JSON.stringify(items.map((i) => ({ product_id: i.product.id, quantity: i.quantity }))),
+      );
+    } catch {
+      // ignore storage errors
+    }
     await clearCart();
     navigate({ to: "/checkout" });
   };
