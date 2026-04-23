@@ -9,25 +9,39 @@ export const Route = createFileRoute("/admin/profile")({
   component: AdminProfilePage,
 });
 
+type FieldErrors = {
+  current?: string;
+  next?: string;
+  confirm?: string;
+  form?: string;
+};
+
 function AdminProfilePage() {
   const { user } = useStore();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<FieldErrors>({});
+
+  function validate(): FieldErrors {
+    const next: FieldErrors = {};
+    if (!currentPassword) next.current = "Enter your current password";
+    if (newPassword.length < 6) next.next = "Must be at least 6 characters";
+    if (newPassword && currentPassword && newPassword === currentPassword) {
+      next.next = "New password must differ from current";
+    }
+    if (confirmPassword !== newPassword) next.confirm = "Passwords do not match";
+    return next;
+  }
 
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
     if (!user?.email) return;
 
-    if (newPassword.length < 6) {
-      toast.error("New password must be at least 6 characters");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
+    const v = validate();
+    setErrors(v);
+    if (Object.keys(v).length > 0) return;
 
     setSaving(true);
     // Verify current password by re-authenticating
@@ -37,7 +51,7 @@ function AdminProfilePage() {
     });
     if (signInError) {
       setSaving(false);
-      toast.error("Current password is incorrect");
+      setErrors({ current: "Current password is incorrect" });
       return;
     }
 
@@ -45,10 +59,13 @@ function AdminProfilePage() {
     setSaving(false);
 
     if (error) {
-      toast.error(error.message);
+      setErrors({ form: error.message });
       return;
     }
+
+    // Only fire success toast after Supabase confirms the update
     toast.success("Password updated successfully");
+    setErrors({});
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
@@ -85,7 +102,7 @@ function AdminProfilePage() {
           <Lock className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-medium uppercase tracking-wider">Change Password</h2>
         </div>
-        <form onSubmit={handleChangePassword} className="space-y-4">
+        <form onSubmit={handleChangePassword} className="space-y-4" noValidate>
           <div>
             <label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">
               Current password
@@ -93,11 +110,19 @@ function AdminProfilePage() {
             <input
               type="password"
               value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              required
+              onChange={(e) => {
+                setCurrentPassword(e.target.value);
+                if (errors.current) setErrors((p) => ({ ...p, current: undefined }));
+              }}
               autoComplete="current-password"
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+              aria-invalid={!!errors.current}
+              className={`w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none ${
+                errors.current ? "border-destructive focus:border-destructive" : "border-border focus:border-primary"
+              }`}
             />
+            {errors.current && (
+              <p className="mt-1 text-xs text-destructive">{errors.current}</p>
+            )}
           </div>
           <div>
             <label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">
@@ -106,12 +131,19 @@ function AdminProfilePage() {
             <input
               type="password"
               value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              required
-              minLength={6}
+              onChange={(e) => {
+                setNewPassword(e.target.value);
+                if (errors.next) setErrors((p) => ({ ...p, next: undefined }));
+              }}
               autoComplete="new-password"
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+              aria-invalid={!!errors.next}
+              className={`w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none ${
+                errors.next ? "border-destructive focus:border-destructive" : "border-border focus:border-primary"
+              }`}
             />
+            {errors.next && (
+              <p className="mt-1 text-xs text-destructive">{errors.next}</p>
+            )}
           </div>
           <div>
             <label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">
@@ -120,13 +152,25 @@ function AdminProfilePage() {
             <input
               type="password"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              minLength={6}
+              onChange={(e) => {
+                setConfirmPassword(e.target.value);
+                if (errors.confirm) setErrors((p) => ({ ...p, confirm: undefined }));
+              }}
               autoComplete="new-password"
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+              aria-invalid={!!errors.confirm}
+              className={`w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none ${
+                errors.confirm ? "border-destructive focus:border-destructive" : "border-border focus:border-primary"
+              }`}
             />
+            {errors.confirm && (
+              <p className="mt-1 text-xs text-destructive">{errors.confirm}</p>
+            )}
           </div>
+          {errors.form && (
+            <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              {errors.form}
+            </p>
+          )}
           <button
             type="submit"
             disabled={saving}
