@@ -43,13 +43,18 @@ type Row = {
 };
 
 function rowToProduct(r: Row): Product {
+  const mainImage = imageFor(r.id, r.image);
+  const extra = Array.isArray(r.images) ? (r.images as string[]).filter(Boolean) : [];
+  // Always lead with the main image, then any extras (deduped).
+  const allImages = [mainImage, ...extra.filter((u) => u !== mainImage && u !== r.image)];
   return {
     id: r.id,
     name: r.name,
     brand: r.brand,
     category: r.category,
     price: Number(r.price),
-    image: imageFor(r.id, r.image),
+    image: mainImage,
+    images: allImages,
     description: r.description,
     details: Array.isArray(r.details) ? (r.details as string[]) : [],
     rating: Number(r.rating),
