@@ -119,7 +119,7 @@ function ProfileHome() {
           <p className="mt-1 text-xs uppercase tracking-[0.2em] text-muted-foreground">Credit Balance</p>
         </button>
         <button type="button" className="px-4 py-5 text-center transition-smooth hover:bg-secondary/50">
-          <p className="font-serif text-3xl text-gold-gradient">{wishlist.length}</p>
+          <p className="font-serif text-3xl text-gold-gradient">{rewardsEarned}</p>
           <p className="mt-1 text-xs uppercase tracking-[0.2em] text-muted-foreground">Privileges & Offers</p>
         </button>
       </div>
