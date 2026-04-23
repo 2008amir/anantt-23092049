@@ -1,13 +1,29 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Users, ShoppingBag, TrendingUp } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
 
 export const Route = createFileRoute("/admin/")({
   component: OverviewPage,
 });
 
 type DailyBucket = { date: string; count: number };
+type ActivityRow = { user_id: string; created_at: string };
+type ProfileActivityRow = { id: string; created_at: string };
+
+const chartConfig = {
+  users: {
+    label: "Users",
+    color: "var(--primary)",
+  },
+} satisfies ChartConfig;
 
 function OverviewPage() {
   const [stats, setStats] = useState({ total: 0, daily: 0, weekly: 0, monthly: 0, orders: 0, revenue: 0 });
@@ -16,38 +32,59 @@ function OverviewPage() {
 
   useEffect(() => {
     let cancelled = false;
+
     (async () => {
       const now = new Date();
       const dayAgo = new Date(now.getTime() - 24 * 3600 * 1000).toISOString();
       const weekAgo = new Date(now.getTime() - 7 * 24 * 3600 * 1000).toISOString();
       const monthAgo = new Date(now.getTime() - 30 * 24 * 3600 * 1000).toISOString();
 
-      const [totalRes, dailyRes, weeklyRes, monthlyRes, ordersRes, profilesRes] = await Promise.all([
+      const [
+        totalRes,
+        dailyRes,
+        weeklyRes,
+        monthlyRes,
+        ordersRes,
+        profilesRes,
+        searchHistoryRes,
+        interestsRes,
+        wishlistRes,
+        messagesRes,
+      ] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }),
         supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", dayAgo),
         supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", weekAgo),
         supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", monthAgo),
-        supabase.from("orders").select("id, total, payment_status, created_at").gte("created_at", weekAgo),
-        supabase.from("profiles").select("created_at").gte("created_at", weekAgo),
+        supabase.from("orders").select("id, total, payment_status").gte("created_at", weekAgo),
+        supabase.from("profiles").select("id, created_at").gte("created_at", weekAgo),
+        supabase.from("search_history").select("user_id, created_at").gte("created_at", weekAgo),
+        supabase.from("user_interests").select("user_id, created_at").gte("created_at", weekAgo),
+        supabase.from("wishlist").select("user_id, created_at").gte("created_at", weekAgo),
+        supabase.from("messages").select("user_id, created_at").gte("created_at", weekAgo),
       ]);
 
       if (cancelled) return;
 
-      // Bucket by day for last 7 days
-      const buckets: Record<string, number> = {};
+      const bucketSets: Record<string, Set<string>> = {};
       for (let i = 6; i >= 0; i--) {
         const d = new Date(now.getTime() - i * 24 * 3600 * 1000);
-        buckets[d.toISOString().slice(0, 10)] = 0;
+        bucketSets[d.toISOString().slice(0, 10)] = new Set();
       }
-      (profilesRes.data ?? []).forEach((row: { created_at: string }) => {
-        const key = row.created_at.slice(0, 10);
-        if (key in buckets) buckets[key]++;
+
+      const addActivity = (userId: string | null | undefined, createdAt: string | null | undefined) => {
+        if (!userId || !createdAt) return;
+        const key = createdAt.slice(0, 10);
+        if (key in bucketSets) bucketSets[key].add(userId);
+      };
+
+      ((profilesRes.data ?? []) as ProfileActivityRow[]).forEach((row) => addActivity(row.id, row.created_at));
+      [searchHistoryRes.data, interestsRes.data, wishlistRes.data, messagesRes.data].forEach((rows) => {
+        ((rows ?? []) as ActivityRow[]).forEach((row) => addActivity(row.user_id, row.created_at));
       });
 
       const orders = (ordersRes.data ?? []) as { id: string; total: number | string; payment_status: string }[];
-      // Only verified (paid) orders count toward weekly orders + revenue
       const paidOrders = orders.filter((o) => o.payment_status === "paid");
-      const revenue = paidOrders.reduce((s, o) => s + Number(o.total ?? 0), 0);
+      const revenue = paidOrders.reduce((sum, order) => sum + Number(order.total ?? 0), 0);
 
       setStats({
         total: totalRes.count ?? 0,
@@ -57,19 +94,21 @@ function OverviewPage() {
         orders: paidOrders.length,
         revenue,
       });
-      // Sort: most active day first → least
-      const sorted = Object.entries(buckets)
-        .map(([date, count]) => ({ date, count }))
-        .sort((a, b) => b.count - a.count);
-      setChart(sorted);
+
+      const rankedBuckets = Object.entries(bucketSets)
+        .map(([date, users]) => ({ date, count: users.size }))
+        .sort((a, b) => b.count - a.count || a.date.localeCompare(b.date));
+
+      setChart(rankedBuckets);
       setLoading(false);
     })();
+
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const maxCount = Math.max(1, ...chart.map((b) => b.count));
+  const maxCount = useMemo(() => Math.max(1, ...chart.map((bucket) => bucket.count)), [chart]);
 
   return (
     <div className="space-y-8">
@@ -78,32 +117,49 @@ function OverviewPage() {
         <p className="mt-1 text-sm text-muted-foreground">Activity at a glance.</p>
       </div>
 
-      {/* 7-day bar chart */}
       <div className="rounded-lg border border-border/40 bg-card p-6">
         <div className="mb-4 flex items-center gap-2">
           <TrendingUp className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-medium uppercase tracking-wider">New users — last 7 days</h2>
+          <h2 className="text-sm font-medium uppercase tracking-wider">Unique users — last 7 days</h2>
         </div>
-        <div className="flex h-48 items-end gap-2">
-          {chart.map((b) => (
-            <div key={b.date} className="flex flex-1 flex-col items-center gap-2">
-              <div className="flex w-full flex-1 items-end">
-                <div
-                  className="w-full rounded-t bg-gold-gradient transition-all"
-                  style={{ height: `${(b.count / maxCount) * 100}%`, minHeight: "2px" }}
-                  title={`${b.count} users`}
+
+        <ChartContainer config={chartConfig} className="h-56 w-full aspect-auto">
+          <BarChart data={chart} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+            <CartesianGrid vertical={false} strokeDasharray="3 3" />
+            <XAxis
+              dataKey="date"
+              axisLine={false}
+              tickLine={false}
+              tickMargin={10}
+              minTickGap={12}
+              tickFormatter={(value: string) =>
+                new Date(`${value}T00:00:00`).toLocaleDateString(undefined, { weekday: "short" })
+              }
+            />
+            <YAxis hide allowDecimals={false} domain={[0, maxCount]} />
+            <ChartTooltip
+              cursor={false}
+              content={
+                <ChartTooltipContent
+                  labelFormatter={(_, payload) => {
+                    const raw = payload?.[0]?.payload?.date;
+                    return raw
+                      ? new Date(`${raw}T00:00:00`).toLocaleDateString(undefined, {
+                          weekday: "short",
+                          month: "short",
+                          day: "numeric",
+                        })
+                      : "";
+                  }}
+                  formatter={(value) => <span>{value} users</span>}
                 />
-              </div>
-              <span className="text-[10px] text-muted-foreground">
-                {new Date(b.date).toLocaleDateString(undefined, { weekday: "short" })}
-              </span>
-              <span className="text-xs font-medium">{b.count}</span>
-            </div>
-          ))}
-        </div>
+              }
+            />
+            <Bar dataKey="count" fill="var(--color-users)" radius={[6, 6, 0, 0]} maxBarSize={56} />
+          </BarChart>
+        </ChartContainer>
       </div>
 
-      {/* Metric cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <MetricCard label="Total users" value={stats.total} icon={Users} loading={loading} />
         <MetricCard label="Daily users" value={stats.daily} icon={Users} loading={loading} />
