@@ -14,7 +14,7 @@ type OrderRow = {
   created_at: string;
 };
 
-export const Route = createFileRoute("/account/orders")({
+export const Route = createFileRoute("/account/history")({
   component: AccountOrders,
 });
 

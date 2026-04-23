@@ -125,14 +125,14 @@ function ProfileHome() {
       </div>
 
       <div className="mx-5 mt-4 grid grid-cols-4 border border-border bg-card/40 py-5">
-        <Tile to="/account/orders" icon={<History className="h-6 w-6" strokeWidth={1.5} />} label="History" />
+        <Tile to="/account/history" icon={<History className="h-6 w-6" strokeWidth={1.5} />} label="History" />
         <Tile to="/account/earn" icon={<Gift className="h-6 w-6" strokeWidth={1.5} />} label="Earn & Free" dot />
         <Tile to="/account/addresses" icon={<MapPin className="h-6 w-6" strokeWidth={1.5} />} label="Addresses" />
         <Tile to="/account/wishlist" icon={<Heart className="h-6 w-6" strokeWidth={1.5} />} label="Following" />
       </div>
 
       <div className="mx-5 mt-4 divide-y divide-border border border-border bg-card/40">
-        <Row to="/account/orders" icon={<Package className="h-5 w-5" strokeWidth={1.5} />} label="Your Orders" badge={orderCount > 0 ? String(orderCount) : undefined} />
+        <Row to="/account/your-orders" icon={<Package className="h-5 w-5" strokeWidth={1.5} />} label="Your Orders" badge={orderCount > 0 ? String(orderCount) : undefined} />
         <Row to="/account/messages" icon={<MessageSquare className="h-5 w-5" strokeWidth={1.5} />} label="Messages" />
         <Row to="/account/wishlist" icon={<Star className="h-5 w-5" strokeWidth={1.5} />} label="Reviews" />
       </div>
