@@ -85,9 +85,7 @@ function ProductPage() {
       </nav>
 
       <div className="grid gap-12 lg:grid-cols-2">
-        <div className="aspect-[4/5] overflow-hidden bg-card shadow-luxury">
-          <img ref={imgRef} src={product.image} alt={product.name} className="h-full w-full object-cover" />
-        </div>
+        <ProductGallery ref={imgRef} images={product.images} alt={product.name} />
 
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-primary">{product.brand}</p>
