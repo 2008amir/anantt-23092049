@@ -10,7 +10,7 @@ export const Route = createFileRoute("/admin/")({
 type DailyBucket = { date: string; count: number };
 
 function OverviewPage() {
-  const [stats, setStats] = useState({ daily: 0, weekly: 0, monthly: 0, orders: 0, revenue: 0 });
+  const [stats, setStats] = useState({ total: 0, daily: 0, weekly: 0, monthly: 0, orders: 0, revenue: 0 });
   const [chart, setChart] = useState<DailyBucket[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -22,7 +22,8 @@ function OverviewPage() {
       const weekAgo = new Date(now.getTime() - 7 * 24 * 3600 * 1000).toISOString();
       const monthAgo = new Date(now.getTime() - 30 * 24 * 3600 * 1000).toISOString();
 
-      const [dailyRes, weeklyRes, monthlyRes, ordersRes, profilesRes] = await Promise.all([
+      const [totalRes, dailyRes, weeklyRes, monthlyRes, ordersRes, profilesRes] = await Promise.all([
+        supabase.from("profiles").select("id", { count: "exact", head: true }),
         supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", dayAgo),
         supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", weekAgo),
         supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", monthAgo),
@@ -44,15 +45,16 @@ function OverviewPage() {
       });
 
       const orders = (ordersRes.data ?? []) as { id: string; total: number | string; payment_status: string }[];
-      const revenue = orders
-        .filter((o) => o.payment_status === "paid")
-        .reduce((s, o) => s + Number(o.total ?? 0), 0);
+      // Only verified (paid) orders count toward weekly orders + revenue
+      const paidOrders = orders.filter((o) => o.payment_status === "paid");
+      const revenue = paidOrders.reduce((s, o) => s + Number(o.total ?? 0), 0);
 
       setStats({
+        total: totalRes.count ?? 0,
         daily: dailyRes.count ?? 0,
         weekly: weeklyRes.count ?? 0,
         monthly: monthlyRes.count ?? 0,
-        orders: orders.length,
+        orders: paidOrders.length,
         revenue,
       });
       // Sort: most active day first → least
@@ -103,10 +105,11 @@ function OverviewPage() {
 
       {/* Metric cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <MetricCard label="Total users" value={stats.total} icon={Users} loading={loading} />
         <MetricCard label="Daily users" value={stats.daily} icon={Users} loading={loading} />
         <MetricCard label="Weekly users" value={stats.weekly} icon={Users} loading={loading} />
         <MetricCard label="Monthly users" value={stats.monthly} icon={Users} loading={loading} />
-        <MetricCard label="Weekly orders" value={stats.orders} icon={ShoppingBag} loading={loading} />
+        <MetricCard label="Weekly verified orders" value={stats.orders} icon={ShoppingBag} loading={loading} />
         <MetricCard
           label="Weekly revenue"
           value={`₦${stats.revenue.toLocaleString()}`}
