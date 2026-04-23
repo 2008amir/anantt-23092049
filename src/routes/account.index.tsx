@@ -19,12 +19,16 @@ function ProfilePanel() {
     if (!user) return;
     void supabase
       .from("orders")
-      .select("total")
+      .select("total, payment_status")
       .eq("user_id", user.id)
       .then(({ data }) => {
         if (!data) return;
         setOrderCount(data.length);
-        setLifetime(data.reduce((s: number, o: { total: number | string }) => s + Number(o.total), 0));
+        // Lifetime credit: only verified successful payments
+        const paid = data.filter(
+          (o: { payment_status?: string | null }) => o.payment_status === "paid",
+        );
+        setLifetime(paid.reduce((s: number, o: { total: number | string }) => s + Number(o.total), 0));
       });
   }, [user]);
 
