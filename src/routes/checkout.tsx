@@ -370,7 +370,14 @@ function Checkout() {
         status: success ? "Processing" : "Payment Failed",
       })
       .eq("id", orderId);
-    if (success) await clearCart();
+    if (success) {
+      await clearCart();
+      try {
+        sessionStorage.removeItem("checkout_snapshot");
+      } catch {
+        // ignore
+      }
+    }
   };
 
   const pollVirtualAccountPayment = async (orderId: string, tx_ref: string, accessToken: string) => {
