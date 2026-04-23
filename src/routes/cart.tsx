@@ -73,7 +73,7 @@ function CartPage() {
                     <span className="w-10 text-center text-sm">{quantity}</span>
                     <button type="button" onClick={() => void updateCartQty(product.id, quantity + 1)} className="p-2 text-muted-foreground hover:text-primary" aria-label="Increase"><Plus className="h-3 w-3" /></button>
                   </div>
-                  <p className="font-serif text-xl text-primary">${(product.price * quantity).toLocaleString()}</p>
+                  <p className="font-serif text-xl text-primary">₦{(product.price * quantity).toLocaleString()}</p>
                 </div>
               </div>
             </div>
