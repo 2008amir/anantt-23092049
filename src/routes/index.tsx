@@ -177,11 +177,11 @@ function Index() {
                     <span>{(p.reviewCount * 0.1).toFixed(1)}K+ owners</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="border border-primary/40 px-1.5 py-0.5 text-[9px] uppercase tracking-[0.1em] text-primary">Save ${saved.toLocaleString()}</span>
+                    <span className="border border-primary/40 px-1.5 py-0.5 text-[9px] uppercase tracking-[0.1em] text-primary">Save ₦{saved.toLocaleString()}</span>
                   </div>
                   <div className="flex items-baseline gap-1.5 pt-0.5">
-                    <span className="font-serif text-base text-gold-gradient">${p.price.toLocaleString()}</span>
-                    <span className="text-[10px] text-muted-foreground line-through">${original.toLocaleString()}</span>
+                    <span className="font-serif text-base text-gold-gradient">₦{p.price.toLocaleString()}</span>
+                    <span className="text-[10px] text-muted-foreground line-through">₦{original.toLocaleString()}</span>
                   </div>
                 </div>
               </Link>

@@ -61,7 +61,7 @@ function AccountOrders() {
                 <p className="font-serif text-lg">#{o.id.slice(0, 8).toUpperCase()}</p>
                 <p className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleDateString()} · {o.status}</p>
               </div>
-              <p className="text-primary">${Number(o.total).toFixed(2)}</p>
+              <p className="text-primary">₦{Number(o.total).toFixed(2)}</p>
             </Link>
           ))}
         </div>

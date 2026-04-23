@@ -123,7 +123,7 @@ function YourOrders() {
                       {statusLabel(o.payment_status, o.delivery_stage, o.status)}
                     </p>
                   </div>
-                  <p className="shrink-0 text-primary">${Number(o.total).toFixed(2)}</p>
+                  <p className="shrink-0 text-primary">₦{Number(o.total).toFixed(2)}</p>
                 </Link>
               );
             })}
