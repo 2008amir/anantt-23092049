@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Minus, Plus, X } from "lucide-react";
 import { useStore, useCartTotal, useProducts } from "@/lib/store";
 import { Recommend } from "@/components/Recommend";
@@ -9,9 +9,25 @@ export const Route = createFileRoute("/cart")({
 });
 
 function CartPage() {
-  const { updateCartQty, removeFromCart } = useStore();
+  const navigate = useNavigate();
+  const { updateCartQty, removeFromCart, clearCart } = useStore();
   const { products } = useProducts();
   const { items, subtotal, shipping, tax, total } = useCartTotal(products);
+
+  const handleProceedCheckout = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    // Snapshot cart for the checkout page, then clear so /cart shows empty.
+    try {
+      sessionStorage.setItem(
+        "checkout_snapshot",
+        JSON.stringify(items.map((i) => ({ product_id: i.product.id, quantity: i.quantity }))),
+      );
+    } catch {
+      // ignore storage errors
+    }
+    await clearCart();
+    navigate({ to: "/checkout" });
+  };
 
   if (items.length === 0) {
     return (
@@ -75,7 +91,7 @@ function CartPage() {
             <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Total</span>
             <span className="font-serif text-2xl text-gold-gradient">${total.toFixed(2)}</span>
           </div>
-          <Link to="/checkout" className="mt-8 block w-full bg-gold-gradient py-4 text-center text-xs uppercase tracking-[0.25em] text-primary-foreground transition-smooth hover:opacity-90">Proceed to Checkout</Link>
+          <Link to="/checkout" onClick={handleProceedCheckout} className="mt-8 block w-full bg-gold-gradient py-4 text-center text-xs uppercase tracking-[0.25em] text-primary-foreground transition-smooth hover:opacity-90">Proceed to Checkout</Link>
           <Link to="/shop" className="mt-3 block w-full border border-border py-4 text-center text-xs uppercase tracking-[0.25em] text-foreground transition-smooth hover:border-primary hover:text-primary">Continue Shopping</Link>
         </aside>
       </div>

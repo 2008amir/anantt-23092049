@@ -55,21 +55,32 @@ function AccountLayout() {
 }
 
 function ProfileHome() {
-  const { user, profile, wishlist, signOut } = useStore();
+  const { user, profile, signOut } = useStore();
   const navigate = useNavigate();
   const [orderCount, setOrderCount] = useState(0);
   const [lifetime, setLifetime] = useState(0);
+  const [rewardsEarned, setRewardsEarned] = useState(0);
 
   useEffect(() => {
     if (!user) return;
     void supabase
       .from("orders")
-      .select("total")
+      .select("total, payment_status, delivery_stage")
       .eq("user_id", user.id)
       .then(({ data }) => {
         if (!data) return;
         setOrderCount(data.length);
-        setLifetime(data.reduce((s: number, o: { total: number | string }) => s + Number(o.total), 0));
+        // Credit Balance: only successful (paid) transactions
+        const paid = data.filter(
+          (o: { payment_status?: string | null }) => o.payment_status === "paid",
+        );
+        setLifetime(paid.reduce((s: number, o: { total: number | string }) => s + Number(o.total), 0));
+        // Privileges & Offers: rewards earned = successfully delivered + paid orders
+        const delivered = data.filter(
+          (o: { payment_status?: string | null; delivery_stage?: string | null }) =>
+            o.payment_status === "paid" && o.delivery_stage === "delivered",
+        );
+        setRewardsEarned(delivered.length);
       });
   }, [user]);
 
@@ -108,7 +119,7 @@ function ProfileHome() {
           <p className="mt-1 text-xs uppercase tracking-[0.2em] text-muted-foreground">Credit Balance</p>
         </button>
         <button type="button" className="px-4 py-5 text-center transition-smooth hover:bg-secondary/50">
-          <p className="font-serif text-3xl text-gold-gradient">{wishlist.length}</p>
+          <p className="font-serif text-3xl text-gold-gradient">{rewardsEarned}</p>
           <p className="mt-1 text-xs uppercase tracking-[0.2em] text-muted-foreground">Privileges & Offers</p>
         </button>
       </div>
