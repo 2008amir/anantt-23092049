@@ -33,6 +33,7 @@ type Row = {
   category: string;
   price: number | string;
   image: string;
+  images?: unknown;
   description: string;
   details: unknown;
   rating: number | string;
