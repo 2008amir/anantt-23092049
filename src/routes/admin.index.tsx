@@ -105,10 +105,11 @@ function OverviewPage() {
 
       {/* Metric cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <MetricCard label="Total users" value={stats.total} icon={Users} loading={loading} />
         <MetricCard label="Daily users" value={stats.daily} icon={Users} loading={loading} />
         <MetricCard label="Weekly users" value={stats.weekly} icon={Users} loading={loading} />
         <MetricCard label="Monthly users" value={stats.monthly} icon={Users} loading={loading} />
-        <MetricCard label="Weekly orders" value={stats.orders} icon={ShoppingBag} loading={loading} />
+        <MetricCard label="Weekly verified orders" value={stats.orders} icon={ShoppingBag} loading={loading} />
         <MetricCard
           label="Weekly revenue"
           value={`₦${stats.revenue.toLocaleString()}`}
