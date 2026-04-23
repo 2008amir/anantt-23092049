@@ -26,7 +26,7 @@ function OverviewPage() {
         supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", dayAgo),
         supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", weekAgo),
         supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", monthAgo),
-        supabase.from("orders").select("id, total, created_at").gte("created_at", weekAgo),
+        supabase.from("orders").select("id, total, payment_status, created_at").gte("created_at", weekAgo),
         supabase.from("profiles").select("created_at").gte("created_at", weekAgo),
       ]);
 
@@ -43,8 +43,10 @@ function OverviewPage() {
         if (key in buckets) buckets[key]++;
       });
 
-      const orders = ordersRes.data ?? [];
-      const revenue = orders.reduce((s, o) => s + Number(o.total ?? 0), 0);
+      const orders = (ordersRes.data ?? []) as { id: string; total: number | string; payment_status: string }[];
+      const revenue = orders
+        .filter((o) => o.payment_status === "paid")
+        .reduce((s, o) => s + Number(o.total ?? 0), 0);
 
       setStats({
         daily: dailyRes.count ?? 0,
