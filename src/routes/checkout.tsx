@@ -164,7 +164,7 @@ function Checkout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  if (items.length === 0) {
+  if (items.length === 0 && snapshotRows.length === 0) {
     return (
       <div className="container mx-auto px-6 py-24 text-center">
         <h1 className="font-serif text-4xl">Your cart is empty</h1>
