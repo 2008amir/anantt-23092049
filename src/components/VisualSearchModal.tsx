@@ -276,7 +276,7 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
                       className="group block border border-border bg-card transition-smooth hover:border-primary"
                     >
                       <div className="relative aspect-square overflow-hidden">
-                        <img src={p.image} alt={p.name} className="h-full w-full object-cover transition-smooth group-hover:scale-105" />
+                        <img src={p.image} alt={p.name} loading="lazy" decoding="async" className="h-full w-full object-cover transition-smooth group-hover:scale-105" />
                       </div>
                       <div className="space-y-1 p-2">
                         <p className="line-clamp-2 text-[11px] leading-tight text-foreground">{p.name}</p>

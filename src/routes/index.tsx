@@ -149,7 +149,7 @@ function Index() {
                 className="group relative flex flex-col border border-border bg-card transition-smooth hover:border-primary"
               >
                 <div className="relative aspect-square overflow-hidden bg-muted">
-                  <img src={p.image} alt={p.name} loading="lazy" className="h-full w-full object-cover transition-smooth group-hover:scale-[1.03]" />
+                  <img src={p.image} alt={p.name} loading="lazy" decoding="async" className="h-full w-full object-cover transition-smooth group-hover:scale-[1.03]" />
                   {p.rating >= 4.8 && (
                     <span className="absolute left-2 top-2 bg-gold-gradient px-2 py-0.5 text-[9px] uppercase tracking-[0.15em] text-primary-foreground">Star Atelier</span>
                   )}

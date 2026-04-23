@@ -23,7 +23,7 @@ function AccountWishlist() {
           {items.map((p) => (
             <div key={p.id} className="flex items-center gap-4 border border-border p-4">
               <Link to="/product/$id" params={{ id: p.id }} className="block">
-                <img src={p.image} alt={p.name} className="h-16 w-16 object-cover" />
+                <img src={p.image} alt={p.name} loading="lazy" decoding="async" className="h-16 w-16 object-cover" />
               </Link>
               <div className="flex-1">
                 <Link to="/product/$id" params={{ id: p.id }} className="font-serif text-lg hover:text-primary">{p.name}</Link>
