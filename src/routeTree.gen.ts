@@ -42,6 +42,7 @@ import { Route as AccountMessagesRouteImport } from './routes/account.messages'
 import { Route as AccountHistoryRouteImport } from './routes/account.history'
 import { Route as AccountEarnRouteImport } from './routes/account.earn'
 import { Route as AccountAddressesRouteImport } from './routes/account.addresses'
+import { Route as ProductIdReviewsRouteImport } from './routes/product.$id.reviews'
 import { Route as ApiPublicFlutterwaveWebhookRouteImport } from './routes/api/public/flutterwave-webhook'
 import { Route as AdminUsersUserIdRouteImport } from './routes/admin.users.$userId'
 
@@ -210,6 +211,11 @@ const AccountAddressesRoute = AccountAddressesRouteImport.update({
   path: '/addresses',
   getParentRoute: () => AccountRoute,
 } as any)
+const ProductIdReviewsRoute = ProductIdReviewsRouteImport.update({
+  id: '/reviews',
+  path: '/reviews',
+  getParentRoute: () => ProductIdRoute,
+} as any)
 const ApiPublicFlutterwaveWebhookRoute =
   ApiPublicFlutterwaveWebhookRouteImport.update({
     id: '/api/public/flutterwave-webhook',
@@ -251,13 +257,14 @@ export interface FileRoutesByFullPath {
   '/admin/search': typeof AdminSearchRoute
   '/admin/users': typeof AdminUsersRouteWithChildren
   '/orders/$id': typeof OrdersIdRoute
-  '/product/$id': typeof ProductIdRoute
+  '/product/$id': typeof ProductIdRouteWithChildren
   '/webhook/flutterwave': typeof WebhookFlutterwaveRoute
   '/account/': typeof AccountIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/orders/': typeof OrdersIndexRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
   '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
+  '/product/$id/reviews': typeof ProductIdReviewsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -286,13 +293,14 @@ export interface FileRoutesByTo {
   '/admin/search': typeof AdminSearchRoute
   '/admin/users': typeof AdminUsersRouteWithChildren
   '/orders/$id': typeof OrdersIdRoute
-  '/product/$id': typeof ProductIdRoute
+  '/product/$id': typeof ProductIdRouteWithChildren
   '/webhook/flutterwave': typeof WebhookFlutterwaveRoute
   '/account': typeof AccountIndexRoute
   '/admin': typeof AdminIndexRoute
   '/orders': typeof OrdersIndexRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
   '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
+  '/product/$id/reviews': typeof ProductIdReviewsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -324,13 +332,14 @@ export interface FileRoutesById {
   '/admin/search': typeof AdminSearchRoute
   '/admin/users': typeof AdminUsersRouteWithChildren
   '/orders/$id': typeof OrdersIdRoute
-  '/product/$id': typeof ProductIdRoute
+  '/product/$id': typeof ProductIdRouteWithChildren
   '/webhook/flutterwave': typeof WebhookFlutterwaveRoute
   '/account/': typeof AccountIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/orders/': typeof OrdersIndexRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
   '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
+  '/product/$id/reviews': typeof ProductIdReviewsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -370,6 +379,7 @@ export interface FileRouteTypes {
     | '/orders/'
     | '/admin/users/$userId'
     | '/api/public/flutterwave-webhook'
+    | '/product/$id/reviews'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -405,6 +415,7 @@ export interface FileRouteTypes {
     | '/orders'
     | '/admin/users/$userId'
     | '/api/public/flutterwave-webhook'
+    | '/product/$id/reviews'
   id:
     | '__root__'
     | '/'
@@ -442,6 +453,7 @@ export interface FileRouteTypes {
     | '/orders/'
     | '/admin/users/$userId'
     | '/api/public/flutterwave-webhook'
+    | '/product/$id/reviews'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -456,7 +468,7 @@ export interface RootRouteChildren {
   ShopRoute: typeof ShopRoute
   WishlistRoute: typeof WishlistRoute
   OrdersIdRoute: typeof OrdersIdRoute
-  ProductIdRoute: typeof ProductIdRoute
+  ProductIdRoute: typeof ProductIdRouteWithChildren
   WebhookFlutterwaveRoute: typeof WebhookFlutterwaveRoute
   OrdersIndexRoute: typeof OrdersIndexRoute
   ApiPublicFlutterwaveWebhookRoute: typeof ApiPublicFlutterwaveWebhookRoute
@@ -695,6 +707,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountAddressesRouteImport
       parentRoute: typeof AccountRoute
     }
+    '/product/$id/reviews': {
+      id: '/product/$id/reviews'
+      path: '/reviews'
+      fullPath: '/product/$id/reviews'
+      preLoaderRoute: typeof ProductIdReviewsRouteImport
+      parentRoute: typeof ProductIdRoute
+    }
     '/api/public/flutterwave-webhook': {
       id: '/api/public/flutterwave-webhook'
       path: '/api/public/flutterwave-webhook'
@@ -779,6 +798,18 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface ProductIdRouteChildren {
+  ProductIdReviewsRoute: typeof ProductIdReviewsRoute
+}
+
+const ProductIdRouteChildren: ProductIdRouteChildren = {
+  ProductIdReviewsRoute: ProductIdReviewsRoute,
+}
+
+const ProductIdRouteWithChildren = ProductIdRoute._addFileChildren(
+  ProductIdRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRouteWithChildren,
@@ -791,7 +822,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShopRoute: ShopRoute,
   WishlistRoute: WishlistRoute,
   OrdersIdRoute: OrdersIdRoute,
-  ProductIdRoute: ProductIdRoute,
+  ProductIdRoute: ProductIdRouteWithChildren,
   WebhookFlutterwaveRoute: WebhookFlutterwaveRoute,
   OrdersIndexRoute: OrdersIndexRoute,
   ApiPublicFlutterwaveWebhookRoute: ApiPublicFlutterwaveWebhookRoute,

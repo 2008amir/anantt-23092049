@@ -1,8 +1,9 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { Heart, Minus, Plus, ShieldCheck, Truck, RotateCcw, Sparkles, Loader2 } from "lucide-react";
+import { Heart, Minus, Plus, ShieldCheck, Truck, RotateCcw, Sparkles, Loader2, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Stars } from "@/components/Stars";
 import { ProductCard } from "@/components/ProductCard";
+import { ProductGallery } from "@/components/ProductGallery";
 import { fetchProduct, fetchProductsByIds, type Product } from "@/lib/products";
 import { similarProducts } from "@/lib/ai.functions";
 import { useStore } from "@/lib/store";
