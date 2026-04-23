@@ -151,7 +151,7 @@ function ProductPage() {
           </div>
 
           <div className="mt-10 grid gap-4 border-t border-border pt-8 text-sm text-muted-foreground sm:grid-cols-3">
-            <div className="flex items-start gap-2"><Truck className="mt-0.5 h-4 w-4 text-primary" /><span>Complimentary shipping over $1,000</span></div>
+            <div className="flex items-start gap-2"><Truck className="mt-0.5 h-4 w-4 text-primary" /><span>Complimentary shipping over ₦1,000</span></div>
             <div className="flex items-start gap-2"><RotateCcw className="mt-0.5 h-4 w-4 text-primary" /><span>30-day considered returns</span></div>
             <div className="flex items-start gap-2"><ShieldCheck className="mt-0.5 h-4 w-4 text-primary" /><span>Authenticity guaranteed</span></div>
           </div>

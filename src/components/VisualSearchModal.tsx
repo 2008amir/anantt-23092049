@@ -281,8 +281,8 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
                       <div className="space-y-1 p-2">
                         <p className="line-clamp-2 text-[11px] leading-tight text-foreground">{p.name}</p>
                         <div className="flex items-baseline gap-1 pt-0.5">
-                          <span className="font-serif text-sm text-gold-gradient">${p.price.toLocaleString()}</span>
-                          <span className="text-[9px] text-muted-foreground line-through">${original.toLocaleString()}</span>
+                          <span className="font-serif text-sm text-gold-gradient">₦{p.price.toLocaleString()}</span>
+                          <span className="text-[9px] text-muted-foreground line-through">₦{original.toLocaleString()}</span>
                         </div>
                       </div>
                     </Link>

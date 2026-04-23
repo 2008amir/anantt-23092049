@@ -29,7 +29,7 @@ function AccountWishlist() {
                 <Link to="/product/$id" params={{ id: p.id }} className="font-serif text-lg hover:text-primary">{p.name}</Link>
                 <p className="text-xs text-muted-foreground">{p.brand}</p>
               </div>
-              <p className="text-primary">${p.price.toLocaleString()}</p>
+              <p className="text-primary">₦{p.price.toLocaleString()}</p>
               <button
                 type="button"
                 onClick={() => void toggleWishlist(p.id)}

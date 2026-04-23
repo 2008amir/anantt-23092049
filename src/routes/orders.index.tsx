@@ -78,7 +78,7 @@ function OrdersPage() {
                 </div>
                 <div className="text-right">
                   <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Total</p>
-                  <p className="mt-1 font-serif text-2xl text-gold-gradient">${Number(order.total).toFixed(2)}</p>
+                  <p className="mt-1 font-serif text-2xl text-gold-gradient">₦{Number(order.total).toFixed(2)}</p>
                 </div>
               </div>
               <div className="mt-4 flex gap-2">

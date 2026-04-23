@@ -10,6 +10,7 @@ import {
   Search,
   LogOut,
   Gift,
+  UserCog,
 } from "lucide-react";
 import { useIsAdmin } from "@/hooks/use-admin";
 import { useStore } from "@/lib/store";
@@ -35,6 +36,7 @@ const NAV = [
   { to: "/admin/messages", label: "Messages", icon: MessageSquare, exact: false },
   { to: "/admin/delivery-prices", label: "Delivery Prices", icon: Truck, exact: false },
   { to: "/admin/search", label: "Search", icon: Search, exact: false },
+  { to: "/admin/profile", label: "Profile", icon: UserCog, exact: false },
 ] as const;
 
 function AdminLayout() {

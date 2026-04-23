@@ -29,7 +29,7 @@ export function ProductCard({ product }: { product: Product }) {
             {product.brand}
           </p>
           <h3 className="mt-2 font-serif text-xl text-foreground">{product.name}</h3>
-          <p className="mt-3 text-sm text-primary">${product.price.toLocaleString()}</p>
+          <p className="mt-3 text-sm text-primary">₦{product.price.toLocaleString()}</p>
         </div>
       </Link>
       <button
