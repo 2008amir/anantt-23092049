@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { getFlutterwaveAuthContext } from "./flutterwave-auth.server";
 
 type Review = {
   id: string;
@@ -47,8 +47,7 @@ async function callGateway(systemPrompt: string, userPrompt: string, toolName: s
 
 // Generate realistic product reviews from N countries × M messages
 export const generateProductReviews = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: { productName: string; productDescription?: string; countries: number; messages: number }) => {
+  .inputValidator((input: { productName: string; productDescription?: string; countries: number; messages: number; accessToken?: string }) => {
     if (!input?.productName || typeof input.productName !== "string") throw new Error("productName required");
     if (!Number.isFinite(input.countries) || input.countries < 1 || input.countries > 50) {
       throw new Error("countries must be between 1 and 50");
@@ -56,10 +55,13 @@ export const generateProductReviews = createServerFn({ method: "POST" })
     if (!Number.isFinite(input.messages) || input.messages < 1 || input.messages > 50) {
       throw new Error("messages must be between 1 and 50");
     }
+    if (!input.accessToken) throw new Error("Please sign in again.");
     return input;
   })
   .handler(async ({ data }): Promise<{ reviews: Review[]; rating: number; error: string | null }> => {
     try {
+      await getFlutterwaveAuthContext(data.accessToken);
+
       const total = data.countries * data.messages;
       const systemPrompt = `You are generating realistic, varied customer reviews for a luxury e-commerce product. Distribute ${data.messages} reviews across each of ${data.countries} different countries (use real country names from diverse regions). Vary tone: most positive (4-5 stars), some neutral (3 stars), occasional minor critique. Authentic first names from each country. Short titles. 1-3 sentence bodies.`;
 

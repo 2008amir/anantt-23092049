@@ -410,12 +410,22 @@ function AddProductForm({ onCreated }: { onCreated: () => void }) {
     }
     setAiLoading(true);
     try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+      if (!accessToken) {
+        alert("Please sign in again.");
+        return;
+      }
+
       const res = await generateProductReviews({
         data: {
           productName: name,
           productDescription: description,
           countries: Math.max(1, Math.min(50, Number(aiCountries) || 1)),
           messages: Math.max(1, Math.min(50, Number(aiMessages) || 1)),
+          accessToken,
         },
       });
       if (res?.error) {
