@@ -2,7 +2,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Building2, Check, CreditCard, Loader2, MapPin, Package, Smartphone, Copy, Truck } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useStore, useCartTotal, useProducts } from "@/lib/store";
+import { useStore, useProducts } from "@/lib/store";
+import type { Product } from "@/lib/products";
 import { NIGERIA_STATE_NAMES, NIGERIA_STATES } from "@/lib/nigeria-states";
 import {
   initFlutterwave,
@@ -55,34 +56,33 @@ function brandLogo(brand: string) {
 
 function Checkout() {
   const navigate = useNavigate();
-  const { user, clearCart, addToCart, cart } = useStore();
+  const { user, clearCart } = useStore();
   const { products } = useProducts();
-  const { items, subtotal, tax } = useCartTotal(products);
 
-  // Restore the cart from the checkout snapshot if the user cleared it on
-  // their way here (the cart page empties itself on "Proceed to Checkout").
+  // Items for this checkout. Sourced from `checkout_snapshot` (placed by /cart
+  // when the user proceeded). The DB cart stays empty and is NOT restored.
+  const [snapshotRows, setSnapshotRows] = useState<{ product_id: string; quantity: number }[]>([]);
   useEffect(() => {
-    if (!user) return;
-    if (cart.length > 0) return;
-    let snap: { product_id: string; quantity: number }[] | null = null;
     try {
       const raw = sessionStorage.getItem("checkout_snapshot");
-      if (raw) snap = JSON.parse(raw) as { product_id: string; quantity: number }[];
+      if (raw) setSnapshotRows(JSON.parse(raw) as { product_id: string; quantity: number }[]);
     } catch {
-      snap = null;
+      // ignore
     }
-    if (!snap || snap.length === 0) return;
-    void (async () => {
-      for (const row of snap) {
-        await addToCart(row.product_id, row.quantity);
-      }
-      try {
-        sessionStorage.removeItem("checkout_snapshot");
-      } catch {
-        // ignore
-      }
-    })();
-  }, [user, cart.length, addToCart]);
+  }, []);
+
+  const items = useMemo(() => {
+    return snapshotRows
+      .map((r) => {
+        const p = products.find((p) => p.id === r.product_id);
+        return p ? { product: p, quantity: r.quantity } : null;
+      })
+      .filter(Boolean) as { product: Product; quantity: number }[];
+  }, [snapshotRows, products]);
+
+  const subtotal = items.reduce((s, i) => s + i.product.price * i.quantity, 0);
+  const tax = subtotal * 0.08;
+
   const [step, setStep] = useState<Step>(1);
   const [shipForm, setShipForm] = useState({
     name: "",
@@ -164,7 +164,7 @@ function Checkout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  if (items.length === 0) {
+  if (items.length === 0 && snapshotRows.length === 0) {
     return (
       <div className="container mx-auto px-6 py-24 text-center">
         <h1 className="font-serif text-4xl">Your cart is empty</h1>
@@ -370,7 +370,14 @@ function Checkout() {
         status: success ? "Processing" : "Payment Failed",
       })
       .eq("id", orderId);
-    if (success) await clearCart();
+    if (success) {
+      await clearCart();
+      try {
+        sessionStorage.removeItem("checkout_snapshot");
+      } catch {
+        // ignore
+      }
+    }
   };
 
   const pollVirtualAccountPayment = async (orderId: string, tx_ref: string, accessToken: string) => {

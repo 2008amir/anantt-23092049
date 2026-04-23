@@ -55,7 +55,7 @@ function CartPage() {
           {items.map(({ product, quantity }) => (
             <div key={product.id} className="flex gap-6 py-6">
               <Link to="/product/$id" params={{ id: product.id }} className="block w-32 shrink-0 overflow-hidden bg-card">
-                <img src={product.image} alt={product.name} className="aspect-square h-full w-full object-cover" />
+                <img src={product.image} alt={product.name} loading="lazy" decoding="async" className="aspect-square h-full w-full object-cover" />
               </Link>
               <div className="flex flex-1 flex-col">
                 <div className="flex justify-between">

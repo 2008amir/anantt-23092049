@@ -2,11 +2,21 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Search as SearchIcon, Camera, Upload, X, ImagePlus, Clock, Trash2 } from "lucide-react";
 import { textSearch, visualSearch, logInterest } from "@/lib/ai.functions";
-import { fetchProductsByIds, type Product } from "@/lib/products";
+import { fetchProducts, fetchProductsByIds, type Product } from "@/lib/products";
 import { Recommend } from "@/components/Recommend";
 import { useStore } from "@/lib/store";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
+
+function localTextMatch(catalog: Product[], q: string): Product[] {
+  const needle = q.trim().toLowerCase();
+  if (!needle) return [];
+  const tokens = needle.split(/\s+/).filter(Boolean);
+  return catalog.filter((p) => {
+    const hay = `${p.name} ${p.brand} ${p.category} ${p.description}`.toLowerCase();
+    return tokens.some((t) => hay.includes(t));
+  });
+}
 
 type ShopSearch = { q?: string };
 
@@ -151,19 +161,29 @@ function SearchPage() {
     setLoading(true);
     setError(null);
     setImageDataUrl(null);
+    let items: Product[] = [];
     try {
       const { ids } = await textSearch({ data: { query: text } });
-      const items = ids.length ? await fetchProductsByIds(ids) : [];
-      setResults(items);
-      if (addToHistory) pushHistory(text);
-      if (user) void logInterest({ data: { kind: "search", query: text } }).catch(() => undefined);
+      items = ids.length ? await fetchProductsByIds(ids) : [];
     } catch (e) {
-      console.error(e);
-      setError(e instanceof Error ? e.message : "Search failed");
-      setResults([]);
-    } finally {
-      setLoading(false);
+      console.error("AI text search failed, falling back to local match", e);
     }
+    // Fallback: if AI returned nothing (or failed), do a simple local match
+    // across the full catalog so users always see relevant pieces when any
+    // exist for their query.
+    if (items.length === 0) {
+      try {
+        const all = await fetchProducts();
+        items = localTextMatch(all, text).slice(0, 24);
+      } catch (e) {
+        console.error("local fallback failed", e);
+        setError(e instanceof Error ? e.message : "Search failed");
+      }
+    }
+    setResults(items);
+    if (addToHistory) pushHistory(text);
+    if (user) void logInterest({ data: { kind: "search", query: text } }).catch(() => undefined);
+    setLoading(false);
   };
 
   const stopCamera = () => {
@@ -455,7 +475,7 @@ function ProductGrid({ products }: { products: Product[] }) {
             className="group block border border-border bg-card transition-smooth hover:border-primary"
           >
             <div className="aspect-square overflow-hidden">
-              <img src={p.image} alt={p.name} loading="lazy" className="h-full w-full object-cover transition-smooth group-hover:scale-105" />
+              <img src={p.image} alt={p.name} loading="lazy" decoding="async" className="h-full w-full object-cover transition-smooth group-hover:scale-105" />
             </div>
             <div className="space-y-1 p-2">
               <p className="line-clamp-2 text-[11px] leading-tight text-foreground">{p.name}</p>

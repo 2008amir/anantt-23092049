@@ -164,7 +164,7 @@ function Shop() {
                     return (
                       <Link key={c.name} to="/shop" search={{ category: c.name }} className="group block text-center">
                         <div className="relative aspect-square overflow-hidden rounded-full border border-border bg-card transition-smooth group-hover:border-primary">
-                          {sample && <img src={sample.image} alt={c.name} className="h-full w-full object-cover" />}
+                          {sample && <img src={sample.image} alt={c.name} loading="lazy" decoding="async" className="h-full w-full object-cover" />}
                         </div>
                         <p className="mt-2 text-[11px] leading-tight text-foreground transition-smooth group-hover:text-primary">{c.name}</p>
                       </Link>
