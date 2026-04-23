@@ -55,9 +55,34 @@ function brandLogo(brand: string) {
 
 function Checkout() {
   const navigate = useNavigate();
-  const { user, clearCart } = useStore();
+  const { user, clearCart, addToCart, cart } = useStore();
   const { products } = useProducts();
   const { items, subtotal, tax } = useCartTotal(products);
+
+  // Restore the cart from the checkout snapshot if the user cleared it on
+  // their way here (the cart page empties itself on "Proceed to Checkout").
+  useEffect(() => {
+    if (!user) return;
+    if (cart.length > 0) return;
+    let snap: { product_id: string; quantity: number }[] | null = null;
+    try {
+      const raw = sessionStorage.getItem("checkout_snapshot");
+      if (raw) snap = JSON.parse(raw) as { product_id: string; quantity: number }[];
+    } catch {
+      snap = null;
+    }
+    if (!snap || snap.length === 0) return;
+    void (async () => {
+      for (const row of snap) {
+        await addToCart(row.product_id, row.quantity);
+      }
+      try {
+        sessionStorage.removeItem("checkout_snapshot");
+      } catch {
+        // ignore
+      }
+    })();
+  }, [user, cart.length, addToCart]);
   const [step, setStep] = useState<Step>(1);
   const [shipForm, setShipForm] = useState({
     name: "",
