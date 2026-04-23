@@ -173,19 +173,31 @@ function ProductPage() {
         {product.reviews.length === 0 ? (
           <p className="py-8 text-center text-muted-foreground">Be the first to share your experience.</p>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2">
-            {product.reviews.map((r) => (
-              <article key={r.id} className="border border-border bg-card/50 p-6">
-                <div className="flex items-center justify-between">
-                  <Stars rating={r.rating} />
-                  <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{r.date}</span>
-                </div>
-                <h3 className="mt-3 font-serif text-xl">{r.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{r.body}</p>
-                <p className="mt-4 text-xs uppercase tracking-[0.2em] text-primary">— {r.author}</p>
-              </article>
-            ))}
-          </div>
+          <>
+            <div className="grid gap-6 md:grid-cols-2">
+              {product.reviews.slice(0, 6).map((r) => (
+                <article key={r.id} className="border border-border bg-card/50 p-6">
+                  <div className="flex items-center justify-between">
+                    <Stars rating={r.rating} />
+                    <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{r.date}</span>
+                  </div>
+                  <h3 className="mt-3 font-serif text-xl">{r.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{r.body}</p>
+                  <p className="mt-4 text-xs uppercase tracking-[0.2em] text-primary">— {r.author}</p>
+                </article>
+              ))}
+            </div>
+            {product.reviews.length > 6 && (
+              <Link
+                to="/product/$id/reviews"
+                params={{ id: product.id }}
+                className="mt-8 flex items-center justify-center gap-2 border border-border bg-card/50 px-6 py-4 text-xs uppercase tracking-[0.25em] text-foreground transition-smooth hover:border-primary hover:text-primary"
+              >
+                <span>+{product.reviews.length - 6} more reviews</span>
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+            )}
+          </>
         )}
       </section>
 
