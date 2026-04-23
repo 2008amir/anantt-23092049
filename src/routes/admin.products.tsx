@@ -418,9 +418,13 @@ function AddProductForm({ onCreated }: { onCreated: () => void }) {
           messages: Math.max(1, Math.min(50, Number(aiMessages) || 1)),
         },
       });
-      setReviews(Array.isArray(res?.reviews) ? res.reviews : []);
-      if (res?.rating && res.rating > 0) setRating(String(res.rating));
-      setAiOpen(false);
+      if (res?.error) {
+        alert(res.error);
+      } else {
+        setReviews(Array.isArray(res?.reviews) ? res.reviews : []);
+        if (res?.rating && res.rating > 0) setRating(String(res.rating));
+        setAiOpen(false);
+      }
     } catch (e) {
       let msg = "Failed to generate reviews";
       if (e instanceof Response) {

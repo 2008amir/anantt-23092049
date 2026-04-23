@@ -58,7 +58,7 @@ export const generateProductReviews = createServerFn({ method: "POST" })
     }
     return input;
   })
-  .handler(async ({ data }): Promise<{ reviews: Review[]; rating: number }> => {
+  .handler(async ({ data }): Promise<{ reviews: Review[]; rating: number; error: string | null }> => {
     try {
       const total = data.countries * data.messages;
       const systemPrompt = `You are generating realistic, varied customer reviews for a luxury e-commerce product. Distribute ${data.messages} reviews across each of ${data.countries} different countries (use real country names from diverse regions). Vary tone: most positive (4-5 stars), some neutral (3 stars), occasional minor critique. Authentic first names from each country. Short titles. 1-3 sentence bodies.`;
@@ -110,10 +110,10 @@ Generate exactly ${total} reviews (${data.messages} per country across ${data.co
         ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10
         : 0;
 
-      return { reviews, rating };
+      return { reviews, rating, error: null };
     } catch (err) {
       const msg = err instanceof Error ? err.message : "AI generation failed";
       console.error("generateProductReviews error:", msg);
-      throw new Error(msg);
+      return { reviews: [], rating: 0, error: msg };
     }
   });
