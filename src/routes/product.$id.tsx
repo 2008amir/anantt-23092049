@@ -94,7 +94,7 @@ function ProductPage() {
             <Stars rating={product.rating} />
             <span className="text-sm text-muted-foreground">{product.rating} · {product.reviewCount} reviews</span>
           </div>
-          <p className="mt-6 font-serif text-3xl text-gold-gradient">${product.price.toLocaleString()}</p>
+          <p className="mt-6 font-serif text-3xl text-gold-gradient">₦{product.price.toLocaleString()}</p>
           <p className="mt-6 leading-relaxed text-muted-foreground">{product.description}</p>
 
           <ul className="mt-6 space-y-2">
@@ -215,6 +215,7 @@ function ProductPage() {
         </section>
       )}
 
+      <Recommend />
     </div>
   );
 }

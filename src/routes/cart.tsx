@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Minus, Plus, X } from "lucide-react";
 import { useStore, useCartTotal, useProducts } from "@/lib/store";
 import { Recommend } from "@/components/Recommend";
@@ -13,6 +14,18 @@ function CartPage() {
   const { updateCartQty, removeFromCart, clearCart } = useStore();
   const { products } = useProducts();
   const { items, subtotal, shipping, tax, total } = useCartTotal(products);
+
+  // Defensive cleanup: clear any lingering cart-related browser storage
+  // when the user lands on /cart. Cart state lives in the database only.
+  useEffect(() => {
+    try {
+      sessionStorage.removeItem("checkout_snapshot");
+      localStorage.removeItem("cart");
+      localStorage.removeItem("cart_items");
+    } catch {
+      // ignore storage errors
+    }
+  }, []);
 
   const handleProceedCheckout = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -73,7 +86,7 @@ function CartPage() {
                     <span className="w-10 text-center text-sm">{quantity}</span>
                     <button type="button" onClick={() => void updateCartQty(product.id, quantity + 1)} className="p-2 text-muted-foreground hover:text-primary" aria-label="Increase"><Plus className="h-3 w-3" /></button>
                   </div>
-                  <p className="font-serif text-xl text-primary">${(product.price * quantity).toLocaleString()}</p>
+                  <p className="font-serif text-xl text-primary">₦{(product.price * quantity).toLocaleString()}</p>
                 </div>
               </div>
             </div>

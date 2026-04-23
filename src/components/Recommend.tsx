@@ -17,6 +17,7 @@ const SHOW_PREFIXES = [
   "/wishlist",
   "/orders",
   "/search",
+  "/product",
 ];
 
 export function Recommend() {
