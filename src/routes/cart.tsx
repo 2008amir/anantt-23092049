@@ -9,9 +9,16 @@ export const Route = createFileRoute("/cart")({
 });
 
 function CartPage() {
-  const { updateCartQty, removeFromCart } = useStore();
+  const navigate = useNavigate();
+  const { updateCartQty, removeFromCart, clearCart } = useStore();
   const { products } = useProducts();
   const { items, subtotal, shipping, tax, total } = useCartTotal(products);
+
+  const handleProceedCheckout = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    await clearCart();
+    navigate({ to: "/checkout" });
+  };
 
   if (items.length === 0) {
     return (
