@@ -31,7 +31,7 @@ export const Route = createFileRoute("/product/$id")({
       <Link to="/shop" className="mt-6 inline-block text-primary underline">Return to shop</Link>
     </div>
   ),
-  errorComponent: ({ error }) => (
+  errorComponent: ({ error }: { error: Error }) => (
     <div className="container mx-auto px-6 py-24 text-center">
       <h1 className="font-serif text-4xl">Something went wrong</h1>
       <p className="mt-2 text-sm text-muted-foreground">{error.message}</p>
