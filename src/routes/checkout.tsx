@@ -2,7 +2,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Building2, Check, CreditCard, Loader2, MapPin, Package, Smartphone, Copy, Truck } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useStore, useCartTotal, useProducts } from "@/lib/store";
+import { useStore, useProducts } from "@/lib/store";
+import type { Product } from "@/lib/products";
 import { NIGERIA_STATE_NAMES, NIGERIA_STATES } from "@/lib/nigeria-states";
 import {
   initFlutterwave,
