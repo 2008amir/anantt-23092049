@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStore, useProducts } from "@/lib/store";
 import { useAICategories } from "@/hooks/use-ai-categories";
 import { personalizedFeed } from "@/lib/ai.functions";
+import { flyToCart } from "@/components/CartBubble";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -154,7 +155,13 @@ function Index() {
                   )}
                   <button
                     type="button"
-                    onClick={(e) => { e.preventDefault(); void addToCart(p.id, 1); }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      const card = e.currentTarget.closest("a");
+                      const img = card?.querySelector("img") ?? null;
+                      flyToCart(img as HTMLElement | null, p.image);
+                      void addToCart(p.id, 1);
+                    }}
                     aria-label={user ? "Add to cart" : "Sign in to shop"}
                     className="absolute bottom-2 right-2 flex h-9 w-9 items-center justify-center rounded-full border border-primary bg-background/90 text-primary transition-smooth hover:bg-gold-gradient hover:text-primary-foreground"
                   >

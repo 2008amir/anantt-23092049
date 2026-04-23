@@ -9,6 +9,8 @@ type OrderRow = {
   id: string;
   total: number | string;
   status: string;
+  delivery_stage: string;
+  payment_status: string;
   created_at: string;
 };
 
@@ -25,8 +27,10 @@ function AccountOrders() {
     if (!user) return;
     void supabase
       .from("orders")
-      .select("id, total, status, created_at")
+      .select("id, total, status, delivery_stage, payment_status, created_at")
       .eq("user_id", user.id)
+      .eq("delivery_stage", "delivered")
+      .eq("payment_status", "paid")
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {
         if (error) console.error(error);
@@ -38,7 +42,7 @@ function AccountOrders() {
   return (
     <><div>
       <h2 className="font-serif text-3xl">Order History</h2>
-      <p className="mt-2 text-sm text-muted-foreground">A record of every piece in your collection.</p>
+      <p className="mt-2 text-sm text-muted-foreground">Successfully delivered pieces in your collection.</p>
 
       {loading ? (
         <div className="mt-12 flex justify-center"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>

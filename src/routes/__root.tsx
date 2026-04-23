@@ -4,6 +4,7 @@ import { StoreProvider } from "@/lib/store";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Splash } from "@/components/Splash";
+import { CartBubble } from "@/components/CartBubble";
 import { Toaster } from "@/components/ui/sonner";
 
 
@@ -71,6 +72,7 @@ function RootComponent() {
           <main className="flex-1">
             <Outlet />
           </main>
+          <CartBubble />
           <Footer />
           <Toaster position="top-center" richColors closeButton />
         </div>
