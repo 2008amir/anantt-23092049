@@ -161,19 +161,29 @@ function SearchPage() {
     setLoading(true);
     setError(null);
     setImageDataUrl(null);
+    let items: Product[] = [];
     try {
       const { ids } = await textSearch({ data: { query: text } });
-      const items = ids.length ? await fetchProductsByIds(ids) : [];
-      setResults(items);
-      if (addToHistory) pushHistory(text);
-      if (user) void logInterest({ data: { kind: "search", query: text } }).catch(() => undefined);
+      items = ids.length ? await fetchProductsByIds(ids) : [];
     } catch (e) {
-      console.error(e);
-      setError(e instanceof Error ? e.message : "Search failed");
-      setResults([]);
-    } finally {
-      setLoading(false);
+      console.error("AI text search failed, falling back to local match", e);
     }
+    // Fallback: if AI returned nothing (or failed), do a simple local match
+    // across the full catalog so users always see relevant pieces when any
+    // exist for their query.
+    if (items.length === 0) {
+      try {
+        const all = await fetchProducts();
+        items = localTextMatch(all, text).slice(0, 24);
+      } catch (e) {
+        console.error("local fallback failed", e);
+        setError(e instanceof Error ? e.message : "Search failed");
+      }
+    }
+    setResults(items);
+    if (addToHistory) pushHistory(text);
+    if (user) void logInterest({ data: { kind: "search", query: text } }).catch(() => undefined);
+    setLoading(false);
   };
 
   const stopCamera = () => {
