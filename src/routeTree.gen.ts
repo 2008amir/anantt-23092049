@@ -35,9 +35,9 @@ import { Route as AdminDeliveryPricesRouteImport } from './routes/admin.delivery
 import { Route as AdminDeliverersRouteImport } from './routes/admin.deliverers'
 import { Route as AccountWishlistRouteImport } from './routes/account.wishlist'
 import { Route as AccountSettingsRouteImport } from './routes/account.settings'
-import { Route as AccountOrdersRouteImport } from './routes/account.orders'
 import { Route as AccountNotificationsRouteImport } from './routes/account.notifications'
 import { Route as AccountMessagesRouteImport } from './routes/account.messages'
+import { Route as AccountHistoryRouteImport } from './routes/account.history'
 import { Route as AccountEarnRouteImport } from './routes/account.earn'
 import { Route as AccountAddressesRouteImport } from './routes/account.addresses'
 import { Route as ApiPublicFlutterwaveWebhookRouteImport } from './routes/api/public/flutterwave-webhook'
@@ -173,11 +173,6 @@ const AccountSettingsRoute = AccountSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AccountRoute,
 } as any)
-const AccountOrdersRoute = AccountOrdersRouteImport.update({
-  id: '/orders',
-  path: '/orders',
-  getParentRoute: () => AccountRoute,
-} as any)
 const AccountNotificationsRoute = AccountNotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
@@ -186,6 +181,11 @@ const AccountNotificationsRoute = AccountNotificationsRouteImport.update({
 const AccountMessagesRoute = AccountMessagesRouteImport.update({
   id: '/messages',
   path: '/messages',
+  getParentRoute: () => AccountRoute,
+} as any)
+const AccountHistoryRoute = AccountHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
   getParentRoute: () => AccountRoute,
 } as any)
 const AccountEarnRoute = AccountEarnRouteImport.update({
@@ -223,9 +223,9 @@ export interface FileRoutesByFullPath {
   '/wishlist': typeof WishlistRoute
   '/account/addresses': typeof AccountAddressesRoute
   '/account/earn': typeof AccountEarnRoute
+  '/account/history': typeof AccountHistoryRoute
   '/account/messages': typeof AccountMessagesRoute
   '/account/notifications': typeof AccountNotificationsRoute
-  '/account/orders': typeof AccountOrdersRoute
   '/account/settings': typeof AccountSettingsRoute
   '/account/wishlist': typeof AccountWishlistRoute
   '/admin/deliverers': typeof AdminDeliverersRoute
@@ -256,9 +256,9 @@ export interface FileRoutesByTo {
   '/wishlist': typeof WishlistRoute
   '/account/addresses': typeof AccountAddressesRoute
   '/account/earn': typeof AccountEarnRoute
+  '/account/history': typeof AccountHistoryRoute
   '/account/messages': typeof AccountMessagesRoute
   '/account/notifications': typeof AccountNotificationsRoute
-  '/account/orders': typeof AccountOrdersRoute
   '/account/settings': typeof AccountSettingsRoute
   '/account/wishlist': typeof AccountWishlistRoute
   '/admin/deliverers': typeof AdminDeliverersRoute
@@ -292,9 +292,9 @@ export interface FileRoutesById {
   '/wishlist': typeof WishlistRoute
   '/account/addresses': typeof AccountAddressesRoute
   '/account/earn': typeof AccountEarnRoute
+  '/account/history': typeof AccountHistoryRoute
   '/account/messages': typeof AccountMessagesRoute
   '/account/notifications': typeof AccountNotificationsRoute
-  '/account/orders': typeof AccountOrdersRoute
   '/account/settings': typeof AccountSettingsRoute
   '/account/wishlist': typeof AccountWishlistRoute
   '/admin/deliverers': typeof AdminDeliverersRoute
@@ -329,9 +329,9 @@ export interface FileRouteTypes {
     | '/wishlist'
     | '/account/addresses'
     | '/account/earn'
+    | '/account/history'
     | '/account/messages'
     | '/account/notifications'
-    | '/account/orders'
     | '/account/settings'
     | '/account/wishlist'
     | '/admin/deliverers'
@@ -362,9 +362,9 @@ export interface FileRouteTypes {
     | '/wishlist'
     | '/account/addresses'
     | '/account/earn'
+    | '/account/history'
     | '/account/messages'
     | '/account/notifications'
-    | '/account/orders'
     | '/account/settings'
     | '/account/wishlist'
     | '/admin/deliverers'
@@ -397,9 +397,9 @@ export interface FileRouteTypes {
     | '/wishlist'
     | '/account/addresses'
     | '/account/earn'
+    | '/account/history'
     | '/account/messages'
     | '/account/notifications'
-    | '/account/orders'
     | '/account/settings'
     | '/account/wishlist'
     | '/admin/deliverers'
@@ -622,13 +622,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountSettingsRouteImport
       parentRoute: typeof AccountRoute
     }
-    '/account/orders': {
-      id: '/account/orders'
-      path: '/orders'
-      fullPath: '/account/orders'
-      preLoaderRoute: typeof AccountOrdersRouteImport
-      parentRoute: typeof AccountRoute
-    }
     '/account/notifications': {
       id: '/account/notifications'
       path: '/notifications'
@@ -641,6 +634,13 @@ declare module '@tanstack/react-router' {
       path: '/messages'
       fullPath: '/account/messages'
       preLoaderRoute: typeof AccountMessagesRouteImport
+      parentRoute: typeof AccountRoute
+    }
+    '/account/history': {
+      id: '/account/history'
+      path: '/history'
+      fullPath: '/account/history'
+      preLoaderRoute: typeof AccountHistoryRouteImport
       parentRoute: typeof AccountRoute
     }
     '/account/earn': {
@@ -677,9 +677,9 @@ declare module '@tanstack/react-router' {
 interface AccountRouteChildren {
   AccountAddressesRoute: typeof AccountAddressesRoute
   AccountEarnRoute: typeof AccountEarnRoute
+  AccountHistoryRoute: typeof AccountHistoryRoute
   AccountMessagesRoute: typeof AccountMessagesRoute
   AccountNotificationsRoute: typeof AccountNotificationsRoute
-  AccountOrdersRoute: typeof AccountOrdersRoute
   AccountSettingsRoute: typeof AccountSettingsRoute
   AccountWishlistRoute: typeof AccountWishlistRoute
   AccountIndexRoute: typeof AccountIndexRoute
@@ -688,9 +688,9 @@ interface AccountRouteChildren {
 const AccountRouteChildren: AccountRouteChildren = {
   AccountAddressesRoute: AccountAddressesRoute,
   AccountEarnRoute: AccountEarnRoute,
+  AccountHistoryRoute: AccountHistoryRoute,
   AccountMessagesRoute: AccountMessagesRoute,
   AccountNotificationsRoute: AccountNotificationsRoute,
-  AccountOrdersRoute: AccountOrdersRoute,
   AccountSettingsRoute: AccountSettingsRoute,
   AccountWishlistRoute: AccountWishlistRoute,
   AccountIndexRoute: AccountIndexRoute,
