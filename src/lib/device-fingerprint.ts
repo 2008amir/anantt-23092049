@@ -36,14 +36,29 @@ function getPersistentToken(): string {
   }
 }
 
-async function fetchIP(): Promise<string | null> {
+type ServerIdentity = {
+  device_id: string | null;
+  ip: string | null;
+  ua: string | null;
+  lang: string | null;
+};
+
+// Ask our own server for a stable device_id (httpOnly cookie, set by the
+// edge runtime). The cookie persists 5 years and survives localStorage
+// clears, private windows after first visit, and most reinstall scenarios.
+// We also receive the server-observed IP and User-Agent — these are harder
+// to forge than client-side `navigator.userAgent` / ipify.
+async function fetchServerIdentity(): Promise<ServerIdentity> {
   try {
-    const r = await fetch("https://api.ipify.org?format=json");
-    if (!r.ok) return null;
-    const j = (await r.json()) as { ip?: string };
-    return j.ip ?? null;
+    const r = await fetch("/api/public/device-id", {
+      method: "GET",
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!r.ok) return { device_id: null, ip: null, ua: null, lang: null };
+    return (await r.json()) as ServerIdentity;
   } catch {
-    return null;
+    return { device_id: null, ip: null, ua: null, lang: null };
   }
 }
 
