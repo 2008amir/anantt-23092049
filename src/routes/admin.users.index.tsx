@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronRight } from "lucide-react";
 
-export const Route = createFileRoute("/admin/users")({
+export const Route = createFileRoute("/admin/users/")({
   component: UsersPage,
 });
 
