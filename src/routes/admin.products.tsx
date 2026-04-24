@@ -177,7 +177,6 @@ function EditModal({
 }) {
   const [price, setPrice] = useState(String(product.price));
   const [discount, setDiscount] = useState(product.discount_price?.toString() ?? "");
-  const [delivery, setDelivery] = useState(String(product.delivery_price));
   const [stock, setStock] = useState(String(product.stock));
   const [images, setImages] = useState<string[]>(product.images?.length ? product.images : product.image ? [product.image] : []);
   const [uploading, setUploading] = useState(false);
@@ -213,7 +212,6 @@ function EditModal({
       .update({
         price: Number(price) || 0,
         discount_price: discount ? Number(discount) : null,
-        delivery_price: Number(delivery) || 0,
         stock: Number(stock) || 0,
         images: images,
         image: images[0] ?? product.image,
@@ -234,11 +232,13 @@ function EditModal({
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <NumberField label="Price (₦)" value={price} onChange={setPrice} />
-          <NumberField label="Sale / discount price (₦)" value={discount} onChange={setDiscount} />
-          <NumberField label="Old price ₦ (strike-through)" value={delivery} onChange={setDelivery} />
+          <NumberField label="Old price ₦ (strike-through)" value={price} onChange={setPrice} />
+          <NumberField label="Discount price ₦ (what customer pays)" value={discount} onChange={setDiscount} />
           <NumberField label="Stock" value={stock} onChange={setStock} />
         </div>
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          Leave discount empty to sell at the regular price. Savings shown to shoppers = old − discount.
+        </p>
 
         <div className="mt-6">
           <p className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">Images ({images.length}/20)</p>
@@ -360,7 +360,6 @@ function AddProductForm({ onCreated }: { onCreated: () => void }) {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [discount, setDiscount] = useState("");
-  const [delivery, setDelivery] = useState("");
   const [stock, setStock] = useState("");
   const [rating, setRating] = useState("0");
   const [images, setImages] = useState<string[]>([]);
