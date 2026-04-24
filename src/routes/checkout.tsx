@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore, useProducts } from "@/lib/store";
 import type { Product } from "@/lib/products";
+import { effectivePrice, formatNaira } from "@/lib/price";
 import { NIGERIA_STATE_NAMES, NIGERIA_STATES } from "@/lib/nigeria-states";
 import {
   initFlutterwave,
@@ -80,7 +81,7 @@ function Checkout() {
       .filter(Boolean) as { product: Product; quantity: number }[];
   }, [snapshotRows, products]);
 
-  const subtotal = items.reduce((s, i) => s + i.product.price * i.quantity, 0);
+  const subtotal = items.reduce((s, i) => s + effectivePrice(i.product) * i.quantity, 0);
   const tax = subtotal * 0.08;
 
   const [step, setStep] = useState<Step>(1);
@@ -244,7 +245,7 @@ function Checkout() {
           product_id: i.product.id,
           product_name: i.product.name,
           product_image: i.product.image,
-          price: i.product.price,
+          price: effectivePrice(i.product),
           quantity: i.quantity,
         })),
       );
@@ -666,7 +667,7 @@ function Checkout() {
                 <span>
                   {product.name} × {quantity}
                 </span>
-                <span>₦{(product.price * quantity).toLocaleString()}</span>
+                <span>{formatNaira(effectivePrice(product) * quantity)}</span>
               </div>
             ))}
           </div>

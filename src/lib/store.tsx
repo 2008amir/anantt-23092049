@@ -305,7 +305,12 @@ export function useCartTotal(products: Product[]) {
       return p ? { product: p, quantity: c.quantity } : null;
     })
     .filter(Boolean) as { product: Product; quantity: number }[];
-  const subtotal = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
+  const subtotal = items.reduce((sum, i) => {
+    const unit = i.product.discountPrice && i.product.discountPrice > 0 && i.product.discountPrice < i.product.price
+      ? i.product.discountPrice
+      : i.product.price;
+    return sum + unit * i.quantity;
+  }, 0);
   const shipping = subtotal > 1000 || subtotal === 0 ? 0 : 35;
   const tax = subtotal * 0.08;
   const total = subtotal + shipping + tax;

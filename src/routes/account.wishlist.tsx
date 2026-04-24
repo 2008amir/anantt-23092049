@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
 import { useStore, useProductsByIds } from "@/lib/store";
 import { Recommend } from "@/components/Recommend";
+import { effectivePrice, hasDiscount, formatNaira } from "@/lib/price";
 
 export const Route = createFileRoute("/account/wishlist")({
   component: AccountWishlist,
@@ -29,7 +30,12 @@ function AccountWishlist() {
                 <Link to="/product/$id" params={{ id: p.id }} className="font-serif text-lg hover:text-primary">{p.name}</Link>
                 <p className="text-xs text-muted-foreground">{p.brand}</p>
               </div>
-              <p className="text-primary">₦{p.price.toLocaleString()}</p>
+              <div className="text-right">
+                <p className="text-primary">{formatNaira(effectivePrice(p))}</p>
+                {hasDiscount(p) && (
+                  <p className="text-xs text-muted-foreground line-through">{formatNaira(p.price)}</p>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={() => void toggleWishlist(p.id)}

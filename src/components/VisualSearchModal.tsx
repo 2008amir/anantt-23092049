@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { Camera, Upload, X, Loader2, ImagePlus } from "lucide-react";
 import { visualSearch } from "@/lib/ai.functions";
 import { fetchProductsByIds, type Product } from "@/lib/products";
+import { effectivePrice, hasDiscount, formatNaira } from "@/lib/price";
 
 type Stage = "choose" | "camera" | "loading" | "results" | "error";
 
@@ -266,7 +267,7 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
               <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
                 {matchedProducts.map((m) => {
                   const p = m.product!;
-                  const original = Math.round(p.price * 1.4);
+                  const showDiscount = hasDiscount(p);
                   return (
                     <Link
                       key={p.id}
@@ -281,8 +282,10 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
                       <div className="space-y-1 p-2">
                         <p className="line-clamp-2 text-[11px] leading-tight text-foreground">{p.name}</p>
                         <div className="flex items-baseline gap-1 pt-0.5">
-                          <span className="font-serif text-sm text-gold-gradient">₦{p.price.toLocaleString()}</span>
-                          <span className="text-[9px] text-muted-foreground line-through">₦{original.toLocaleString()}</span>
+                          <span className="font-serif text-sm text-gold-gradient">{formatNaira(effectivePrice(p))}</span>
+                          {showDiscount && (
+                            <span className="text-[9px] text-muted-foreground line-through">{formatNaira(p.price)}</span>
+                          )}
                         </div>
                       </div>
                     </Link>
