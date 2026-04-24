@@ -13,6 +13,7 @@ import {
   Search as SearchIcon,
   Gift,
   UserCog,
+  Send,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useIsAdmin } from "@/hooks/use-admin";
@@ -34,6 +35,7 @@ const ADMIN_NAV = [
   { to: "/admin/delivery-prices" as const, label: "Delivery", icon: Truck },
   { to: "/admin/deliverers" as const, label: "Riders", icon: Truck },
   { to: "/admin/rewards" as const, label: "Rewards", icon: Gift },
+  { to: "/admin/post" as const, label: "Post", icon: Send },
   { to: "/admin/search" as const, label: "Search", icon: SearchIcon },
   { to: "/admin/profile" as const, label: "Profile", icon: UserCog },
 ];
