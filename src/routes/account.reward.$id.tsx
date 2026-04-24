@@ -123,6 +123,18 @@ function RewardDetailPage() {
     if (!user || !task) return;
     setStarting(true);
     try {
+      // Address gate — every reward (referral or purchase) requires a
+      // saved shipping address before the user can enroll, so the order
+      // can later move to "Processing" without delay.
+      const { count } = await supabase
+        .from("addresses")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id);
+      if (!count || count === 0) {
+        toast.error("Please add a shipping address before starting a task.");
+        navigate({ to: "/account/addresses" });
+        return;
+      }
       const created = await enrollInTask(user.id, task);
       setEnrollment(created);
       setReferrals([]);

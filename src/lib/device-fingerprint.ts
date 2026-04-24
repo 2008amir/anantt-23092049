@@ -36,14 +36,29 @@ function getPersistentToken(): string {
   }
 }
 
-async function fetchIP(): Promise<string | null> {
+type ServerIdentity = {
+  device_id: string | null;
+  ip: string | null;
+  ua: string | null;
+  lang: string | null;
+};
+
+// Ask our own server for a stable device_id (httpOnly cookie, set by the
+// edge runtime). The cookie persists 5 years and survives localStorage
+// clears, private windows after first visit, and most reinstall scenarios.
+// We also receive the server-observed IP and User-Agent — these are harder
+// to forge than client-side `navigator.userAgent` / ipify.
+async function fetchServerIdentity(): Promise<ServerIdentity> {
   try {
-    const r = await fetch("https://api.ipify.org?format=json");
-    if (!r.ok) return null;
-    const j = (await r.json()) as { ip?: string };
-    return j.ip ?? null;
+    const r = await fetch("/api/public/device-id", {
+      method: "GET",
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!r.ok) return { device_id: null, ip: null, ua: null, lang: null };
+    return (await r.json()) as ServerIdentity;
   } catch {
-    return null;
+    return { device_id: null, ip: null, ua: null, lang: null };
   }
 }
 
@@ -217,7 +232,12 @@ export async function collectDeviceSignals(): Promise<DeviceSignals> {
     };
   };
 
-  const [ip, audio] = await Promise.all([fetchIP(), getAudioFingerprint()]);
+  const [serverId, audio] = await Promise.all([
+    fetchServerIdentity(),
+    getAudioFingerprint(),
+  ]);
+  // Prefer server-observed IP/UA — they're harder to forge than browser values
+  const ip = serverId.ip;
 
   // High-entropy UA hints give us real OS/model when the browser supports it
   let uaHigh: Record<string, unknown> | null = null;
@@ -266,8 +286,12 @@ export async function collectDeviceSignals(): Promise<DeviceSignals> {
   // tied signals (WebGL/canvas/audio/screen/fonts/UA-high) still re-identify
   // the physical device with very high probability.
   const parts = [
+    // Server-issued device id (httpOnly cookie) — strongest, most stable signal.
+    // If present it dominates the hash so the device id is consistent across
+    // sessions even if other signals drift slightly (driver updates, etc.).
+    serverId.device_id ?? "no-srv-id",
     ip ?? "no-ip",
-    nav.userAgent,
+    serverId.ua ?? nav.userAgent,
     nav.platform,
     JSON.stringify(uaHigh ?? {}),
     String(hardware.cores),
