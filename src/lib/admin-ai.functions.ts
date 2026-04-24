@@ -45,12 +45,12 @@ async function callGateway(systemPrompt: string, userPrompt: string, toolName: s
   }
 }
 
-// Generate realistic product reviews from N countries × M messages
+// Generate realistic product reviews from a list of countries × M messages each
 export const generateProductReviews = createServerFn({ method: "POST" })
-  .inputValidator((input: { productName: string; productDescription?: string; countries: number; messages: number; accessToken?: string }) => {
+  .inputValidator((input: { productName: string; productDescription?: string; countries: string[]; messages: number; accessToken?: string }) => {
     if (!input?.productName || typeof input.productName !== "string") throw new Error("productName required");
-    if (!Number.isFinite(input.countries) || input.countries < 1 || input.countries > 50) {
-      throw new Error("countries must be between 1 and 50");
+    if (!Array.isArray(input.countries) || input.countries.length < 1 || input.countries.length > 60) {
+      throw new Error("Pick between 1 and 60 countries");
     }
     if (!Number.isFinite(input.messages) || input.messages < 1 || input.messages > 50) {
       throw new Error("messages must be between 1 and 50");
@@ -62,13 +62,14 @@ export const generateProductReviews = createServerFn({ method: "POST" })
     try {
       await getFlutterwaveAuthContext(data.accessToken);
 
-      const total = data.countries * data.messages;
-      const systemPrompt = `You are generating realistic, varied customer reviews for a luxury e-commerce product. Distribute ${data.messages} reviews across each of ${data.countries} different countries (use real country names from diverse regions). Vary tone: most positive (4-5 stars), some neutral (3 stars), occasional minor critique. Authentic first names from each country. Short titles. 1-3 sentence bodies.`;
+      const countryList = data.countries.join(", ");
+      const total = data.countries.length * data.messages;
+      const systemPrompt = `You are generating realistic, varied customer reviews for a luxury e-commerce product. Generate exactly ${data.messages} reviews per country for these countries: ${countryList}. Use authentic first names typical of each country. Vary tone: most positive (4-5 stars), some neutral (3 stars), occasional minor critique. Short titles. 1-3 sentence bodies.`;
 
       const userPrompt = `Product: ${data.productName}
 ${data.productDescription ? `Description: ${data.productDescription}` : ""}
 
-Generate exactly ${total} reviews (${data.messages} per country across ${data.countries} countries).`;
+Generate exactly ${total} reviews — ${data.messages} per country across these ${data.countries.length} countries: ${countryList}.`;
 
       const parsed = await callGateway(systemPrompt, userPrompt, "make_reviews", {
         type: "object",
@@ -94,8 +95,16 @@ Generate exactly ${total} reviews (${data.messages} per country across ${data.co
       });
 
       const raw = (parsed?.reviews ?? []) as Array<{ author: string; country: string; rating: number; title: string; body: string }>;
+
+      // Shuffle so countries are interleaved instead of grouped
+      const shuffled = [...raw];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+
       const now = new Date();
-      const reviews: Review[] = raw.slice(0, total).map((r, i) => {
+      const reviews: Review[] = shuffled.slice(0, total).map((r, i) => {
         const daysAgo = Math.floor(Math.random() * 120);
         const d = new Date(now.getTime() - daysAgo * 86400000);
         return {
