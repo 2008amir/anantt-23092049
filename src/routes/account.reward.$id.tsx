@@ -125,6 +125,7 @@ function RewardDetailPage() {
     try {
       const created = await enrollInTask(user.id, task);
       setEnrollment(created);
+      setReferrals([]);
       toast.success("Task started");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to start");
