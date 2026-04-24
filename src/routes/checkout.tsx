@@ -260,6 +260,7 @@ function Checkout() {
           product_image: i.product.image,
           price: effectivePrice(i.product),
           quantity: i.quantity,
+          variant: i.variant ?? null,
         })),
       );
       if (itemsError) throw itemsError;
