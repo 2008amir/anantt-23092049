@@ -79,6 +79,18 @@ function AdminProfilePage() {
         <p className="mt-1 text-sm text-muted-foreground">Manage your admin account.</p>
       </div>
 
+      {/* Appearance */}
+      <div className="rounded-lg border border-border/40 bg-card p-6">
+        <div className="mb-4 flex items-center gap-2">
+          <Palette className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-medium uppercase tracking-wider">Appearance</h2>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">Theme</p>
+          <ThemeToggle />
+        </div>
+      </div>
+
       {/* Account info */}
       <div className="rounded-lg border border-border/40 bg-card p-6">
         <div className="mb-4 flex items-center gap-2">
