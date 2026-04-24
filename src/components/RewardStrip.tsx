@@ -34,18 +34,30 @@ export function RewardStrip() {
   }, []);
 
   const count = tasks.length;
+  const [lastInteract, setLastInteract] = useState(0);
 
-  // Auto-rotate every 30s — reshuffle order each cycle so positions change
+  // Auto-rotate every 10s. Reshuffle positions every full cycle so
+  // the ordering changes across refreshes and over time.
   useEffect(() => {
     if (count <= 1) return;
     const t = setInterval(() => {
-      setTasks((prev) => shuffle(prev));
-      setIndex(0);
       const el = scrollerRef.current;
-      if (el) el.scrollTo({ left: 0, behavior: "smooth" });
-    }, 30000);
+      if (!el) return;
+      setIndex((prev) => {
+        const next = prev + 1;
+        if (next >= count) {
+          // end of list → reshuffle and return to start
+          setTasks((p) => shuffle(p));
+          el.scrollTo({ left: 0, behavior: "smooth" });
+          return 0;
+        }
+        el.scrollTo({ left: next * el.clientWidth, behavior: "smooth" });
+        return next;
+      });
+    }, 10000);
     return () => clearInterval(t);
-  }, [count]);
+    // lastInteract is a dep so manual scroll resets the 10s timer
+  }, [count, lastInteract]);
 
   const onScroll = () => {
     const el = scrollerRef.current;
@@ -54,6 +66,11 @@ export function RewardStrip() {
     if (w === 0) return;
     const i = Math.round(el.scrollLeft / w);
     if (i !== index && i >= 0 && i < count) setIndex(i);
+  };
+
+  // Reset the 10s timer whenever the user manually swipes the carousel.
+  const onManualScroll = () => {
+    setLastInteract(Date.now());
   };
 
   const counterLabel = useMemo(
