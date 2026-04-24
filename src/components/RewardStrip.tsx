@@ -93,6 +93,9 @@ export function RewardStrip() {
         <div
           ref={scrollerRef}
           onScroll={onScroll}
+          onTouchStart={onManualScroll}
+          onMouseDown={onManualScroll}
+          onWheel={onManualScroll}
           className="flex snap-x snap-mandatory overflow-x-auto no-scrollbar"
           style={{ scrollBehavior: "smooth" }}
         >
