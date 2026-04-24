@@ -38,12 +38,12 @@ export const ProductGallery = forwardRef<HTMLImageElement, Props>(function Produ
   }, [list.length]);
 
   const goTo = (i: number) => {
-    const clamped = Math.max(0, Math.min(list.length - 1, i));
-    setIndex(clamped);
+    if (i < 0 || i > list.length - 1) return; // hard stop at edges, no looping
+    setIndex(i);
     const el = scrollerRef.current;
     if (!el) return;
     isProgrammaticScroll.current = true;
-    el.scrollTo({ left: clamped * el.clientWidth, behavior: "smooth" });
+    el.scrollTo({ left: i * el.clientWidth, behavior: "smooth" });
     window.setTimeout(() => {
       isProgrammaticScroll.current = false;
     }, 400);

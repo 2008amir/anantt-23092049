@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { Pencil, Trash2, RefreshCw, Plus, Image as ImageIcon, Loader2, Sparkles, X } from "lucide-react";
+import { Pencil, Trash2, RefreshCw, Plus, Image as ImageIcon, Loader2, Sparkles, X, ChevronDown, Check, Search } from "lucide-react";
 import { generateProductReviews } from "@/lib/admin-ai.functions";
+import { ALL_COUNTRIES } from "@/lib/countries";
 
 export const Route = createFileRoute("/admin/products")({
   component: ProductsPage,
@@ -375,7 +376,7 @@ function AddProductForm({ onCreated }: { onCreated: () => void }) {
 
   const [reviews, setReviews] = useState<Review[]>([]);
   const [aiOpen, setAiOpen] = useState(false);
-  const [aiCountries, setAiCountries] = useState("3");
+  const [aiCountries, setAiCountries] = useState<string[]>([]);
   const [aiMessages, setAiMessages] = useState("4");
   const [aiLoading, setAiLoading] = useState(false);
 
@@ -408,6 +409,10 @@ function AddProductForm({ onCreated }: { onCreated: () => void }) {
       alert("Enter the product name first");
       return;
     }
+    if (aiCountries.length === 0) {
+      alert("Pick at least one country");
+      return;
+    }
     setAiLoading(true);
     try {
       const {
@@ -423,7 +428,7 @@ function AddProductForm({ onCreated }: { onCreated: () => void }) {
         data: {
           productName: name,
           productDescription: description,
-          countries: Math.max(1, Math.min(50, Number(aiCountries) || 1)),
+          countries: aiCountries.slice(0, 60),
           messages: Math.max(1, Math.min(50, Number(aiMessages) || 1)),
           accessToken,
         },
@@ -582,16 +587,18 @@ function AddProductForm({ onCreated }: { onCreated: () => void }) {
         </div>
         {aiOpen && (
           <div className="mt-2 grid gap-3 rounded-md border border-border/40 bg-muted/30 p-4 sm:grid-cols-3">
-            <NumberField label="How many countries" value={aiCountries} onChange={setAiCountries} />
-            <NumberField label="How many messages" value={aiMessages} onChange={setAiMessages} />
-            <div className="flex items-end">
+            <div className="sm:col-span-2">
+              <CountryMultiSelect value={aiCountries} onChange={setAiCountries} />
+            </div>
+            <NumberField label="Messages per country" value={aiMessages} onChange={setAiMessages} />
+            <div className="flex items-end sm:col-span-3">
               <button
                 onClick={() => void generateReviews()}
                 disabled={aiLoading}
                 className="inline-flex w-full items-center justify-center gap-1 rounded-md bg-primary px-3 py-2 text-xs text-primary-foreground hover:opacity-90 disabled:opacity-60"
               >
                 {aiLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                Generate
+                Generate {aiCountries.length > 0 ? `${aiCountries.length * (Number(aiMessages) || 0)} reviews` : ""}
               </button>
             </div>
           </div>
@@ -741,6 +748,118 @@ function Empty({ hint }: { hint: string }) {
   return (
     <div className="rounded-lg border border-dashed border-border/40 bg-card p-8 text-center">
       <p className="text-sm text-muted-foreground">{hint}</p>
+    </div>
+  );
+}
+
+function CountryMultiSelect({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [open]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return ALL_COUNTRIES;
+    return ALL_COUNTRIES.filter((c) => c.toLowerCase().includes(q));
+  }, [query]);
+
+  const selected = new Set(value);
+  const toggle = (c: string) => {
+    const next = new Set(selected);
+    if (next.has(c)) next.delete(c);
+    else next.add(c);
+    onChange(Array.from(next));
+  };
+
+  return (
+    <div ref={containerRef} className="relative">
+      <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Countries</span>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="mt-1.5 flex w-full items-center justify-between rounded-md border border-border/40 bg-background px-3 py-2 text-left text-sm focus:border-primary focus:outline-none"
+      >
+        <span className={cn("truncate", value.length === 0 && "text-muted-foreground")}>
+          {value.length === 0 ? "Pick countries…" : value.length === 1 ? value[0] : `${value.length} countries selected`}
+        </span>
+        <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", open && "rotate-180")} />
+      </button>
+
+      {value.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {value.slice(0, 8).map((c) => (
+            <span key={c} className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] text-primary">
+              {c}
+              <button type="button" onClick={() => toggle(c)} className="hover:text-destructive">
+                <X className="h-2.5 w-2.5" />
+              </button>
+            </span>
+          ))}
+          {value.length > 8 && (
+            <span className="text-[11px] text-muted-foreground">+{value.length - 8} more</span>
+          )}
+        </div>
+      )}
+
+      {open && (
+        <div className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-md border border-border/40 bg-card shadow-lg">
+          <div className="flex items-center gap-2 border-b border-border/40 px-3 py-2">
+            <Search className="h-3.5 w-3.5 text-muted-foreground" />
+            <input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search countries…"
+              className="flex-1 bg-transparent text-sm focus:outline-none"
+            />
+            {value.length > 0 && (
+              <button
+                type="button"
+                onClick={() => onChange([])}
+                className="text-[10px] uppercase tracking-wider text-muted-foreground hover:text-destructive"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          <div className="max-h-64 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <p className="px-3 py-4 text-center text-xs text-muted-foreground">No matches</p>
+            ) : (
+              filtered.map((c) => {
+                const checked = selected.has(c);
+                return (
+                  <button
+                    type="button"
+                    key={c}
+                    onClick={() => toggle(c)}
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-muted/60"
+                  >
+                    <span
+                      className={cn(
+                        "flex h-4 w-4 shrink-0 items-center justify-center rounded border",
+                        checked ? "border-primary bg-primary text-primary-foreground" : "border-border/60",
+                      )}
+                    >
+                      {checked && <Check className="h-3 w-3" />}
+                    </span>
+                    <span className="truncate">{c}</span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

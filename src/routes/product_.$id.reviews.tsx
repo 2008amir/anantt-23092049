@@ -3,7 +3,7 @@ import { ChevronLeft } from "lucide-react";
 import { Stars } from "@/components/Stars";
 import { fetchProduct, type Product } from "@/lib/products";
 
-export const Route = createFileRoute("/product/$id/reviews")({
+export const Route = createFileRoute("/product_/$id/reviews")({
   loader: async ({ params }): Promise<{ product: Product }> => {
     const product = await fetchProduct(params.id);
     if (!product) throw notFound();
