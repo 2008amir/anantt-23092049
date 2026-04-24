@@ -9,6 +9,7 @@ import { similarProducts } from "@/lib/ai.functions";
 import { useStore } from "@/lib/store";
 import { Recommend } from "@/components/Recommend";
 import { flyToCart } from "@/components/CartBubble";
+import { effectivePrice, hasDiscount, savings, formatNaira } from "@/lib/price";
 
 export const Route = createFileRoute("/product/$id")({
   loader: async ({ params }): Promise<{ product: Product }> => {
@@ -94,7 +95,17 @@ function ProductPage() {
             <Stars rating={product.rating} />
             <span className="text-sm text-muted-foreground">{product.rating} · {product.reviewCount} reviews</span>
           </div>
-          <p className="mt-6 font-serif text-3xl text-gold-gradient">₦{product.price.toLocaleString()}</p>
+          <div className="mt-6 flex items-baseline gap-4">
+            <p className="font-serif text-3xl text-gold-gradient">{formatNaira(effectivePrice(product))}</p>
+            {hasDiscount(product) && (
+              <>
+                <p className="font-serif text-xl text-muted-foreground line-through">{formatNaira(product.price)}</p>
+                <span className="rounded-full bg-primary/10 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-primary">
+                  Save {formatNaira(savings(product))}
+                </span>
+              </>
+            )}
+          </div>
           <p className="mt-6 leading-relaxed text-muted-foreground">{product.description}</p>
 
           <ul className="mt-6 space-y-2">

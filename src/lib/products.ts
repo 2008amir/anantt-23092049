@@ -15,6 +15,7 @@ export type Product = {
   name: string;
   brand: string;
   price: number;
+  discountPrice: number | null;
   image: string;
   images: string[];
   category: string;
@@ -32,6 +33,7 @@ type Row = {
   brand: string;
   category: string;
   price: number | string;
+  discount_price?: number | string | null;
   image: string;
   images?: unknown;
   description: string;
@@ -54,6 +56,10 @@ function rowToProduct(r: Row): Product {
     brand: r.brand,
     category: r.category,
     price: Number(r.price),
+    discountPrice:
+      r.discount_price === null || r.discount_price === undefined || r.discount_price === ""
+        ? null
+        : Number(r.discount_price),
     image: mainImage,
     images: allImages,
     description: r.description,

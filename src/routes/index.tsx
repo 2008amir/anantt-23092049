@@ -6,6 +6,7 @@ import { useStore, useProducts } from "@/lib/store";
 import { useCategories } from "@/hooks/use-categories";
 import { personalizedFeed } from "@/lib/ai.functions";
 import { flyToCart } from "@/components/CartBubble";
+import { effectivePrice, hasDiscount, savings, formatNaira } from "@/lib/price";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -139,8 +140,9 @@ function Index() {
       ) : (
         <section className="mx-auto mt-4 grid max-w-5xl grid-cols-2 gap-2 px-2 md:grid-cols-3 lg:grid-cols-4">
           {list.map((p) => {
-            const original = Math.round(p.price * 1.4);
-            const saved = original - p.price;
+            const showDiscount = hasDiscount(p);
+            const current = effectivePrice(p);
+            const saved = savings(p);
             return (
               <Link
                 key={p.id}
@@ -176,12 +178,16 @@ function Index() {
                     <span>·</span>
                     <span>{(p.reviewCount * 0.1).toFixed(1)}K+ owners</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="border border-primary/40 px-1.5 py-0.5 text-[9px] uppercase tracking-[0.1em] text-primary">Save ₦{saved.toLocaleString()}</span>
-                  </div>
+                  {showDiscount && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="border border-primary/40 px-1.5 py-0.5 text-[9px] uppercase tracking-[0.1em] text-primary">Save {formatNaira(saved)}</span>
+                    </div>
+                  )}
                   <div className="flex items-baseline gap-1.5 pt-0.5">
-                    <span className="font-serif text-base text-gold-gradient">₦{p.price.toLocaleString()}</span>
-                    <span className="text-[10px] text-muted-foreground line-through">₦{original.toLocaleString()}</span>
+                    <span className="font-serif text-base text-gold-gradient">{formatNaira(current)}</span>
+                    {showDiscount && (
+                      <span className="text-[10px] text-muted-foreground line-through">{formatNaira(p.price)}</span>
+                    )}
                   </div>
                 </div>
               </Link>

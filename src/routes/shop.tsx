@@ -5,6 +5,7 @@ import { type Product } from "@/lib/products";
 import { textSearch } from "@/lib/ai.functions";
 import { useCategories } from "@/hooks/use-categories";
 import { useProducts } from "@/lib/store";
+import { effectivePrice, hasDiscount, formatNaira } from "@/lib/price";
 
 
 type ShopSearch = { category?: string; q?: string };
@@ -184,7 +185,7 @@ function ProductGrid({ products }: { products: Product[] }) {
   return (
     <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
       {products.map((p) => {
-        const original = Math.round(p.price * 1.4);
+        const showDiscount = hasDiscount(p);
         return (
           <Link key={p.id} to="/product/$id" params={{ id: p.id }} className="group block border border-border bg-card transition-smooth hover:border-primary">
             <div className="aspect-square overflow-hidden">
@@ -193,8 +194,10 @@ function ProductGrid({ products }: { products: Product[] }) {
             <div className="space-y-1 p-2">
               <p className="line-clamp-2 text-[11px] leading-tight text-foreground">{p.name}</p>
               <div className="flex items-baseline gap-1">
-                <span className="font-serif text-sm text-gold-gradient">₦{p.price.toLocaleString()}</span>
-                <span className="text-[9px] text-muted-foreground line-through">₦{original.toLocaleString()}</span>
+                <span className="font-serif text-sm text-gold-gradient">{formatNaira(effectivePrice(p))}</span>
+                {showDiscount && (
+                  <span className="text-[9px] text-muted-foreground line-through">{formatNaira(p.price)}</span>
+                )}
               </div>
             </div>
           </Link>
