@@ -25,6 +25,7 @@ export type Product = {
   reviewCount: number;
   reviews: Review[];
   inStock: boolean;
+  stock: number;
   colors: string[];
   sizes: string[];
 };
