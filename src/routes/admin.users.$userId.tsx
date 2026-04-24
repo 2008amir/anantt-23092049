@@ -66,6 +66,7 @@ function UserDetailPage() {
           .from("orders")
           .select("id, total, status, payment_status, delivery_stage, created_at")
           .eq("user_id", userId)
+          .eq("payment_status", "paid")
           .order("created_at", { ascending: false }),
         supabase
           .from("wishlist")
@@ -93,8 +94,7 @@ function UserDetailPage() {
       </div>
     );
 
-  const paidOrders = orders.filter((o) => o.payment_status === "paid");
-  const totalSpent = paidOrders.reduce((s, o) => s + Number(o.total), 0);
+  const totalSpent = orders.reduce((s, o) => s + Number(o.total), 0);
   const deliveredCount = orders.filter((o) => o.delivery_stage === "delivered").length;
 
   return (

@@ -33,12 +33,12 @@ function OverviewPage() {
 
   useEffect(() => {
     let cancelled = false;
-
-    (async () => {
+    const fetchOverview = async () => {
       const now = new Date();
-      const dayAgo = new Date(now.getTime() - 24 * 3600 * 1000).toISOString();
-      const weekAgo = new Date(now.getTime() - 7 * 24 * 3600 * 1000).toISOString();
-      const monthAgo = new Date(now.getTime() - 30 * 24 * 3600 * 1000).toISOString();
+      const startOfToday = new Date(now);
+      startOfToday.setHours(0, 0, 0, 0);
+      const startOfWeekWindow = new Date(startOfToday.getTime() - 6 * 24 * 3600 * 1000).toISOString();
+      const startOfMonthWindow = new Date(startOfToday.getTime() - 29 * 24 * 3600 * 1000).toISOString();
 
       const [
         totalRes,
@@ -51,12 +51,12 @@ function OverviewPage() {
         // Total registered users
         supabase.from("profiles").select("id", { count: "exact", head: true }),
         // Active users (any activity in window — heartbeat updates profiles.updated_at)
-        supabase.from("profiles").select("id", { count: "exact", head: true }).gte("updated_at", dayAgo),
-        supabase.from("profiles").select("id", { count: "exact", head: true }).gte("updated_at", weekAgo),
-        supabase.from("profiles").select("id", { count: "exact", head: true }).gte("updated_at", monthAgo),
-        supabase.from("orders").select("id, total, payment_status").gte("created_at", weekAgo),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).gte("updated_at", startOfToday.toISOString()),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).gte("updated_at", startOfWeekWindow),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).gte("updated_at", startOfMonthWindow),
+        supabase.from("orders").select("id, total, payment_status").gte("created_at", startOfWeekWindow),
         // For the weekly chart
-        supabase.from("profiles").select("id, updated_at").gte("updated_at", weekAgo),
+        supabase.from("profiles").select("id, updated_at").gte("updated_at", startOfWeekWindow),
       ]);
 
       if (cancelled) return;
@@ -100,10 +100,16 @@ function OverviewPage() {
         })),
       );
       setLoading(false);
-    })();
+    };
+
+    void fetchOverview();
+    const interval = window.setInterval(() => {
+      void fetchOverview();
+    }, 15000);
 
     return () => {
       cancelled = true;
+      window.clearInterval(interval);
     };
   }, []);
 

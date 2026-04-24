@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { User, Lock, Save } from "lucide-react";
+import { User, Lock, Save, LogOut } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -17,7 +17,8 @@ type FieldErrors = {
 };
 
 function AdminProfilePage() {
-  const { user } = useStore();
+  const { user, signOut } = useStore();
+  const navigate = useNavigate();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -94,6 +95,17 @@ function AdminProfilePage() {
             <span className="text-primary">Administrator</span>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={async () => {
+            await signOut();
+            navigate({ to: "/" });
+          }}
+          className="mt-5 inline-flex items-center gap-2 rounded-md border border-destructive/40 px-4 py-2 text-sm text-destructive transition-smooth hover:bg-destructive/10"
+        >
+          <LogOut className="h-4 w-4" />
+          Sign Out
+        </button>
       </div>
 
       {/* Change password */}
