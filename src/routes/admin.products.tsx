@@ -104,8 +104,27 @@ function CurrentList({ products, onChange }: { products: ProductRow[]; onChange:
   const [editing, setEditing] = useState<ProductRow | null>(null);
 
   const remove = async (id: string) => {
-    if (!confirm("Delete this product?")) return;
-    await supabase.from("products").delete().eq("id", id);
+    if (!window.confirm("Delete this product? It will be removed from the shop.")) return;
+    // Try a hard delete first.
+    const { error } = await supabase.from("products").delete().eq("id", id);
+    if (error) {
+      // Foreign-key violations (e.g. existing order_items) — fall back to a
+      // soft delete so the product disappears from the shop & admin lists.
+      const isFk = error.code === "23503" || /foreign key/i.test(error.message);
+      if (isFk) {
+        const { error: softErr } = await supabase
+          .from("products")
+          .update({ is_active: false, stock: 0 })
+          .eq("id", id);
+        if (softErr) {
+          alert(`Could not delete product: ${softErr.message}`);
+          return;
+        }
+      } else {
+        alert(`Could not delete product: ${error.message}`);
+        return;
+      }
+    }
     onChange();
   };
 
