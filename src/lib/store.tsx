@@ -44,7 +44,8 @@ export type Order = {
   }[];
 };
 
-type CartRow = { product_id: string; quantity: number };
+export type CartVariant = { color?: string; size?: string } | null;
+type CartRow = { product_id: string; quantity: number; variant?: CartVariant };
 
 type StoreState = {
   loading: boolean;
@@ -53,7 +54,7 @@ type StoreState = {
   cart: CartRow[];
   wishlist: string[];
   // mutations
-  addToCart: (productId: string, quantity?: number) => Promise<void>;
+  addToCart: (productId: string, quantity?: number, variant?: CartVariant) => Promise<void>;
   removeFromCart: (productId: string) => Promise<void>;
   updateCartQty: (productId: string, quantity: number) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -78,7 +79,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const loadUserData = useCallback(async (uid: string) => {
     const [profileRes, cartRes, wlRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", uid).maybeSingle(),
-      supabase.from("cart_items").select("product_id, quantity").eq("user_id", uid),
+      supabase.from("cart_items").select("product_id, quantity, variant").eq("user_id", uid),
       supabase.from("wishlist").select("product_id").eq("user_id", uid),
     ]);
     setProfile((profileRes.data as Profile | null) ?? null);
@@ -137,20 +138,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const addToCart = useCallback(
-    async (productId: string, quantity = 1) => {
+    async (productId: string, quantity = 1, variant: CartVariant = null) => {
       if (!requireAuth() || !user) return;
       const existing = cart.find((c) => c.product_id === productId);
       const nextQty = (existing?.quantity ?? 0) + quantity;
+      // The most recent variant selection wins when re-adding the same product.
+      const nextVariant = variant ?? existing?.variant ?? null;
       // optimistic
       setCart((prev) => {
         const found = prev.find((c) => c.product_id === productId);
-        if (found) return prev.map((c) => (c.product_id === productId ? { ...c, quantity: nextQty } : c));
-        return [...prev, { product_id: productId, quantity }];
+        if (found)
+          return prev.map((c) =>
+            c.product_id === productId ? { ...c, quantity: nextQty, variant: nextVariant } : c,
+          );
+        return [...prev, { product_id: productId, quantity, variant: nextVariant }];
       });
       const { error } = await supabase
         .from("cart_items")
         .upsert(
-          { user_id: user.id, product_id: productId, quantity: nextQty, updated_at: new Date().toISOString() },
+          {
+            user_id: user.id,
+            product_id: productId,
+            quantity: nextQty,
+            variant: nextVariant,
+            updated_at: new Date().toISOString(),
+          },
           { onConflict: "user_id,product_id" },
         );
       if (error) {
