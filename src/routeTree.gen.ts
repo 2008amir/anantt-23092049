@@ -39,12 +39,15 @@ import { Route as AccountSettingsRouteImport } from './routes/account.settings'
 import { Route as AccountNotificationsRouteImport } from './routes/account.notifications'
 import { Route as AccountMessagesRouteImport } from './routes/account.messages'
 import { Route as AccountHistoryRouteImport } from './routes/account.history'
+import { Route as AccountEnrolledRouteImport } from './routes/account.enrolled'
 import { Route as AccountEarnRouteImport } from './routes/account.earn'
 import { Route as AccountAddressesRouteImport } from './routes/account.addresses'
 import { Route as AdminUsersIndexRouteImport } from './routes/admin.users.index'
 import { Route as ProductIdReviewsRouteImport } from './routes/product_.$id.reviews'
 import { Route as ApiPublicFlutterwaveWebhookRouteImport } from './routes/api/public/flutterwave-webhook'
 import { Route as AdminUsersUserIdRouteImport } from './routes/admin.users.$userId'
+import { Route as AccountRewardIdRouteImport } from './routes/account.reward.$id'
+import { Route as AccountClaimIdRouteImport } from './routes/account.claim.$id'
 
 const WishlistRoute = WishlistRouteImport.update({
   id: '/wishlist',
@@ -196,6 +199,11 @@ const AccountHistoryRoute = AccountHistoryRouteImport.update({
   path: '/history',
   getParentRoute: () => AccountRoute,
 } as any)
+const AccountEnrolledRoute = AccountEnrolledRouteImport.update({
+  id: '/enrolled',
+  path: '/enrolled',
+  getParentRoute: () => AccountRoute,
+} as any)
 const AccountEarnRoute = AccountEarnRouteImport.update({
   id: '/earn',
   path: '/earn',
@@ -227,6 +235,16 @@ const AdminUsersUserIdRoute = AdminUsersUserIdRouteImport.update({
   path: '/users/$userId',
   getParentRoute: () => AdminRoute,
 } as any)
+const AccountRewardIdRoute = AccountRewardIdRouteImport.update({
+  id: '/reward/$id',
+  path: '/reward/$id',
+  getParentRoute: () => AccountRoute,
+} as any)
+const AccountClaimIdRoute = AccountClaimIdRouteImport.update({
+  id: '/claim/$id',
+  path: '/claim/$id',
+  getParentRoute: () => AccountRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -241,6 +259,7 @@ export interface FileRoutesByFullPath {
   '/wishlist': typeof WishlistRoute
   '/account/addresses': typeof AccountAddressesRoute
   '/account/earn': typeof AccountEarnRoute
+  '/account/enrolled': typeof AccountEnrolledRoute
   '/account/history': typeof AccountHistoryRoute
   '/account/messages': typeof AccountMessagesRoute
   '/account/notifications': typeof AccountNotificationsRoute
@@ -261,6 +280,8 @@ export interface FileRoutesByFullPath {
   '/account/': typeof AccountIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/orders/': typeof OrdersIndexRoute
+  '/account/claim/$id': typeof AccountClaimIdRoute
+  '/account/reward/$id': typeof AccountRewardIdRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
   '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
   '/product/$id/reviews': typeof ProductIdReviewsRoute
@@ -277,6 +298,7 @@ export interface FileRoutesByTo {
   '/wishlist': typeof WishlistRoute
   '/account/addresses': typeof AccountAddressesRoute
   '/account/earn': typeof AccountEarnRoute
+  '/account/enrolled': typeof AccountEnrolledRoute
   '/account/history': typeof AccountHistoryRoute
   '/account/messages': typeof AccountMessagesRoute
   '/account/notifications': typeof AccountNotificationsRoute
@@ -297,6 +319,8 @@ export interface FileRoutesByTo {
   '/account': typeof AccountIndexRoute
   '/admin': typeof AdminIndexRoute
   '/orders': typeof OrdersIndexRoute
+  '/account/claim/$id': typeof AccountClaimIdRoute
+  '/account/reward/$id': typeof AccountRewardIdRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
   '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
   '/product/$id/reviews': typeof ProductIdReviewsRoute
@@ -316,6 +340,7 @@ export interface FileRoutesById {
   '/wishlist': typeof WishlistRoute
   '/account/addresses': typeof AccountAddressesRoute
   '/account/earn': typeof AccountEarnRoute
+  '/account/enrolled': typeof AccountEnrolledRoute
   '/account/history': typeof AccountHistoryRoute
   '/account/messages': typeof AccountMessagesRoute
   '/account/notifications': typeof AccountNotificationsRoute
@@ -336,6 +361,8 @@ export interface FileRoutesById {
   '/account/': typeof AccountIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/orders/': typeof OrdersIndexRoute
+  '/account/claim/$id': typeof AccountClaimIdRoute
+  '/account/reward/$id': typeof AccountRewardIdRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
   '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
   '/product_/$id/reviews': typeof ProductIdReviewsRoute
@@ -356,6 +383,7 @@ export interface FileRouteTypes {
     | '/wishlist'
     | '/account/addresses'
     | '/account/earn'
+    | '/account/enrolled'
     | '/account/history'
     | '/account/messages'
     | '/account/notifications'
@@ -376,6 +404,8 @@ export interface FileRouteTypes {
     | '/account/'
     | '/admin/'
     | '/orders/'
+    | '/account/claim/$id'
+    | '/account/reward/$id'
     | '/admin/users/$userId'
     | '/api/public/flutterwave-webhook'
     | '/product/$id/reviews'
@@ -392,6 +422,7 @@ export interface FileRouteTypes {
     | '/wishlist'
     | '/account/addresses'
     | '/account/earn'
+    | '/account/enrolled'
     | '/account/history'
     | '/account/messages'
     | '/account/notifications'
@@ -412,6 +443,8 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/orders'
+    | '/account/claim/$id'
+    | '/account/reward/$id'
     | '/admin/users/$userId'
     | '/api/public/flutterwave-webhook'
     | '/product/$id/reviews'
@@ -430,6 +463,7 @@ export interface FileRouteTypes {
     | '/wishlist'
     | '/account/addresses'
     | '/account/earn'
+    | '/account/enrolled'
     | '/account/history'
     | '/account/messages'
     | '/account/notifications'
@@ -450,6 +484,8 @@ export interface FileRouteTypes {
     | '/account/'
     | '/admin/'
     | '/orders/'
+    | '/account/claim/$id'
+    | '/account/reward/$id'
     | '/admin/users/$userId'
     | '/api/public/flutterwave-webhook'
     | '/product_/$id/reviews'
@@ -687,6 +723,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountHistoryRouteImport
       parentRoute: typeof AccountRoute
     }
+    '/account/enrolled': {
+      id: '/account/enrolled'
+      path: '/enrolled'
+      fullPath: '/account/enrolled'
+      preLoaderRoute: typeof AccountEnrolledRouteImport
+      parentRoute: typeof AccountRoute
+    }
     '/account/earn': {
       id: '/account/earn'
       path: '/earn'
@@ -729,12 +772,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersUserIdRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/account/reward/$id': {
+      id: '/account/reward/$id'
+      path: '/reward/$id'
+      fullPath: '/account/reward/$id'
+      preLoaderRoute: typeof AccountRewardIdRouteImport
+      parentRoute: typeof AccountRoute
+    }
+    '/account/claim/$id': {
+      id: '/account/claim/$id'
+      path: '/claim/$id'
+      fullPath: '/account/claim/$id'
+      preLoaderRoute: typeof AccountClaimIdRouteImport
+      parentRoute: typeof AccountRoute
+    }
   }
 }
 
 interface AccountRouteChildren {
   AccountAddressesRoute: typeof AccountAddressesRoute
   AccountEarnRoute: typeof AccountEarnRoute
+  AccountEnrolledRoute: typeof AccountEnrolledRoute
   AccountHistoryRoute: typeof AccountHistoryRoute
   AccountMessagesRoute: typeof AccountMessagesRoute
   AccountNotificationsRoute: typeof AccountNotificationsRoute
@@ -742,11 +800,14 @@ interface AccountRouteChildren {
   AccountWishlistRoute: typeof AccountWishlistRoute
   AccountYourOrdersRoute: typeof AccountYourOrdersRoute
   AccountIndexRoute: typeof AccountIndexRoute
+  AccountClaimIdRoute: typeof AccountClaimIdRoute
+  AccountRewardIdRoute: typeof AccountRewardIdRoute
 }
 
 const AccountRouteChildren: AccountRouteChildren = {
   AccountAddressesRoute: AccountAddressesRoute,
   AccountEarnRoute: AccountEarnRoute,
+  AccountEnrolledRoute: AccountEnrolledRoute,
   AccountHistoryRoute: AccountHistoryRoute,
   AccountMessagesRoute: AccountMessagesRoute,
   AccountNotificationsRoute: AccountNotificationsRoute,
@@ -754,6 +815,8 @@ const AccountRouteChildren: AccountRouteChildren = {
   AccountWishlistRoute: AccountWishlistRoute,
   AccountYourOrdersRoute: AccountYourOrdersRoute,
   AccountIndexRoute: AccountIndexRoute,
+  AccountClaimIdRoute: AccountClaimIdRoute,
+  AccountRewardIdRoute: AccountRewardIdRoute,
 }
 
 const AccountRouteWithChildren =

@@ -107,9 +107,7 @@ function EnrolledPage() {
                 ? "Completed — claim now"
                 : expired
                   ? "Expired"
-                  : task.expires_at
-                    ? timeRemaining(row.expires_at)
-                    : timeRemaining(row.expires_at);
+                  : timeRemaining(row.expires_at);
               return (
                 <Link
                   key={row.id}
