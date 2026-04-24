@@ -34,7 +34,13 @@ function CartPage() {
     try {
       sessionStorage.setItem(
         "checkout_snapshot",
-        JSON.stringify(items.map((i) => ({ product_id: i.product.id, quantity: i.quantity }))),
+        JSON.stringify(
+          items.map((i) => ({
+            product_id: i.product.id,
+            quantity: i.quantity,
+            variant: i.variant ?? null,
+          })),
+        ),
       );
     } catch {
       // ignore storage errors
