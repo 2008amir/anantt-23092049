@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Gift, Users, ShoppingBag } from "lucide-react";
+import { Gift } from "lucide-react";
 import { fetchActiveTasks, type RewardTask } from "@/lib/rewards";
 
 function shuffle<T>(arr: T[]): T[] {
@@ -35,23 +35,18 @@ export function RewardStrip() {
 
   const count = tasks.length;
 
-  // Auto-rotate every 30s
+  // Auto-rotate every 30s — reshuffle order each cycle so positions change
   useEffect(() => {
     if (count <= 1) return;
     const t = setInterval(() => {
-      setIndex((prev) => {
-        const next = (prev + 1) % count;
-        const el = scrollerRef.current;
-        if (el) {
-          el.scrollTo({ left: next * el.clientWidth, behavior: "smooth" });
-        }
-        return next;
-      });
+      setTasks((prev) => shuffle(prev));
+      setIndex(0);
+      const el = scrollerRef.current;
+      if (el) el.scrollTo({ left: 0, behavior: "smooth" });
     }, 30000);
     return () => clearInterval(t);
   }, [count]);
 
-  // Track index on user scroll
   const onScroll = () => {
     const el = scrollerRef.current;
     if (!el) return;
@@ -66,57 +61,63 @@ export function RewardStrip() {
     [index, count],
   );
 
+  // Render nothing — no spacing at all — when there are no tasks
   if (count === 0) return null;
 
   return (
-    <div className="mx-auto mt-3 max-w-5xl">
+    <div className="mx-auto mt-3 max-w-5xl px-2">
       <div
-        ref={scrollerRef}
-        onScroll={onScroll}
-        className="flex snap-x snap-mandatory overflow-x-auto no-scrollbar"
-        style={{ scrollBehavior: "smooth" }}
+        className="overflow-hidden rounded-2xl border border-primary/30 bg-card/30 p-2 shadow-luxury backdrop-blur-md"
+        style={{
+          backgroundImage:
+            "linear-gradient(135deg, color-mix(in oklab, var(--primary) 8%, transparent), color-mix(in oklab, var(--primary) 2%, transparent))",
+        }}
       >
-        {tasks.map((t) => (
-          <Link
-            key={t.id}
-            to="/account/reward/$id"
-            params={{ id: t.id }}
-            className="group relative flex h-[5pc] w-full shrink-0 snap-center items-center gap-3 overflow-hidden border border-border/60 bg-card/60 px-4 transition-smooth hover:border-primary"
-          >
-            {t.image ? (
-              <img
-                src={t.image}
-                alt=""
-                className="h-full w-16 shrink-0 object-cover"
-              />
-            ) : (
-              <div className="flex h-full w-16 shrink-0 items-center justify-center bg-gold-gradient/10">
-                <Gift className="h-6 w-6 text-primary" strokeWidth={1.5} />
-              </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.25em] text-primary">
-                {t.task_type === "referral" ? (
-                  <Users className="h-3 w-3" />
-                ) : (
-                  <ShoppingBag className="h-3 w-3" />
-                )}
-                {t.task_type === "referral" ? "Referral reward" : "Purchase reward"}
-              </div>
-              <p className="truncate font-serif text-sm text-foreground">
-                {t.title}
-              </p>
-              {t.description && (
-                <p className="truncate text-[11px] text-muted-foreground">
-                  {t.description}
-                </p>
+        <div
+          ref={scrollerRef}
+          onScroll={onScroll}
+          className="flex snap-x snap-mandatory overflow-x-auto no-scrollbar"
+          style={{ scrollBehavior: "smooth" }}
+        >
+          {tasks.map((t) => (
+            <Link
+              key={t.id}
+              to="/account/reward/$id"
+              params={{ id: t.id }}
+              className="group relative flex w-full shrink-0 snap-center items-center gap-4 px-3"
+              style={{ height: "7.5pc" }}
+            >
+              {t.image ? (
+                <img
+                  src={t.image}
+                  alt=""
+                  className="h-[6.5pc] w-32 shrink-0 object-cover"
+                  style={{ borderRadius: "20%" }}
+                />
+              ) : (
+                <div
+                  className="flex h-[6.5pc] w-32 shrink-0 items-center justify-center bg-gold-gradient/10"
+                  style={{ borderRadius: "20%" }}
+                >
+                  <Gift className="h-8 w-8 text-primary" strokeWidth={1.5} />
+                </div>
               )}
-            </div>
-            <span className="shrink-0 text-[10px] uppercase tracking-[0.2em] text-primary">
-              Start →
-            </span>
-          </Link>
-        ))}
+              <div className="min-w-0 flex-1">
+                <p className="line-clamp-2 font-serif text-base text-foreground">
+                  {t.title}
+                </p>
+                {t.description && (
+                  <p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">
+                    {t.description}
+                  </p>
+                )}
+              </div>
+              <span className="shrink-0 text-[10px] uppercase tracking-[0.2em] text-primary">
+                Start →
+              </span>
+            </Link>
+          ))}
+        </div>
       </div>
       {counterLabel && (
         <div className="mt-1 text-center text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
