@@ -241,11 +241,11 @@ function PostPage() {
           </div>
           {audience === "user" && (
             <input
-              type="text"
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-              placeholder="User ID (uuid)"
-              className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm font-mono"
+              type="email"
+              value={userEmail}
+              onChange={(e) => setUserEmail(e.target.value)}
+              placeholder="user@example.com"
+              className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
             />
           )}
         </div>
