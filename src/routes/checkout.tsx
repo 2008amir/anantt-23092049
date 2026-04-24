@@ -62,11 +62,20 @@ function Checkout() {
 
   // Items for this checkout. Sourced from `checkout_snapshot` (placed by /cart
   // when the user proceeded). The DB cart stays empty and is NOT restored.
-  const [snapshotRows, setSnapshotRows] = useState<{ product_id: string; quantity: number }[]>([]);
+  const [snapshotRows, setSnapshotRows] = useState<
+    { product_id: string; quantity: number; variant?: { color?: string; size?: string } | null }[]
+  >([]);
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem("checkout_snapshot");
-      if (raw) setSnapshotRows(JSON.parse(raw) as { product_id: string; quantity: number }[]);
+      if (raw)
+        setSnapshotRows(
+          JSON.parse(raw) as {
+            product_id: string;
+            quantity: number;
+            variant?: { color?: string; size?: string } | null;
+          }[],
+        );
     } catch {
       // ignore
     }
@@ -76,9 +85,13 @@ function Checkout() {
     return snapshotRows
       .map((r) => {
         const p = products.find((p) => p.id === r.product_id);
-        return p ? { product: p, quantity: r.quantity } : null;
+        return p ? { product: p, quantity: r.quantity, variant: r.variant ?? null } : null;
       })
-      .filter(Boolean) as { product: Product; quantity: number }[];
+      .filter(Boolean) as {
+      product: Product;
+      quantity: number;
+      variant: { color?: string; size?: string } | null;
+    }[];
   }, [snapshotRows, products]);
 
   const subtotal = items.reduce((s, i) => s + effectivePrice(i.product) * i.quantity, 0);
