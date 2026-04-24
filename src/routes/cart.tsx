@@ -34,7 +34,13 @@ function CartPage() {
     try {
       sessionStorage.setItem(
         "checkout_snapshot",
-        JSON.stringify(items.map((i) => ({ product_id: i.product.id, quantity: i.quantity }))),
+        JSON.stringify(
+          items.map((i) => ({
+            product_id: i.product.id,
+            quantity: i.quantity,
+            variant: i.variant ?? null,
+          })),
+        ),
       );
     } catch {
       // ignore storage errors
@@ -66,7 +72,7 @@ function CartPage() {
 
       <div className="grid gap-12 lg:grid-cols-[1fr_400px]">
         <div className="divide-y divide-border border-y border-border">
-          {items.map(({ product, quantity }) => (
+          {items.map(({ product, quantity, variant }) => (
             <div key={product.id} className="flex gap-6 py-6">
               <Link to="/product/$id" params={{ id: product.id }} className="block w-32 shrink-0 overflow-hidden bg-card">
                 <img src={product.image} alt={product.name} loading="lazy" decoding="async" className="aspect-square h-full w-full object-cover" />
@@ -76,6 +82,13 @@ function CartPage() {
                   <div>
                     <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">{product.brand}</p>
                     <Link to="/product/$id" params={{ id: product.id }} className="mt-1 block font-serif text-xl text-foreground hover:text-primary">{product.name}</Link>
+                    {variant && (variant.color || variant.size) && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {variant.color && <span>Color: <span className="text-foreground">{variant.color}</span></span>}
+                        {variant.color && variant.size && <span> · </span>}
+                        {variant.size && <span>Size: <span className="text-foreground">{variant.size}</span></span>}
+                      </p>
+                    )}
                   </div>
                   <button type="button" onClick={() => void removeFromCart(product.id)} className="text-muted-foreground transition-smooth hover:text-destructive" aria-label="Remove">
                     <X className="h-4 w-4" />

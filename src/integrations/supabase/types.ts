@@ -86,18 +86,21 @@ export type Database = {
           quantity: number
           updated_at: string
           user_id: string
+          variant: Json | null
         }
         Insert: {
           product_id: string
           quantity: number
           updated_at?: string
           user_id: string
+          variant?: Json | null
         }
         Update: {
           product_id?: string
           quantity?: number
           updated_at?: string
           user_id?: string
+          variant?: Json | null
         }
         Relationships: [
           {
@@ -208,6 +211,7 @@ export type Database = {
           product_image: string
           product_name: string
           quantity: number
+          variant: Json | null
         }
         Insert: {
           id?: string
@@ -217,6 +221,7 @@ export type Database = {
           product_image: string
           product_name: string
           quantity: number
+          variant?: Json | null
         }
         Update: {
           id?: string
@@ -226,6 +231,7 @@ export type Database = {
           product_image?: string
           product_name?: string
           quantity?: number
+          variant?: Json | null
         }
         Relationships: [
           {

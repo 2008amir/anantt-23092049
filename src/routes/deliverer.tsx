@@ -52,6 +52,7 @@ type OrderItem = {
   product_image: string;
   price: number;
   quantity: number;
+  variant?: { color?: string; size?: string } | null;
 };
 
 function DelivererDashboard() {
@@ -414,6 +415,13 @@ function OrderDetail({
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   Qty {it.quantity} · ₦{Number(it.price).toLocaleString()}
                 </p>
+                {it.variant && (it.variant.color || it.variant.size) && (
+                  <p className="mt-0.5 text-xs text-primary">
+                    {it.variant.color && <>Color: {it.variant.color}</>}
+                    {it.variant.color && it.variant.size && " · "}
+                    {it.variant.size && <>Size: {it.variant.size}</>}
+                  </p>
+                )}
               </div>
               <p className="text-sm font-medium">
                 ₦{(Number(it.price) * it.quantity).toLocaleString()}

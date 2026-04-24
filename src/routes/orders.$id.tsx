@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Recommend } from "@/components/Recommend";
 import { verifyFlutterwave } from "@/lib/flutterwave.functions";
 
-type OrderItem = { product_image: string; product_name: string; price: number | string; quantity: number };
+type OrderItem = { product_image: string; product_name: string; price: number | string; quantity: number; variant?: { color?: string; size?: string } | null };
 type Shipping = { name: string; address: string; city: string; zip: string; country: string };
 type Order = {
   id: string;
@@ -241,6 +241,13 @@ function OrderDetail() {
                 <div className="flex-1">
                   <p className="font-serif text-xl">{it.product_name}</p>
                   <p className="text-xs text-muted-foreground">Quantity {it.quantity}</p>
+                  {it.variant && (it.variant.color || it.variant.size) && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {it.variant.color && <>Color: <span className="text-foreground">{it.variant.color}</span></>}
+                      {it.variant.color && it.variant.size && " · "}
+                      {it.variant.size && <>Size: <span className="text-foreground">{it.variant.size}</span></>}
+                    </p>
+                  )}
                 </div>
                 <p className="text-primary">₦{(Number(it.price) * it.quantity).toLocaleString()}</p>
               </div>
