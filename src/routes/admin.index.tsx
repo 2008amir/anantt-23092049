@@ -202,14 +202,18 @@ function MetricCard({
   value,
   icon: Icon,
   loading,
+  to,
+  period,
 }: {
   label: string;
   value: number | string;
   icon: typeof Users;
   loading: boolean;
+  to?: string;
+  period?: string;
 }) {
-  return (
-    <div className="rounded-lg border border-border/40 bg-card p-6">
+  const inner = (
+    <div className={`rounded-lg border border-border/40 bg-card p-6 ${to ? "transition-colors hover:border-primary/50" : ""}`}>
       <div className="flex items-center justify-between">
         <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
         <Icon className="h-4 w-4 text-primary" />
@@ -217,4 +221,12 @@ function MetricCard({
       <p className="mt-3 font-serif text-3xl text-foreground">{loading ? "—" : value}</p>
     </div>
   );
+  if (to && period) {
+    return (
+      <Link to="/admin/active/$period" params={{ period }} className="block">
+        {inner}
+      </Link>
+    );
+  }
+  return inner;
 }
