@@ -214,17 +214,17 @@ function OrderDetail() {
 
       {isPaid && (
         <section className="mt-12 border border-border bg-card/50 p-8">
-          <h2 className="font-serif text-2xl">Shipping Status</h2>
-          <div className="mt-8 flex items-center justify-between">
+          <h2 className="font-serif text-2xl text-center">Shipping Status</h2>
+          <div className="mx-auto mt-8 flex w-fit items-center justify-center">
             {statusSteps.map((s, i) => (
-              <div key={i} className="flex flex-1 items-center">
+              <div key={i} className="flex items-center">
                 <div className="flex flex-col items-center">
                   <div className={`flex h-12 w-12 items-center justify-center rounded-full border ${s.done ? "border-primary bg-gold-gradient text-primary-foreground" : "border-border text-muted-foreground"}`}>
                     <s.icon className="h-5 w-5" />
                   </div>
                   <span className={`mt-2 text-xs uppercase tracking-[0.2em] ${s.done ? "text-primary" : "text-muted-foreground"}`}>{s.label}</span>
                 </div>
-                {i < statusSteps.length - 1 && (<div className={`mx-2 h-px flex-1 ${statusSteps[i + 1].done ? "bg-primary" : "bg-border"}`} />)}
+                {i < statusSteps.length - 1 && (<div className={`mx-3 h-px w-10 sm:w-16 ${statusSteps[i + 1].done ? "bg-primary" : "bg-border"}`} />)}
               </div>
             ))}
           </div>
