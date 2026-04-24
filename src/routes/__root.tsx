@@ -42,6 +42,15 @@ export const Route = createRootRoute({
         content:
           "Discover a meticulously curated collection of luxury timepieces, leather goods, fragrance, and home objects from the world's finest houses.",
       },
+      { property: "og:title", content: "Maison Luxe — A Curated Atelier of Considered Objects" },
+      { name: "twitter:title", content: "Maison Luxe — A Curated Atelier of Considered Objects" },
+      { name: "description", content: "A luxury general merchandise marketplace with product browsing, search, cart, checkout, and order management." },
+      { property: "og:description", content: "A luxury general merchandise marketplace with product browsing, search, cart, checkout, and order management." },
+      { name: "twitter:description", content: "A luxury general merchandise marketplace with product browsing, search, cart, checkout, and order management." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/111629ba-7dda-4374-af68-8286fdeef935/id-preview-a556fe51--7ec3279f-b67f-4ffe-8911-e1b882a2f4b0.lovable.app-1777030033771.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/111629ba-7dda-4374-af68-8286fdeef935/id-preview-a556fe51--7ec3279f-b67f-4ffe-8911-e1b882a2f4b0.lovable.app-1777030033771.png" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:type", content: "website" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
