@@ -16,6 +16,7 @@ import {
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/lib/store";
+import { pingUserActivity } from "@/hooks/use-activity-heartbeat";
 
 export const Route = createFileRoute("/account")({
   head: () => ({ meta: [{ title: "Account — Maison Luxe" }] }),
@@ -87,6 +88,9 @@ function ProfileHome() {
   if (!user) return null;
   const displayName = profile?.display_name ?? user.email?.split("@")[0] ?? "Guest";
   const initial = displayName.charAt(0).toUpperCase();
+  const trackAccountNavigation = () => {
+    void pingUserActivity(user.id);
+  };
 
   return (
     <div className="mx-auto max-w-3xl pb-8">
@@ -105,7 +109,10 @@ function ProfileHome() {
         <button
           type="button"
           aria-label="Notifications"
-          onClick={() => navigate({ to: "/account/notifications" })}
+          onClick={() => {
+            trackAccountNavigation();
+            navigate({ to: "/account/notifications" });
+          }}
           className="relative flex h-10 w-10 items-center justify-center rounded-full border border-border text-foreground transition-smooth hover:border-primary hover:text-primary"
         >
           <Bell className="h-5 w-5" strokeWidth={1.5} />
@@ -125,20 +132,20 @@ function ProfileHome() {
       </div>
 
       <div className="mx-5 mt-4 grid grid-cols-4 border border-border bg-card/40 py-5">
-        <Tile to="/account/history" icon={<History className="h-6 w-6" strokeWidth={1.5} />} label="History" />
-        <Tile to="/account/earn" icon={<Gift className="h-6 w-6" strokeWidth={1.5} />} label="Earn & Free" dot />
-        <Tile to="/account/addresses" icon={<MapPin className="h-6 w-6" strokeWidth={1.5} />} label="Addresses" />
-        <Tile to="/account/wishlist" icon={<Heart className="h-6 w-6" strokeWidth={1.5} />} label="Following" />
+        <Tile to="/account/history" icon={<History className="h-6 w-6" strokeWidth={1.5} />} label="History" onPress={trackAccountNavigation} />
+        <Tile to="/account/earn" icon={<Gift className="h-6 w-6" strokeWidth={1.5} />} label="Earn & Free" dot onPress={trackAccountNavigation} />
+        <Tile to="/account/addresses" icon={<MapPin className="h-6 w-6" strokeWidth={1.5} />} label="Addresses" onPress={trackAccountNavigation} />
+        <Tile to="/account/wishlist" icon={<Heart className="h-6 w-6" strokeWidth={1.5} />} label="Following" onPress={trackAccountNavigation} />
       </div>
 
       <div className="mx-5 mt-4 divide-y divide-border border border-border bg-card/40">
-        <Row to="/account/your-orders" icon={<Package className="h-5 w-5" strokeWidth={1.5} />} label="Your Orders" badge={orderCount > 0 ? String(orderCount) : undefined} />
-        <Row to="/account/messages" icon={<MessageSquare className="h-5 w-5" strokeWidth={1.5} />} label="Messages" />
-        <Row to="/account/wishlist" icon={<Star className="h-5 w-5" strokeWidth={1.5} />} label="Reviews" />
+        <Row to="/account/your-orders" icon={<Package className="h-5 w-5" strokeWidth={1.5} />} label="Your Orders" badge={orderCount > 0 ? String(orderCount) : undefined} onPress={trackAccountNavigation} />
+        <Row to="/account/messages" icon={<MessageSquare className="h-5 w-5" strokeWidth={1.5} />} label="Messages" onPress={trackAccountNavigation} />
+        <Row to="/account/wishlist" icon={<Star className="h-5 w-5" strokeWidth={1.5} />} label="Reviews" onPress={trackAccountNavigation} />
       </div>
 
       <div className="mx-5 mt-4 divide-y divide-border border border-border bg-card/40">
-        <Row to="/account/settings" icon={<Settings className="h-5 w-5" strokeWidth={1.5} />} label="Settings & Payment" />
+        <Row to="/account/settings" icon={<Settings className="h-5 w-5" strokeWidth={1.5} />} label="Settings & Payment" onPress={trackAccountNavigation} />
       </div>
 
       <div className="mx-5 mt-4">
@@ -155,9 +162,9 @@ function ProfileHome() {
   );
 }
 
-function Row({ to, icon, label, badge, badgeStrong }: { to: string; icon: React.ReactNode; label: string; badge?: string; badgeStrong?: string }) {
+function Row({ to, icon, label, badge, badgeStrong, onPress }: { to: string; icon: React.ReactNode; label: string; badge?: string; badgeStrong?: string; onPress?: () => void }) {
   return (
-    <Link to={to} className="flex items-center gap-4 px-4 py-4 transition-smooth hover:bg-secondary/50">
+    <Link to={to} onClick={onPress} className="flex items-center gap-4 px-4 py-4 transition-smooth hover:bg-secondary/50">
       <span className="flex h-9 w-9 items-center justify-center text-foreground">{icon}</span>
       <span className="flex-1 text-sm text-foreground">{label}</span>
       {badgeStrong && (
@@ -169,9 +176,9 @@ function Row({ to, icon, label, badge, badgeStrong }: { to: string; icon: React.
   );
 }
 
-function Tile({ to, icon, label, dot }: { to: string; icon: React.ReactNode; label: string; dot?: boolean }) {
+function Tile({ to, icon, label, dot, onPress }: { to: string; icon: React.ReactNode; label: string; dot?: boolean; onPress?: () => void }) {
   return (
-    <Link to={to} className="flex flex-col items-center gap-2 px-2 text-foreground transition-smooth hover:text-primary">
+    <Link to={to} onClick={onPress} className="flex flex-col items-center gap-2 px-2 text-foreground transition-smooth hover:text-primary">
       <span className="relative">
         {icon}
         {dot && <span className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-primary" />}
