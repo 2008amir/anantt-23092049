@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { Minus, Plus, X } from "lucide-react";
 import { useStore, useCartTotal, useProducts } from "@/lib/store";
 import { Recommend } from "@/components/Recommend";
+import { effectivePrice, hasDiscount, formatNaira } from "@/lib/price";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({ meta: [{ title: "Cart — Maison Luxe" }] }),
@@ -86,7 +87,12 @@ function CartPage() {
                     <span className="w-10 text-center text-sm">{quantity}</span>
                     <button type="button" onClick={() => void updateCartQty(product.id, quantity + 1)} className="p-2 text-muted-foreground hover:text-primary" aria-label="Increase"><Plus className="h-3 w-3" /></button>
                   </div>
-                  <p className="font-serif text-xl text-primary">₦{(product.price * quantity).toLocaleString()}</p>
+                  <div className="text-right">
+                    <p className="font-serif text-xl text-primary">{formatNaira(effectivePrice(product) * quantity)}</p>
+                    {hasDiscount(product) && (
+                      <p className="text-xs text-muted-foreground line-through">{formatNaira(product.price * quantity)}</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

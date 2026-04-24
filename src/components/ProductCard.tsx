@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Heart } from "lucide-react";
 import type { Product } from "@/lib/products";
 import { useStore } from "@/lib/store";
+import { effectivePrice, hasDiscount, savings, formatNaira } from "@/lib/price";
 
 export function ProductCard({ product }: { product: Product }) {
   const { wishlist, toggleWishlist } = useStore();
@@ -29,7 +30,17 @@ export function ProductCard({ product }: { product: Product }) {
             {product.brand}
           </p>
           <h3 className="mt-2 font-serif text-xl text-foreground">{product.name}</h3>
-          <p className="mt-3 text-sm text-primary">₦{product.price.toLocaleString()}</p>
+          <div className="mt-3 flex items-baseline gap-2">
+            <p className="text-sm text-primary">{formatNaira(effectivePrice(product))}</p>
+            {hasDiscount(product) && (
+              <p className="text-xs text-muted-foreground line-through">{formatNaira(product.price)}</p>
+            )}
+          </div>
+          {hasDiscount(product) && (
+            <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-primary/80">
+              Save {formatNaira(savings(product))}
+            </p>
+          )}
         </div>
       </Link>
       <button
