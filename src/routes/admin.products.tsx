@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { Pencil, Trash2, RefreshCw, Plus, Image as ImageIcon, Loader2, Sparkles, X } from "lucide-react";
+import { Pencil, Trash2, RefreshCw, Plus, Image as ImageIcon, Loader2, Sparkles, X, ChevronDown, Check, Search } from "lucide-react";
 import { generateProductReviews } from "@/lib/admin-ai.functions";
+import { ALL_COUNTRIES } from "@/lib/countries";
 
 export const Route = createFileRoute("/admin/products")({
   component: ProductsPage,
