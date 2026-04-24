@@ -376,7 +376,7 @@ function AddProductForm({ onCreated }: { onCreated: () => void }) {
 
   const [reviews, setReviews] = useState<Review[]>([]);
   const [aiOpen, setAiOpen] = useState(false);
-  const [aiCountries, setAiCountries] = useState("3");
+  const [aiCountries, setAiCountries] = useState<string[]>([]);
   const [aiMessages, setAiMessages] = useState("4");
   const [aiLoading, setAiLoading] = useState(false);
 
