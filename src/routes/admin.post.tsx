@@ -91,12 +91,23 @@ function PostPage() {
         if (error) throw error;
         toast.success(`Sent to ${rows.length} user(s)`);
       } else {
-        if (!userId.trim()) {
-          toast.error("User ID required");
+        const email = userEmail.trim().toLowerCase();
+        if (!email) {
+          toast.error("User email required");
+          return;
+        }
+        const { data: profile, error: lookupErr } = await supabase
+          .from("profiles")
+          .select("id")
+          .ilike("email", email)
+          .maybeSingle();
+        if (lookupErr) throw lookupErr;
+        if (!profile) {
+          toast.error("No user found with that email");
           return;
         }
         const { error } = await supabase.from("notifications").insert({
-          user_id: userId.trim(),
+          user_id: profile.id,
           kind: "post",
           title: title.trim(),
           body: body.trim(),
