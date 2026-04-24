@@ -25,6 +25,8 @@ export type Product = {
   reviewCount: number;
   reviews: Review[];
   inStock: boolean;
+  colors: string[];
+  sizes: string[];
 };
 
 type Row = {
@@ -43,6 +45,8 @@ type Row = {
   reviews: unknown;
   stock?: number;
   is_active?: boolean;
+  colors?: unknown;
+  sizes?: unknown;
 };
 
 function rowToProduct(r: Row): Product {
@@ -68,6 +72,8 @@ function rowToProduct(r: Row): Product {
     reviewCount: r.review_count,
     reviews: Array.isArray(r.reviews) ? (r.reviews as Review[]) : [],
     inStock: (r.stock ?? 0) > 0,
+    colors: Array.isArray(r.colors) ? (r.colors as string[]).filter(Boolean) : [],
+    sizes: Array.isArray(r.sizes) ? (r.sizes as string[]).filter(Boolean) : [],
   };
 }
 
