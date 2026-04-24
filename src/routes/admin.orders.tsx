@@ -185,6 +185,23 @@ function OrdersPage() {
                   </div>
                 </div>
 
+                {order.order_items && order.order_items.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {order.order_items.slice(0, 6).map((it) => (
+                      <div key={it.product_id + it.product_name} className="flex items-center gap-2 rounded-md border border-border/40 bg-background/50 px-2 py-1">
+                        <img src={it.product_image} alt="" className="h-10 w-10 rounded object-cover" />
+                        <div className="text-xs">
+                          <p className="line-clamp-1 max-w-[140px] text-foreground">{it.product_name}</p>
+                          <p className="text-muted-foreground">×{it.quantity}</p>
+                        </div>
+                      </div>
+                    ))}
+                    {order.order_items.length > 6 && (
+                      <span className="self-center text-xs text-muted-foreground">+{order.order_items.length - 6} more</span>
+                    )}
+                  </div>
+                )}
+
                 {tab === "current" && (
                   <div className="mt-4 border-t border-border/40 pt-4">
                     {assigning === order.id ? (
