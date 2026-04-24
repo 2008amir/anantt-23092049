@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Users, ShoppingBag, TrendingUp } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
@@ -180,15 +180,17 @@ function OverviewPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <MetricCard label="Total users" value={stats.total} icon={Users} loading={loading} />
-        <MetricCard label="Daily active" value={stats.daily} icon={Users} loading={loading} />
-        <MetricCard label="Weekly active" value={stats.weekly} icon={Users} loading={loading} />
-        <MetricCard label="Monthly active" value={stats.monthly} icon={Users} loading={loading} />
-        <MetricCard label="Weekly verified orders" value={stats.orders} icon={ShoppingBag} loading={loading} />
+        <MetricCard label="Daily active" value={stats.daily} icon={Users} loading={loading} to="/admin/active/$period" period="daily" />
+        <MetricCard label="Weekly active" value={stats.weekly} icon={Users} loading={loading} to="/admin/active/$period" period="weekly" />
+        <MetricCard label="Monthly active" value={stats.monthly} icon={Users} loading={loading} to="/admin/active/$period" period="monthly" />
+        <MetricCard label="Weekly verified orders" value={stats.orders} icon={ShoppingBag} loading={loading} to="/admin/active/$period" period="orders" />
         <MetricCard
           label="Weekly revenue"
           value={`₦${stats.revenue.toLocaleString()}`}
           icon={TrendingUp}
           loading={loading}
+          to="/admin/active/$period"
+          period="revenue"
         />
       </div>
     </div>
@@ -200,14 +202,18 @@ function MetricCard({
   value,
   icon: Icon,
   loading,
+  to,
+  period,
 }: {
   label: string;
   value: number | string;
   icon: typeof Users;
   loading: boolean;
+  to?: string;
+  period?: string;
 }) {
-  return (
-    <div className="rounded-lg border border-border/40 bg-card p-6">
+  const inner = (
+    <div className={`rounded-lg border border-border/40 bg-card p-6 ${to ? "transition-colors hover:border-primary/50" : ""}`}>
       <div className="flex items-center justify-between">
         <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
         <Icon className="h-4 w-4 text-primary" />
@@ -215,4 +221,12 @@ function MetricCard({
       <p className="mt-3 font-serif text-3xl text-foreground">{loading ? "—" : value}</p>
     </div>
   );
+  if (to && period) {
+    return (
+      <Link to="/admin/active/$period" params={{ period }} className="block">
+        {inner}
+      </Link>
+    );
+  }
+  return inner;
 }
