@@ -15,7 +15,7 @@ export const Route = createFileRoute("/admin/")({
 });
 
 type DailyBucket = { date: string; weekday: string; count: number };
-type ProfileActivityRow = { id: string; updated_at: string };
+type ActivityDayRow = { user_id: string; activity_date: string };
 
 const chartConfig = {
   users: {
@@ -37,26 +37,32 @@ function OverviewPage() {
       const now = new Date();
       const startOfToday = new Date(now);
       startOfToday.setHours(0, 0, 0, 0);
-      const startOfWeekWindow = new Date(startOfToday.getTime() - 6 * 24 * 3600 * 1000).toISOString();
-      const startOfMonthWindow = new Date(startOfToday.getTime() - 29 * 24 * 3600 * 1000).toISOString();
+      const todayStr = `${startOfToday.getFullYear()}-${String(startOfToday.getMonth() + 1).padStart(2, "0")}-${String(startOfToday.getDate()).padStart(2, "0")}`;
+      const weekStart = new Date(startOfToday.getTime() - 6 * 24 * 3600 * 1000);
+      const monthStart = new Date(startOfToday.getTime() - 29 * 24 * 3600 * 1000);
+      const weekStartStr = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, "0")}-${String(weekStart.getDate()).padStart(2, "0")}`;
+      const monthStartStr = `${monthStart.getFullYear()}-${String(monthStart.getMonth() + 1).padStart(2, "0")}-${String(monthStart.getDate()).padStart(2, "0")}`;
+      const startOfWeekWindow = weekStart.toISOString();
 
       const [
         totalRes,
-        dailyRes,
-        weeklyRes,
-        monthlyRes,
         ordersRes,
         weekActivityRes,
+        monthActivityRes,
       ] = await Promise.all([
         // Total registered users
         supabase.from("profiles").select("id", { count: "exact", head: true }),
-        // Active users (any activity in window — heartbeat updates profiles.updated_at)
-        supabase.from("profiles").select("id", { count: "exact", head: true }).gte("updated_at", startOfToday.toISOString()),
-        supabase.from("profiles").select("id", { count: "exact", head: true }).gte("updated_at", startOfWeekWindow),
-        supabase.from("profiles").select("id", { count: "exact", head: true }).gte("updated_at", startOfMonthWindow),
         supabase.from("orders").select("id, total, payment_status").gte("created_at", startOfWeekWindow),
-        // For the weekly chart
-        supabase.from("profiles").select("id, updated_at").gte("updated_at", startOfWeekWindow),
+        // Per-day activity for the weekly chart + DAU/WAU
+        supabase
+          .from("user_activity_days")
+          .select("user_id, activity_date")
+          .gte("activity_date", weekStartStr),
+        // For monthly active users
+        supabase
+          .from("user_activity_days")
+          .select("user_id, activity_date")
+          .gte("activity_date", monthStartStr),
       ]);
 
       if (cancelled) return;
@@ -65,18 +71,28 @@ function OverviewPage() {
       const bucketSets: { date: string; weekday: string; users: Set<string> }[] = [];
       for (let i = 6; i >= 0; i--) {
         const d = new Date(now.getTime() - i * 24 * 3600 * 1000);
+        const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
         bucketSets.push({
-          date: d.toISOString().slice(0, 10),
+          date: dateKey,
           weekday: WEEKDAY_LABELS[d.getDay()],
           users: new Set(),
         });
       }
 
-      ((weekActivityRes.data ?? []) as ProfileActivityRow[]).forEach((row) => {
-        if (!row.updated_at) return;
-        const key = row.updated_at.slice(0, 10);
+      const weekRows = (weekActivityRes.data ?? []) as ActivityDayRow[];
+      const dailyUsers = new Set<string>();
+      const weeklyUsers = new Set<string>();
+      weekRows.forEach((row) => {
+        const key = row.activity_date;
         const bucket = bucketSets.find((b) => b.date === key);
-        if (bucket) bucket.users.add(row.id);
+        if (bucket) bucket.users.add(row.user_id);
+        weeklyUsers.add(row.user_id);
+        if (key === todayStr) dailyUsers.add(row.user_id);
+      });
+
+      const monthlyUsers = new Set<string>();
+      ((monthActivityRes.data ?? []) as ActivityDayRow[]).forEach((row) => {
+        monthlyUsers.add(row.user_id);
       });
 
       const orders = (ordersRes.data ?? []) as { id: string; total: number | string; payment_status: string }[];
@@ -85,9 +101,9 @@ function OverviewPage() {
 
       setStats({
         total: totalRes.count ?? 0,
-        daily: dailyRes.count ?? 0,
-        weekly: weeklyRes.count ?? 0,
-        monthly: monthlyRes.count ?? 0,
+        daily: dailyUsers.size,
+        weekly: weeklyUsers.size,
+        monthly: monthlyUsers.size,
         orders: paidOrders.length,
         revenue,
       });

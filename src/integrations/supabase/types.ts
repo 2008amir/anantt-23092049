@@ -492,6 +492,24 @@ export type Database = {
         }
         Relationships: []
       }
+      user_activity_days: {
+        Row: {
+          activity_date: string
+          last_seen: string
+          user_id: string
+        }
+        Insert: {
+          activity_date: string
+          last_seen?: string
+          user_id: string
+        }
+        Update: {
+          activity_date?: string
+          last_seen?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_interests: {
         Row: {
           created_at: string
