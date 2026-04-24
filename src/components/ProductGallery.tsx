@@ -56,7 +56,7 @@ export const ProductGallery = forwardRef<HTMLImageElement, Props>(function Produ
       <div
         ref={scrollerRef}
         className="flex aspect-[4/5] snap-x snap-mandatory overflow-x-auto overflow-y-hidden bg-card shadow-luxury scrollbar-none"
-        style={{ scrollbarWidth: "none" }}
+        style={{ scrollbarWidth: "none", touchAction: "pan-x pan-y" }}
       >
         {list.map((src, i) => (
           <div key={`${src}-${i}`} className="relative h-full w-full shrink-0 snap-center">
