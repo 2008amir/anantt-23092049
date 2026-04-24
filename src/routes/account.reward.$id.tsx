@@ -53,20 +53,33 @@ function RewardDetailPage() {
       if (!user) return;
       setLoading(true);
       try {
-        const [{ data: taskRow }, { data: existing }] = await Promise.all([
+        const [{ data: taskRow }, { data: allEnrollments }] = await Promise.all([
           supabase.from("rewards").select("*").eq("id", id).maybeSingle(),
           supabase
             .from("reward_enrollments")
             .select("*")
             .eq("user_id", user.id)
             .eq("reward_id", id)
-            .maybeSingle(),
+            .order("started_at", { ascending: false }),
         ]);
-        setTask((taskRow as unknown as RewardTask) ?? null);
-        setEnrollment((existing as Enrollment) ?? null);
-        if (existing) {
+        const row = (taskRow as unknown as RewardTask) ?? null;
+        setTask(row);
+        // For referral tasks the user can enroll many times; we show the most
+        // recent still-active (not expired, not completed) enrollment. For
+        // purchase tasks there is at most one enrollment anyway.
+        const list = (allEnrollments ?? []) as Enrollment[];
+        const active = list.find(
+          (e) =>
+            e.status === "active" &&
+            (!e.expires_at || new Date(e.expires_at) > new Date()),
+        );
+        const shown = active ?? list[0] ?? null;
+        setEnrollment(shown);
+        if (shown) {
           const refs = await fetchReferrals(user.id);
-          setReferrals(refs.filter((r) => r.enrollment_id === (existing as Enrollment).id));
+          setReferrals(refs.filter((r) => r.enrollment_id === shown.id));
+        } else {
+          setReferrals([]);
         }
       } finally {
         setLoading(false);
