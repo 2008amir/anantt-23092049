@@ -22,7 +22,7 @@ const SHOW_PREFIXES = [
 
 export function Recommend() {
   const { location } = useRouterState();
-  const { user } = useStore();
+  const { user, wishlist } = useStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [theme, setTheme] = useState("Recommended for You");
   const [loading, setLoading] = useState(true);
@@ -31,10 +31,25 @@ export function Recommend() {
     (prefix) => location.pathname === prefix || location.pathname.startsWith(prefix + "/"),
   );
 
+  // Stable key so we re-run when wishlist contents change, not just length.
+  const wishlistKey = wishlist.slice().sort().join(",");
+
   useEffect(() => {
     if (!visible) return;
     let cancelled = false;
     setLoading(true);
+
+    const TARGET = 6;
+
+    // Fisher-Yates shuffle
+    const shuffle = <T,>(arr: T[]): T[] => {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    };
 
     const run = async () => {
       // Always start from the live product catalog so removed / disabled
@@ -47,7 +62,11 @@ export function Recommend() {
         return;
       }
 
-      // Personalized path: signed-in user with recorded interests
+      // 1) AI picks driven by what the user "wishes" (wishlist) + recent
+      //    views/searches. These come first.
+      let aiIds: string[] = [];
+      let usedTheme = "Recommended for You";
+
       if (user) {
         const { data: interests } = await supabase
           .from("user_interests")
@@ -63,32 +82,54 @@ export function Recommend() {
           .filter((r) => r.kind === "search" && r.query)
           .map((r) => r.query as string);
 
-        if (viewedIds.length > 0 || queries.length > 0) {
-          const res = await personalizedFeed({
-            data: { allIds, viewedIds, queries },
-          });
-          if (cancelled) return;
-          const ids = (res.biasedIds && res.biasedIds.length > 0
-            ? res.biasedIds
-            : res.orderedIds
-          ).slice(0, 6);
-          const items = await fetchProductsByIds(ids);
-          if (!cancelled) {
-            setTheme("Picked for You");
-            setProducts(items);
+        // Treat wishlist items as the strongest "viewed" signal.
+        const seedIds = Array.from(new Set([...wishlist, ...viewedIds]));
+
+        if (seedIds.length > 0 || queries.length > 0) {
+          try {
+            const res = await personalizedFeed({
+              data: { allIds, viewedIds: seedIds, queries },
+            });
+            if (cancelled) return;
+            const validSet = new Set(allIds);
+            // Never show the wishlist items themselves as "recommendations".
+            const wishSet = new Set(wishlist);
+            aiIds = (res.biasedIds && res.biasedIds.length > 0
+              ? res.biasedIds
+              : res.orderedIds
+            )
+              .filter((id) => validSet.has(id) && !wishSet.has(id));
+            usedTheme = "Picked for You";
+          } catch (e) {
+            console.error("personalizedFeed", e);
           }
-          return;
         }
       }
 
-      // Fallback: AI-curated daily set, still validated against live catalog
-      const res = await recommendations();
-      if (cancelled) return;
-      const validSet = new Set(allIds);
-      const ids = (res.ids ?? []).filter((id) => validSet.has(id)).slice(0, 6);
-      const items = await fetchProductsByIds(ids);
+      // If still empty (no signals or AI failed), seed with the AI daily set.
+      if (aiIds.length === 0) {
+        try {
+          const res = await recommendations();
+          if (cancelled) return;
+          const validSet = new Set(allIds);
+          aiIds = (res.ids ?? []).filter((id) => validSet.has(id));
+          usedTheme = res.theme || usedTheme;
+        } catch (e) {
+          console.error("recommendations", e);
+        }
+      }
+
+      // 2) Fill the rest with random in-stock products from any category.
+      const taken = new Set(aiIds);
+      const remainingPool = shuffle(catalog.filter((p) => !taken.has(p.id)));
+      const finalIds = [
+        ...aiIds.slice(0, TARGET),
+        ...remainingPool.slice(0, Math.max(0, TARGET - aiIds.length)).map((p) => p.id),
+      ].slice(0, TARGET);
+
+      const items = await fetchProductsByIds(finalIds);
       if (!cancelled) {
-        setTheme(res.theme || "Recommended for You");
+        setTheme(usedTheme);
         setProducts(items);
       }
     };
@@ -102,7 +143,7 @@ export function Recommend() {
     return () => {
       cancelled = true;
     };
-  }, [visible, user]);
+  }, [visible, user, wishlistKey]);
 
   if (!visible) return null;
 
