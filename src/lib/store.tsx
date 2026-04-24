@@ -250,15 +250,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const signUp = useCallback(async (email: string, password: string, displayName?: string) => {
     const redirectUrl = typeof window !== "undefined" ? `${window.location.origin}/` : undefined;
+    // Pull pending referral code captured from ?ref= on the landing page
+    let ref: string | null = null;
+    if (typeof window !== "undefined") {
+      try {
+        ref = localStorage.getItem("ml_ref_code");
+      } catch {
+        // ignore
+      }
+    }
+    const meta: Record<string, string> = {};
+    if (displayName) meta.display_name = displayName;
+    if (ref) meta.ref = ref;
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: redirectUrl,
-        data: displayName ? { display_name: displayName } : undefined,
+        data: Object.keys(meta).length ? meta : undefined,
       },
     });
     if (error) throw error;
+    // Clear referral code after successful signup attempt
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem("ml_ref_code");
+      } catch {
+        // ignore
+      }
+    }
   }, []);
 
   const signOut = useCallback(async () => {

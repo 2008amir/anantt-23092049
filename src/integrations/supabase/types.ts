@@ -429,6 +429,7 @@ export type Database = {
           display_name: string | null
           email: string | null
           id: string
+          referred_by_code: string | null
           updated_at: string
         }
         Insert: {
@@ -436,6 +437,7 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           id: string
+          referred_by_code?: string | null
           updated_at?: string
         }
         Update: {
@@ -443,36 +445,189 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           id?: string
+          referred_by_code?: string | null
           updated_at?: string
         }
         Relationships: []
+      }
+      referrals: {
+        Row: {
+          created_at: string
+          enrollment_id: string
+          has_purchased: boolean
+          id: string
+          referred_user_id: string
+          referrer_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enrollment_id: string
+          has_purchased?: boolean
+          id?: string
+          referred_user_id: string
+          referrer_user_id: string
+        }
+        Update: {
+          created_at?: string
+          enrollment_id?: string
+          has_purchased?: boolean
+          id?: string
+          referred_user_id?: string
+          referrer_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "reward_enrollments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reward_enrollments: {
+        Row: {
+          claimed_order_id: string | null
+          claimed_product_id: string | null
+          completed_at: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          referral_code: string
+          reward_id: string
+          started_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          claimed_order_id?: string | null
+          claimed_product_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          referral_code: string
+          reward_id: string
+          started_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          claimed_order_id?: string | null
+          claimed_product_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          referral_code?: string
+          reward_id?: string
+          started_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reward_enrollments_claimed_product_id_fkey"
+            columns: ["claimed_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reward_enrollments_reward_id_fkey"
+            columns: ["reward_id"]
+            isOneToOne: false
+            referencedRelation: "rewards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reward_task_products: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          reward_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          reward_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          reward_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reward_task_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reward_task_products_reward_id_fkey"
+            columns: ["reward_id"]
+            isOneToOne: false
+            referencedRelation: "rewards"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       rewards: {
         Row: {
           created_at: string
           description: string
+          expires_hours: number | null
           id: string
           image: string | null
+          is_active: boolean
           is_free: boolean
           points: number
+          product_amount: number | null
+          purchase_percent: number | null
+          referral_goal: number | null
+          require_purchase: boolean
+          reward_price: number | null
+          task_type: string
           title: string
         }
         Insert: {
           created_at?: string
           description?: string
+          expires_hours?: number | null
           id?: string
           image?: string | null
+          is_active?: boolean
           is_free?: boolean
           points?: number
+          product_amount?: number | null
+          purchase_percent?: number | null
+          referral_goal?: number | null
+          require_purchase?: boolean
+          reward_price?: number | null
+          task_type?: string
           title: string
         }
         Update: {
           created_at?: string
           description?: string
+          expires_hours?: number | null
           id?: string
           image?: string | null
+          is_active?: boolean
           is_free?: boolean
           points?: number
+          product_amount?: number | null
+          purchase_percent?: number | null
+          referral_goal?: number | null
+          require_purchase?: boolean
+          reward_price?: number | null
+          task_type?: string
           title?: string
         }
         Relationships: []
