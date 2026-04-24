@@ -88,6 +88,7 @@ function RootComponent() {
       <StoreProvider>
         <ActivityTracker />
         <ReferralCapture />
+        <CopyProtection />
         <Splash>
           <div className="flex flex-col bg-background" style={{ minHeight: "100dvh" }}>
             <Header />
@@ -102,6 +103,29 @@ function RootComponent() {
       </StoreProvider>
     </ThemeProvider>
   );
+}
+
+function CopyProtection() {
+  if (typeof window !== "undefined") {
+    if (!(window as unknown as { __mlCopyGuard?: boolean }).__mlCopyGuard) {
+      (window as unknown as { __mlCopyGuard?: boolean }).__mlCopyGuard = true;
+      const isFormField = (el: EventTarget | null) => {
+        if (!(el instanceof HTMLElement)) return false;
+        const tag = el.tagName;
+        return tag === "INPUT" || tag === "TEXTAREA" || el.isContentEditable;
+      };
+      const block = (e: Event) => {
+        if (isFormField(e.target)) return;
+        e.preventDefault();
+      };
+      document.addEventListener("contextmenu", block);
+      document.addEventListener("copy", block);
+      document.addEventListener("cut", block);
+      document.addEventListener("dragstart", block);
+      document.addEventListener("selectstart", block);
+    }
+  }
+  return null;
 }
 
 function ActivityTracker() {
