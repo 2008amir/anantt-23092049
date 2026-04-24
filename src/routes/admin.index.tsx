@@ -180,15 +180,17 @@ function OverviewPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <MetricCard label="Total users" value={stats.total} icon={Users} loading={loading} />
-        <MetricCard label="Daily active" value={stats.daily} icon={Users} loading={loading} />
-        <MetricCard label="Weekly active" value={stats.weekly} icon={Users} loading={loading} />
-        <MetricCard label="Monthly active" value={stats.monthly} icon={Users} loading={loading} />
-        <MetricCard label="Weekly verified orders" value={stats.orders} icon={ShoppingBag} loading={loading} />
+        <MetricCard label="Daily active" value={stats.daily} icon={Users} loading={loading} to="/admin/active/$period" period="daily" />
+        <MetricCard label="Weekly active" value={stats.weekly} icon={Users} loading={loading} to="/admin/active/$period" period="weekly" />
+        <MetricCard label="Monthly active" value={stats.monthly} icon={Users} loading={loading} to="/admin/active/$period" period="monthly" />
+        <MetricCard label="Weekly verified orders" value={stats.orders} icon={ShoppingBag} loading={loading} to="/admin/active/$period" period="orders" />
         <MetricCard
           label="Weekly revenue"
           value={`₦${stats.revenue.toLocaleString()}`}
           icon={TrendingUp}
           loading={loading}
+          to="/admin/active/$period"
+          period="revenue"
         />
       </div>
     </div>
