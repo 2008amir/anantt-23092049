@@ -51,6 +51,12 @@ function ProductPage() {
   const liked = wishlist.includes(product.id);
   const imgRef = useRef<HTMLImageElement | null>(null);
 
+  const hasColors = product.colors.length > 0;
+  const hasSizes = product.sizes.length > 0;
+  const [selectedColor, setSelectedColor] = useState<string>("");
+  const [selectedSize, setSelectedSize] = useState<string>("");
+  const [variantError, setVariantError] = useState<string | null>(null);
+
   const [similar, setSimilar] = useState<Product[]>([]);
   const [loadingSimilar, setLoadingSimilar] = useState(false);
   const [similarLoaded, setSimilarLoaded] = useState(false);
@@ -59,6 +65,9 @@ function ProductPage() {
   useEffect(() => {
     setSimilar([]);
     setSimilarLoaded(false);
+    setSelectedColor("");
+    setSelectedSize("");
+    setVariantError(null);
   }, [product.id]);
 
   const findSimilar = async () => {
@@ -73,6 +82,27 @@ function ProductPage() {
     } finally {
       setLoadingSimilar(false);
     }
+  };
+
+  const handleAddToCart = () => {
+    if (hasColors && !selectedColor) {
+      setVariantError("Please select a color before adding to cart.");
+      return;
+    }
+    if (hasSizes && !selectedSize) {
+      setVariantError("Please select a size before adding to cart.");
+      return;
+    }
+    setVariantError(null);
+    flyToCart(imgRef.current, product.image);
+    const variant =
+      hasColors || hasSizes
+        ? {
+            ...(hasColors ? { color: selectedColor } : {}),
+            ...(hasSizes ? { size: selectedSize } : {}),
+          }
+        : null;
+    void addToCart(product.id, qty, variant);
   };
 
   return (
