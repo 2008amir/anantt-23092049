@@ -125,16 +125,25 @@ function ProductPage() {
             <Stars rating={product.rating} />
             <span className="text-sm text-muted-foreground">{product.rating} · {product.reviewCount} reviews</span>
           </div>
-          <div className="mt-6 flex items-baseline gap-4">
-            <p className="font-serif text-3xl text-gold-gradient">{formatNaira(effectivePrice(product))}</p>
-            {hasDiscount(product) && (
-              <>
-                <p className="font-serif text-xl text-muted-foreground line-through">{formatNaira(product.price)}</p>
-                <span className="rounded-full bg-primary/10 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-primary">
-                  Save {formatNaira(savings(product))}
-                </span>
-              </>
+          <div className="mt-6">
+            {product.stock > 0 ? (
+              <p className={`text-[10px] uppercase tracking-[0.25em] ${product.stock <= 5 ? "text-destructive" : "text-muted-foreground"}`}>
+                {product.stock <= 5 ? `Only ${product.stock} left in stock` : `${product.stock} in stock`}
+              </p>
+            ) : (
+              <p className="text-[10px] uppercase tracking-[0.25em] text-destructive">Out of stock</p>
             )}
+            <div className="mt-2 flex items-baseline gap-4">
+              <p className="font-serif text-3xl text-gold-gradient">{formatNaira(effectivePrice(product))}</p>
+              {hasDiscount(product) && (
+                <>
+                  <p className="font-serif text-xl text-muted-foreground line-through">{formatNaira(product.price)}</p>
+                  <span className="rounded-full bg-primary/10 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-primary">
+                    Save {formatNaira(savings(product))}
+                  </span>
+                </>
+              )}
+            </div>
           </div>
           <p className="mt-6 leading-relaxed text-muted-foreground">{product.description}</p>
 
