@@ -14,9 +14,8 @@ export const Route = createFileRoute("/admin/")({
   component: OverviewPage,
 });
 
-type DailyBucket = { date: string; count: number };
-type ActivityRow = { user_id: string; created_at: string };
-type ProfileActivityRow = { id: string; created_at: string };
+type DailyBucket = { date: string; weekday: string; count: number };
+type ProfileActivityRow = { id: string; updated_at: string };
 
 const chartConfig = {
   users: {
@@ -24,6 +23,8 @@ const chartConfig = {
     color: "var(--primary)",
   },
 } satisfies ChartConfig;
+
+const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
 function OverviewPage() {
   const [stats, setStats] = useState({ total: 0, daily: 0, weekly: 0, monthly: 0, orders: 0, revenue: 0 });
@@ -45,41 +46,37 @@ function OverviewPage() {
         weeklyRes,
         monthlyRes,
         ordersRes,
-        profilesRes,
-        searchHistoryRes,
-        interestsRes,
-        wishlistRes,
-        messagesRes,
+        weekActivityRes,
       ] = await Promise.all([
+        // Total registered users
         supabase.from("profiles").select("id", { count: "exact", head: true }),
-        supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", dayAgo),
-        supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", weekAgo),
-        supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", monthAgo),
+        // Active users (any activity in window — heartbeat updates profiles.updated_at)
+        supabase.from("profiles").select("id", { count: "exact", head: true }).gte("updated_at", dayAgo),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).gte("updated_at", weekAgo),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).gte("updated_at", monthAgo),
         supabase.from("orders").select("id, total, payment_status").gte("created_at", weekAgo),
-        supabase.from("profiles").select("id, created_at").gte("created_at", weekAgo),
-        supabase.from("search_history").select("user_id, created_at").gte("created_at", weekAgo),
-        supabase.from("user_interests").select("user_id, created_at").gte("created_at", weekAgo),
-        supabase.from("wishlist").select("user_id, created_at").gte("created_at", weekAgo),
-        supabase.from("messages").select("user_id, created_at").gte("created_at", weekAgo),
+        // For the weekly chart
+        supabase.from("profiles").select("id, updated_at").gte("updated_at", weekAgo),
       ]);
 
       if (cancelled) return;
 
-      const bucketSets: Record<string, Set<string>> = {};
+      // Build 7 buckets from 6 days ago up to today, in calendar order
+      const bucketSets: { date: string; weekday: string; users: Set<string> }[] = [];
       for (let i = 6; i >= 0; i--) {
         const d = new Date(now.getTime() - i * 24 * 3600 * 1000);
-        bucketSets[d.toISOString().slice(0, 10)] = new Set();
+        bucketSets.push({
+          date: d.toISOString().slice(0, 10),
+          weekday: WEEKDAY_LABELS[d.getDay()],
+          users: new Set(),
+        });
       }
 
-      const addActivity = (userId: string | null | undefined, createdAt: string | null | undefined) => {
-        if (!userId || !createdAt) return;
-        const key = createdAt.slice(0, 10);
-        if (key in bucketSets) bucketSets[key].add(userId);
-      };
-
-      ((profilesRes.data ?? []) as ProfileActivityRow[]).forEach((row) => addActivity(row.id, row.created_at));
-      [searchHistoryRes.data, interestsRes.data, wishlistRes.data, messagesRes.data].forEach((rows) => {
-        ((rows ?? []) as ActivityRow[]).forEach((row) => addActivity(row.user_id, row.created_at));
+      ((weekActivityRes.data ?? []) as ProfileActivityRow[]).forEach((row) => {
+        if (!row.updated_at) return;
+        const key = row.updated_at.slice(0, 10);
+        const bucket = bucketSets.find((b) => b.date === key);
+        if (bucket) bucket.users.add(row.id);
       });
 
       const orders = (ordersRes.data ?? []) as { id: string; total: number | string; payment_status: string }[];
@@ -95,11 +92,13 @@ function OverviewPage() {
         revenue,
       });
 
-      const rankedBuckets = Object.entries(bucketSets)
-        .map(([date, users]) => ({ date, count: users.size }))
-        .sort((a, b) => b.count - a.count || a.date.localeCompare(b.date));
-
-      setChart(rankedBuckets);
+      setChart(
+        bucketSets.map((b) => ({
+          date: b.date,
+          weekday: b.weekday,
+          count: b.users.size,
+        })),
+      );
       setLoading(false);
     })();
 
@@ -120,21 +119,18 @@ function OverviewPage() {
       <div className="rounded-lg border border-border/40 bg-card p-6">
         <div className="mb-4 flex items-center gap-2">
           <TrendingUp className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-medium uppercase tracking-wider">Unique users — last 7 days</h2>
+          <h2 className="text-sm font-medium uppercase tracking-wider">Active users — last 7 days</h2>
         </div>
 
         <ChartContainer config={chartConfig} className="h-56 w-full aspect-auto">
           <BarChart data={chart} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
             <CartesianGrid vertical={false} strokeDasharray="3 3" />
             <XAxis
-              dataKey="date"
+              dataKey="weekday"
               axisLine={false}
               tickLine={false}
               tickMargin={10}
-              minTickGap={12}
-              tickFormatter={(value: string) =>
-                new Date(`${value}T00:00:00`).toLocaleDateString(undefined, { weekday: "short" })
-              }
+              interval={0}
             />
             <YAxis hide allowDecimals={false} domain={[0, maxCount]} />
             <ChartTooltip
@@ -162,9 +158,9 @@ function OverviewPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <MetricCard label="Total users" value={stats.total} icon={Users} loading={loading} />
-        <MetricCard label="Daily users" value={stats.daily} icon={Users} loading={loading} />
-        <MetricCard label="Weekly users" value={stats.weekly} icon={Users} loading={loading} />
-        <MetricCard label="Monthly users" value={stats.monthly} icon={Users} loading={loading} />
+        <MetricCard label="Daily active" value={stats.daily} icon={Users} loading={loading} />
+        <MetricCard label="Weekly active" value={stats.weekly} icon={Users} loading={loading} />
+        <MetricCard label="Monthly active" value={stats.monthly} icon={Users} loading={loading} />
         <MetricCard label="Weekly verified orders" value={stats.orders} icon={ShoppingBag} loading={loading} />
         <MetricCard
           label="Weekly revenue"
