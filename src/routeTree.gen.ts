@@ -49,6 +49,7 @@ import { Route as ProductIdReviewsRouteImport } from './routes/product_.$id.revi
 import { Route as ApiPublicFlutterwaveWebhookRouteImport } from './routes/api/public/flutterwave-webhook'
 import { Route as ApiPublicDeviceIdRouteImport } from './routes/api/public/device-id'
 import { Route as AdminUsersUserIdRouteImport } from './routes/admin.users.$userId'
+import { Route as AdminActivePeriodRouteImport } from './routes/admin.active.$period'
 import { Route as AccountRewardIdRouteImport } from './routes/account.reward.$id'
 import { Route as AccountClaimIdRouteImport } from './routes/account.claim.$id'
 
@@ -253,6 +254,11 @@ const AdminUsersUserIdRoute = AdminUsersUserIdRouteImport.update({
   path: '/users/$userId',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminActivePeriodRoute = AdminActivePeriodRouteImport.update({
+  id: '/active/$period',
+  path: '/active/$period',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AccountRewardIdRoute = AccountRewardIdRouteImport.update({
   id: '/reward/$id',
   path: '/reward/$id',
@@ -302,6 +308,7 @@ export interface FileRoutesByFullPath {
   '/orders/': typeof OrdersIndexRoute
   '/account/claim/$id': typeof AccountClaimIdRoute
   '/account/reward/$id': typeof AccountRewardIdRoute
+  '/admin/active/$period': typeof AdminActivePeriodRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
   '/api/public/device-id': typeof ApiPublicDeviceIdRoute
   '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
@@ -344,6 +351,7 @@ export interface FileRoutesByTo {
   '/orders': typeof OrdersIndexRoute
   '/account/claim/$id': typeof AccountClaimIdRoute
   '/account/reward/$id': typeof AccountRewardIdRoute
+  '/admin/active/$period': typeof AdminActivePeriodRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
   '/api/public/device-id': typeof ApiPublicDeviceIdRoute
   '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
@@ -389,6 +397,7 @@ export interface FileRoutesById {
   '/orders/': typeof OrdersIndexRoute
   '/account/claim/$id': typeof AccountClaimIdRoute
   '/account/reward/$id': typeof AccountRewardIdRoute
+  '/admin/active/$period': typeof AdminActivePeriodRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
   '/api/public/device-id': typeof ApiPublicDeviceIdRoute
   '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
@@ -435,6 +444,7 @@ export interface FileRouteTypes {
     | '/orders/'
     | '/account/claim/$id'
     | '/account/reward/$id'
+    | '/admin/active/$period'
     | '/admin/users/$userId'
     | '/api/public/device-id'
     | '/api/public/flutterwave-webhook'
@@ -477,6 +487,7 @@ export interface FileRouteTypes {
     | '/orders'
     | '/account/claim/$id'
     | '/account/reward/$id'
+    | '/admin/active/$period'
     | '/admin/users/$userId'
     | '/api/public/device-id'
     | '/api/public/flutterwave-webhook'
@@ -521,6 +532,7 @@ export interface FileRouteTypes {
     | '/orders/'
     | '/account/claim/$id'
     | '/account/reward/$id'
+    | '/admin/active/$period'
     | '/admin/users/$userId'
     | '/api/public/device-id'
     | '/api/public/flutterwave-webhook'
@@ -830,6 +842,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersUserIdRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/active/$period': {
+      id: '/admin/active/$period'
+      path: '/active/$period'
+      fullPath: '/admin/active/$period'
+      preLoaderRoute: typeof AdminActivePeriodRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/account/reward/$id': {
       id: '/account/reward/$id'
       path: '/reward/$id'
@@ -893,6 +912,7 @@ interface AdminRouteChildren {
   AdminRewardsRoute: typeof AdminRewardsRoute
   AdminSearchRoute: typeof AdminSearchRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminActivePeriodRoute: typeof AdminActivePeriodRoute
   AdminUsersUserIdRoute: typeof AdminUsersUserIdRoute
   AdminUsersIndexRoute: typeof AdminUsersIndexRoute
 }
@@ -908,6 +928,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminRewardsRoute: AdminRewardsRoute,
   AdminSearchRoute: AdminSearchRoute,
   AdminIndexRoute: AdminIndexRoute,
+  AdminActivePeriodRoute: AdminActivePeriodRoute,
   AdminUsersUserIdRoute: AdminUsersUserIdRoute,
   AdminUsersIndexRoute: AdminUsersIndexRoute,
 }
