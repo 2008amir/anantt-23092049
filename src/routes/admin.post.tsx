@@ -24,7 +24,7 @@ function PostPage() {
   const [body, setBody] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [audience, setAudience] = useState<"all" | "user">("all");
-  const [userId, setUserId] = useState("");
+  const [userEmail, setUserEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [recent, setRecent] = useState<NotificationRow[]>([]);
@@ -91,12 +91,23 @@ function PostPage() {
         if (error) throw error;
         toast.success(`Sent to ${rows.length} user(s)`);
       } else {
-        if (!userId.trim()) {
-          toast.error("User ID required");
+        const email = userEmail.trim().toLowerCase();
+        if (!email) {
+          toast.error("User email required");
+          return;
+        }
+        const { data: profile, error: lookupErr } = await supabase
+          .from("profiles")
+          .select("id")
+          .ilike("email", email)
+          .maybeSingle();
+        if (lookupErr) throw lookupErr;
+        if (!profile) {
+          toast.error("No user found with that email");
           return;
         }
         const { error } = await supabase.from("notifications").insert({
-          user_id: userId.trim(),
+          user_id: profile.id,
           kind: "post",
           title: title.trim(),
           body: body.trim(),
@@ -230,11 +241,11 @@ function PostPage() {
           </div>
           {audience === "user" && (
             <input
-              type="text"
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-              placeholder="User ID (uuid)"
-              className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm font-mono"
+              type="email"
+              value={userEmail}
+              onChange={(e) => setUserEmail(e.target.value)}
+              placeholder="user@example.com"
+              className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
             />
           )}
         </div>
