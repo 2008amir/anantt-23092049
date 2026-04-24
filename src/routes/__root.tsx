@@ -6,6 +6,7 @@ import { Footer } from "@/components/Footer";
 import { Splash } from "@/components/Splash";
 import { CartBubble } from "@/components/CartBubble";
 import { Toaster } from "@/components/ui/sonner";
+import { useActivityHeartbeat } from "@/hooks/use-activity-heartbeat";
 
 
 function NotFoundComponent() {
@@ -74,6 +75,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   return (
     <StoreProvider>
+      <ActivityTracker />
       <Splash>
         <div className="flex flex-col bg-background" style={{ minHeight: "100dvh" }}>
           <Header />
@@ -87,4 +89,9 @@ function RootComponent() {
       </Splash>
     </StoreProvider>
   );
+}
+
+function ActivityTracker() {
+  useActivityHeartbeat();
+  return null;
 }
