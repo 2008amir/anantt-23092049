@@ -751,3 +751,115 @@ function Empty({ hint }: { hint: string }) {
     </div>
   );
 }
+
+function CountryMultiSelect({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [open]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return ALL_COUNTRIES;
+    return ALL_COUNTRIES.filter((c) => c.toLowerCase().includes(q));
+  }, [query]);
+
+  const selected = new Set(value);
+  const toggle = (c: string) => {
+    const next = new Set(selected);
+    if (next.has(c)) next.delete(c);
+    else next.add(c);
+    onChange(Array.from(next));
+  };
+
+  return (
+    <div ref={containerRef} className="relative">
+      <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Countries</span>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="mt-1.5 flex w-full items-center justify-between rounded-md border border-border/40 bg-background px-3 py-2 text-left text-sm focus:border-primary focus:outline-none"
+      >
+        <span className={cn("truncate", value.length === 0 && "text-muted-foreground")}>
+          {value.length === 0 ? "Pick countries…" : value.length === 1 ? value[0] : `${value.length} countries selected`}
+        </span>
+        <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", open && "rotate-180")} />
+      </button>
+
+      {value.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {value.slice(0, 8).map((c) => (
+            <span key={c} className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] text-primary">
+              {c}
+              <button type="button" onClick={() => toggle(c)} className="hover:text-destructive">
+                <X className="h-2.5 w-2.5" />
+              </button>
+            </span>
+          ))}
+          {value.length > 8 && (
+            <span className="text-[11px] text-muted-foreground">+{value.length - 8} more</span>
+          )}
+        </div>
+      )}
+
+      {open && (
+        <div className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-md border border-border/40 bg-card shadow-lg">
+          <div className="flex items-center gap-2 border-b border-border/40 px-3 py-2">
+            <Search className="h-3.5 w-3.5 text-muted-foreground" />
+            <input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search countries…"
+              className="flex-1 bg-transparent text-sm focus:outline-none"
+            />
+            {value.length > 0 && (
+              <button
+                type="button"
+                onClick={() => onChange([])}
+                className="text-[10px] uppercase tracking-wider text-muted-foreground hover:text-destructive"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          <div className="max-h-64 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <p className="px-3 py-4 text-center text-xs text-muted-foreground">No matches</p>
+            ) : (
+              filtered.map((c) => {
+                const checked = selected.has(c);
+                return (
+                  <button
+                    type="button"
+                    key={c}
+                    onClick={() => toggle(c)}
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-muted/60"
+                  >
+                    <span
+                      className={cn(
+                        "flex h-4 w-4 shrink-0 items-center justify-center rounded border",
+                        checked ? "border-primary bg-primary text-primary-foreground" : "border-border/60",
+                      )}
+                    >
+                      {checked && <Check className="h-3 w-3" />}
+                    </span>
+                    <span className="truncate">{c}</span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
