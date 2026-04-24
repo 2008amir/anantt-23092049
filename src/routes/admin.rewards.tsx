@@ -139,7 +139,8 @@ function RewardsPage() {
 
     const { data: created, error: insertError } = await supabase
       .from("rewards")
-      .insert(insertPayload)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .insert(insertPayload as any)
       .select()
       .single();
     if (insertError || !created) {
