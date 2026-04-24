@@ -25,7 +25,6 @@ import { Route as AccountIndexRouteImport } from './routes/account.index'
 import { Route as WebhookFlutterwaveRouteImport } from './routes/webhook.flutterwave'
 import { Route as ProductIdRouteImport } from './routes/product.$id'
 import { Route as OrdersIdRouteImport } from './routes/orders.$id'
-import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminSearchRouteImport } from './routes/admin.search'
 import { Route as AdminRewardsRouteImport } from './routes/admin.rewards'
 import { Route as AdminProfileRouteImport } from './routes/admin.profile'
@@ -42,6 +41,7 @@ import { Route as AccountMessagesRouteImport } from './routes/account.messages'
 import { Route as AccountHistoryRouteImport } from './routes/account.history'
 import { Route as AccountEarnRouteImport } from './routes/account.earn'
 import { Route as AccountAddressesRouteImport } from './routes/account.addresses'
+import { Route as AdminUsersIndexRouteImport } from './routes/admin.users.index'
 import { Route as ProductIdReviewsRouteImport } from './routes/product_.$id.reviews'
 import { Route as ApiPublicFlutterwaveWebhookRouteImport } from './routes/api/public/flutterwave-webhook'
 import { Route as AdminUsersUserIdRouteImport } from './routes/admin.users.$userId'
@@ -126,11 +126,6 @@ const OrdersIdRoute = OrdersIdRouteImport.update({
   path: '/orders/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminUsersRoute = AdminUsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminSearchRoute = AdminSearchRouteImport.update({
   id: '/search',
   path: '/search',
@@ -211,6 +206,11 @@ const AccountAddressesRoute = AccountAddressesRouteImport.update({
   path: '/addresses',
   getParentRoute: () => AccountRoute,
 } as any)
+const AdminUsersIndexRoute = AdminUsersIndexRouteImport.update({
+  id: '/users/',
+  path: '/users/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const ProductIdReviewsRoute = ProductIdReviewsRouteImport.update({
   id: '/product_/$id/reviews',
   path: '/product/$id/reviews',
@@ -223,9 +223,9 @@ const ApiPublicFlutterwaveWebhookRoute =
     getParentRoute: () => rootRouteImport,
   } as any)
 const AdminUsersUserIdRoute = AdminUsersUserIdRouteImport.update({
-  id: '/$userId',
-  path: '/$userId',
-  getParentRoute: () => AdminUsersRoute,
+  id: '/users/$userId',
+  path: '/users/$userId',
+  getParentRoute: () => AdminRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -255,7 +255,6 @@ export interface FileRoutesByFullPath {
   '/admin/profile': typeof AdminProfileRoute
   '/admin/rewards': typeof AdminRewardsRoute
   '/admin/search': typeof AdminSearchRoute
-  '/admin/users': typeof AdminUsersRouteWithChildren
   '/orders/$id': typeof OrdersIdRoute
   '/product/$id': typeof ProductIdRoute
   '/webhook/flutterwave': typeof WebhookFlutterwaveRoute
@@ -265,6 +264,7 @@ export interface FileRoutesByFullPath {
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
   '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
   '/product/$id/reviews': typeof ProductIdReviewsRoute
+  '/admin/users/': typeof AdminUsersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -291,7 +291,6 @@ export interface FileRoutesByTo {
   '/admin/profile': typeof AdminProfileRoute
   '/admin/rewards': typeof AdminRewardsRoute
   '/admin/search': typeof AdminSearchRoute
-  '/admin/users': typeof AdminUsersRouteWithChildren
   '/orders/$id': typeof OrdersIdRoute
   '/product/$id': typeof ProductIdRoute
   '/webhook/flutterwave': typeof WebhookFlutterwaveRoute
@@ -301,6 +300,7 @@ export interface FileRoutesByTo {
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
   '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
   '/product/$id/reviews': typeof ProductIdReviewsRoute
+  '/admin/users': typeof AdminUsersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -330,7 +330,6 @@ export interface FileRoutesById {
   '/admin/profile': typeof AdminProfileRoute
   '/admin/rewards': typeof AdminRewardsRoute
   '/admin/search': typeof AdminSearchRoute
-  '/admin/users': typeof AdminUsersRouteWithChildren
   '/orders/$id': typeof OrdersIdRoute
   '/product/$id': typeof ProductIdRoute
   '/webhook/flutterwave': typeof WebhookFlutterwaveRoute
@@ -340,6 +339,7 @@ export interface FileRoutesById {
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
   '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
   '/product_/$id/reviews': typeof ProductIdReviewsRoute
+  '/admin/users/': typeof AdminUsersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -370,7 +370,6 @@ export interface FileRouteTypes {
     | '/admin/profile'
     | '/admin/rewards'
     | '/admin/search'
-    | '/admin/users'
     | '/orders/$id'
     | '/product/$id'
     | '/webhook/flutterwave'
@@ -380,6 +379,7 @@ export interface FileRouteTypes {
     | '/admin/users/$userId'
     | '/api/public/flutterwave-webhook'
     | '/product/$id/reviews'
+    | '/admin/users/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -406,7 +406,6 @@ export interface FileRouteTypes {
     | '/admin/profile'
     | '/admin/rewards'
     | '/admin/search'
-    | '/admin/users'
     | '/orders/$id'
     | '/product/$id'
     | '/webhook/flutterwave'
@@ -416,6 +415,7 @@ export interface FileRouteTypes {
     | '/admin/users/$userId'
     | '/api/public/flutterwave-webhook'
     | '/product/$id/reviews'
+    | '/admin/users'
   id:
     | '__root__'
     | '/'
@@ -444,7 +444,6 @@ export interface FileRouteTypes {
     | '/admin/profile'
     | '/admin/rewards'
     | '/admin/search'
-    | '/admin/users'
     | '/orders/$id'
     | '/product/$id'
     | '/webhook/flutterwave'
@@ -454,6 +453,7 @@ export interface FileRouteTypes {
     | '/admin/users/$userId'
     | '/api/public/flutterwave-webhook'
     | '/product_/$id/reviews'
+    | '/admin/users/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -589,13 +589,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrdersIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/users': {
-      id: '/admin/users'
-      path: '/users'
-      fullPath: '/admin/users'
-      preLoaderRoute: typeof AdminUsersRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/search': {
       id: '/admin/search'
       path: '/search'
@@ -708,6 +701,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountAddressesRouteImport
       parentRoute: typeof AccountRoute
     }
+    '/admin/users/': {
+      id: '/admin/users/'
+      path: '/users'
+      fullPath: '/admin/users/'
+      preLoaderRoute: typeof AdminUsersIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/product_/$id/reviews': {
       id: '/product_/$id/reviews'
       path: '/product/$id/reviews'
@@ -724,10 +724,10 @@ declare module '@tanstack/react-router' {
     }
     '/admin/users/$userId': {
       id: '/admin/users/$userId'
-      path: '/$userId'
+      path: '/users/$userId'
       fullPath: '/admin/users/$userId'
       preLoaderRoute: typeof AdminUsersUserIdRouteImport
-      parentRoute: typeof AdminUsersRoute
+      parentRoute: typeof AdminRoute
     }
   }
 }
@@ -759,18 +759,6 @@ const AccountRouteChildren: AccountRouteChildren = {
 const AccountRouteWithChildren =
   AccountRoute._addFileChildren(AccountRouteChildren)
 
-interface AdminUsersRouteChildren {
-  AdminUsersUserIdRoute: typeof AdminUsersUserIdRoute
-}
-
-const AdminUsersRouteChildren: AdminUsersRouteChildren = {
-  AdminUsersUserIdRoute: AdminUsersUserIdRoute,
-}
-
-const AdminUsersRouteWithChildren = AdminUsersRoute._addFileChildren(
-  AdminUsersRouteChildren,
-)
-
 interface AdminRouteChildren {
   AdminDeliverersRoute: typeof AdminDeliverersRoute
   AdminDeliveryPricesRoute: typeof AdminDeliveryPricesRoute
@@ -780,8 +768,9 @@ interface AdminRouteChildren {
   AdminProfileRoute: typeof AdminProfileRoute
   AdminRewardsRoute: typeof AdminRewardsRoute
   AdminSearchRoute: typeof AdminSearchRoute
-  AdminUsersRoute: typeof AdminUsersRouteWithChildren
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminUsersUserIdRoute: typeof AdminUsersUserIdRoute
+  AdminUsersIndexRoute: typeof AdminUsersIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -793,8 +782,9 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminProfileRoute: AdminProfileRoute,
   AdminRewardsRoute: AdminRewardsRoute,
   AdminSearchRoute: AdminSearchRoute,
-  AdminUsersRoute: AdminUsersRouteWithChildren,
   AdminIndexRoute: AdminIndexRoute,
+  AdminUsersUserIdRoute: AdminUsersUserIdRoute,
+  AdminUsersIndexRoute: AdminUsersIndexRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
