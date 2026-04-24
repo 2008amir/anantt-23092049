@@ -40,3 +40,91 @@ export const NIGERIA_STATES: Record<string, string[]> = {
 };
 
 export const NIGERIA_STATE_NAMES = Object.keys(NIGERIA_STATES).sort();
+
+/**
+ * Capital LGA for each state. Used to surface the state capital as its own
+ * group in the admin delivery-prices view, separate from the directional
+ * regions (North, South, East, West, Central).
+ */
+export const STATE_CAPITALS: Record<string, string> = {
+  Abia: "Umuahia North",
+  Adamawa: "Yola", // not in current LGA list — falls back gracefully
+  "Akwa Ibom": "Uyo",
+  Anambra: "Awka South",
+  Bauchi: "Bauchi",
+  Bayelsa: "Yenagoa",
+  Benue: "Makurdi",
+  Borno: "Maiduguri",
+  "Cross River": "Calabar Municipal",
+  Delta: "Asaba",
+  Ebonyi: "Abakaliki",
+  Edo: "Oredo",
+  Ekiti: "Ado Ekiti",
+  Enugu: "Enugu North",
+  "FCT - Abuja": "Municipal Area Council",
+  Gombe: "Gombe",
+  Imo: "Owerri Municipal",
+  Jigawa: "Dutse",
+  Kaduna: "Kaduna North",
+  Kano: "Nasarawa",
+  Katsina: "Katsina",
+  Kebbi: "Birnin Kebbi",
+  Kogi: "Lokoja",
+  Kwara: "Ilorin West",
+  Lagos: "Ikeja",
+  Nasarawa: "Lafia",
+  Niger: "Minna",
+  Ogun: "Abeokuta South",
+  Ondo: "Akure South",
+  Osun: "Osogbo",
+  Oyo: "Ibadan North",
+  Plateau: "Jos North",
+  Rivers: "Port Harcourt",
+  Sokoto: "Sokoto North",
+  Taraba: "Jalingo",
+  Yobe: "Damaturu",
+  Zamfara: "Gusau",
+};
+
+export type LgaRegion = "Capital" | "North" | "South" | "East" | "West" | "Central";
+
+export const LGA_REGION_ORDER: LgaRegion[] = [
+  "Capital",
+  "North",
+  "South",
+  "East",
+  "West",
+  "Central",
+];
+
+/**
+ * Group a state's LGAs into regional buckets so admins can set prices by zone:
+ * the **capital** first, then **North / South / East / West / Central** zones
+ * derived by chunking the rest of the LGAs evenly across the five compass
+ * regions. The capital is excluded from the directional groups so it isn't
+ * priced twice.
+ */
+export function regionsForState(state: string): Record<LgaRegion, string[]> {
+  const all = NIGERIA_STATES[state] ?? [];
+  const capital = STATE_CAPITALS[state];
+  const rest = all.filter((l) => l !== capital);
+
+  const buckets: Record<LgaRegion, string[]> = {
+    Capital: capital && all.includes(capital) ? [capital] : [],
+    North: [],
+    South: [],
+    East: [],
+    West: [],
+    Central: [],
+  };
+
+  // Chunk the remaining LGAs across the 5 directional regions in order.
+  const directions: LgaRegion[] = ["North", "South", "East", "West", "Central"];
+  const perBucket = Math.ceil(rest.length / directions.length) || 1;
+  rest.forEach((lga, i) => {
+    const bucketIdx = Math.min(directions.length - 1, Math.floor(i / perBucket));
+    buckets[directions[bucketIdx]].push(lga);
+  });
+
+  return buckets;
+}
