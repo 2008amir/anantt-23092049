@@ -5,63 +5,49 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/lib/store";
 import {
   fetchEnrollments,
-  fetchReferrals,
-  isTaskCompleted,
-  timeRemaining,
   type Enrollment,
   type RewardTask,
-  type Referral,
 } from "@/lib/rewards";
 
-export const Route = createFileRoute("/account/enrolled")({
-  head: () => ({ meta: [{ title: "Enrolled Rewards — Maison Luxe" }] }),
-  component: EnrolledPage,
+export const Route = createFileRoute("/account/expired")({
+  head: () => ({ meta: [{ title: "Expired Rewards — Maison Luxe" }] }),
+  component: ExpiredPage,
 });
 
 type EnrollmentWithTask = Enrollment & { task: RewardTask | null };
 
-function EnrolledPage() {
+function ExpiredPage() {
   const { user } = useStore();
   const [rows, setRows] = useState<EnrollmentWithTask[]>([]);
-  const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
-  const [, setTick] = useState(0);
-
-  // Re-render every second for countdown
-  useEffect(() => {
-    const t = setInterval(() => setTick((v) => v + 1), 1000);
-    return () => clearInterval(t);
-  }, []);
 
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
     (async () => {
       try {
-        const [enrollments, refs] = await Promise.all([
-          fetchEnrollments(user.id),
-          fetchReferrals(user.id),
-        ]);
+        const enrollments = await fetchEnrollments(user.id);
         if (cancelled) return;
-        setReferrals(refs);
-        // Exclude expired (unclaimed) ones — they live on /account/expired
-        const active = enrollments.filter(
+        const expired = enrollments.filter(
           (e) =>
-            e.status === "completed" ||
-            e.expires_at === null ||
-            new Date(e.expires_at) >= new Date(),
+            e.status !== "completed" &&
+            e.expires_at !== null &&
+            new Date(e.expires_at) < new Date(),
         );
-        if (active.length === 0) {
+        if (expired.length === 0) {
           setRows([]);
           return;
         }
         const { data: tasks } = await supabase
           .from("rewards")
           .select("*")
-          .in("id", active.map((e) => e.reward_id));
+          .in(
+            "id",
+            expired.map((e) => e.reward_id),
+          );
         const map = new Map<string, RewardTask>();
         for (const t of (tasks ?? []) as unknown as RewardTask[]) map.set(t.id, t);
-        setRows(active.map((e) => ({ ...e, task: map.get(e.reward_id) ?? null })));
+        setRows(expired.map((e) => ({ ...e, task: map.get(e.reward_id) ?? null })));
       } catch (err) {
         console.error(err);
       } finally {
@@ -75,9 +61,9 @@ function EnrolledPage() {
 
   return (
     <div>
-      <h2 className="font-serif text-3xl">Enrolled Rewards</h2>
+      <h2 className="font-serif text-3xl">Expired Rewards</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Tasks you've started. Progress updates automatically.
+        Tasks that ran out of time before completion.
       </p>
 
       <div className="mt-8">
@@ -88,7 +74,7 @@ function EnrolledPage() {
         ) : rows.length === 0 ? (
           <div className="flex flex-col items-center gap-4 border border-dashed border-border bg-card/30 px-6 py-20 text-center">
             <Gift className="h-10 w-10 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">No enrolled tasks yet.</p>
+            <p className="text-sm text-muted-foreground">No expired tasks.</p>
             <Link
               to="/account/earn"
               className="text-xs uppercase tracking-[0.25em] text-primary hover:underline"
@@ -101,53 +87,32 @@ function EnrolledPage() {
             {rows.map((row) => {
               const task = row.task;
               if (!task) return null;
-              const myRefs = referrals.filter((r) => r.enrollment_id === row.id);
-              const completed =
-                row.status === "completed" ||
-                (task.task_type === "referral" && isTaskCompleted(task, myRefs));
-              const expired =
-                row.status !== "completed" &&
-                row.expires_at !== null &&
-                new Date(row.expires_at) < new Date();
-              const label = completed
-                ? "Completed — claim now"
-                : expired
-                  ? "Expired"
-                  : timeRemaining(row.expires_at);
               return (
                 <Link
                   key={row.id}
                   to="/account/reward/$id"
                   params={{ id: task.id }}
-                  className="flex items-center gap-4 border border-border bg-card/50 p-4 transition-smooth hover:border-primary"
+                  className="flex items-center gap-4 border border-border bg-card/40 p-4 opacity-75 transition-smooth hover:border-primary hover:opacity-100"
                 >
                   {task.image ? (
                     <img
                       src={task.image}
                       alt=""
-                      className="h-16 w-16 shrink-0 rounded object-cover"
+                      className="h-16 w-16 shrink-0 rounded object-cover grayscale"
                     />
                   ) : (
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded bg-gold-gradient/10">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded bg-muted">
                       {task.task_type === "referral" ? (
-                        <Users className="h-6 w-6 text-primary" />
+                        <Users className="h-6 w-6 text-muted-foreground" />
                       ) : (
-                        <ShoppingBag className="h-6 w-6 text-primary" />
+                        <ShoppingBag className="h-6 w-6 text-muted-foreground" />
                       )}
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{task.title}</p>
-                    <p
-                      className={`mt-1 text-[11px] uppercase tracking-wider ${
-                        completed
-                          ? "text-primary"
-                          : expired
-                            ? "text-destructive"
-                            : "text-muted-foreground"
-                      }`}
-                    >
-                      {label}
+                    <p className="mt-1 text-[11px] uppercase tracking-wider text-destructive">
+                      Expired
                     </p>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />

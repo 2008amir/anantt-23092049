@@ -39,6 +39,7 @@ import { Route as AccountSettingsRouteImport } from './routes/account.settings'
 import { Route as AccountNotificationsRouteImport } from './routes/account.notifications'
 import { Route as AccountMessagesRouteImport } from './routes/account.messages'
 import { Route as AccountHistoryRouteImport } from './routes/account.history'
+import { Route as AccountExpiredRouteImport } from './routes/account.expired'
 import { Route as AccountEnrolledRouteImport } from './routes/account.enrolled'
 import { Route as AccountEarnRouteImport } from './routes/account.earn'
 import { Route as AccountAddressesRouteImport } from './routes/account.addresses'
@@ -199,6 +200,11 @@ const AccountHistoryRoute = AccountHistoryRouteImport.update({
   path: '/history',
   getParentRoute: () => AccountRoute,
 } as any)
+const AccountExpiredRoute = AccountExpiredRouteImport.update({
+  id: '/expired',
+  path: '/expired',
+  getParentRoute: () => AccountRoute,
+} as any)
 const AccountEnrolledRoute = AccountEnrolledRouteImport.update({
   id: '/enrolled',
   path: '/enrolled',
@@ -260,6 +266,7 @@ export interface FileRoutesByFullPath {
   '/account/addresses': typeof AccountAddressesRoute
   '/account/earn': typeof AccountEarnRoute
   '/account/enrolled': typeof AccountEnrolledRoute
+  '/account/expired': typeof AccountExpiredRoute
   '/account/history': typeof AccountHistoryRoute
   '/account/messages': typeof AccountMessagesRoute
   '/account/notifications': typeof AccountNotificationsRoute
@@ -299,6 +306,7 @@ export interface FileRoutesByTo {
   '/account/addresses': typeof AccountAddressesRoute
   '/account/earn': typeof AccountEarnRoute
   '/account/enrolled': typeof AccountEnrolledRoute
+  '/account/expired': typeof AccountExpiredRoute
   '/account/history': typeof AccountHistoryRoute
   '/account/messages': typeof AccountMessagesRoute
   '/account/notifications': typeof AccountNotificationsRoute
@@ -341,6 +349,7 @@ export interface FileRoutesById {
   '/account/addresses': typeof AccountAddressesRoute
   '/account/earn': typeof AccountEarnRoute
   '/account/enrolled': typeof AccountEnrolledRoute
+  '/account/expired': typeof AccountExpiredRoute
   '/account/history': typeof AccountHistoryRoute
   '/account/messages': typeof AccountMessagesRoute
   '/account/notifications': typeof AccountNotificationsRoute
@@ -384,6 +393,7 @@ export interface FileRouteTypes {
     | '/account/addresses'
     | '/account/earn'
     | '/account/enrolled'
+    | '/account/expired'
     | '/account/history'
     | '/account/messages'
     | '/account/notifications'
@@ -423,6 +433,7 @@ export interface FileRouteTypes {
     | '/account/addresses'
     | '/account/earn'
     | '/account/enrolled'
+    | '/account/expired'
     | '/account/history'
     | '/account/messages'
     | '/account/notifications'
@@ -464,6 +475,7 @@ export interface FileRouteTypes {
     | '/account/addresses'
     | '/account/earn'
     | '/account/enrolled'
+    | '/account/expired'
     | '/account/history'
     | '/account/messages'
     | '/account/notifications'
@@ -723,6 +735,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountHistoryRouteImport
       parentRoute: typeof AccountRoute
     }
+    '/account/expired': {
+      id: '/account/expired'
+      path: '/expired'
+      fullPath: '/account/expired'
+      preLoaderRoute: typeof AccountExpiredRouteImport
+      parentRoute: typeof AccountRoute
+    }
     '/account/enrolled': {
       id: '/account/enrolled'
       path: '/enrolled'
@@ -793,6 +812,7 @@ interface AccountRouteChildren {
   AccountAddressesRoute: typeof AccountAddressesRoute
   AccountEarnRoute: typeof AccountEarnRoute
   AccountEnrolledRoute: typeof AccountEnrolledRoute
+  AccountExpiredRoute: typeof AccountExpiredRoute
   AccountHistoryRoute: typeof AccountHistoryRoute
   AccountMessagesRoute: typeof AccountMessagesRoute
   AccountNotificationsRoute: typeof AccountNotificationsRoute
@@ -808,6 +828,7 @@ const AccountRouteChildren: AccountRouteChildren = {
   AccountAddressesRoute: AccountAddressesRoute,
   AccountEarnRoute: AccountEarnRoute,
   AccountEnrolledRoute: AccountEnrolledRoute,
+  AccountExpiredRoute: AccountExpiredRoute,
   AccountHistoryRoute: AccountHistoryRoute,
   AccountMessagesRoute: AccountMessagesRoute,
   AccountNotificationsRoute: AccountNotificationsRoute,

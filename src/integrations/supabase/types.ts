@@ -425,28 +425,70 @@ export type Database = {
       }
       profiles: {
         Row: {
+          country: string | null
           created_at: string
           display_name: string | null
           email: string | null
+          first_name: string | null
           id: string
+          last_name: string | null
           referred_by_code: string | null
           updated_at: string
         }
         Insert: {
+          country?: string | null
           created_at?: string
           display_name?: string | null
           email?: string | null
+          first_name?: string | null
           id: string
+          last_name?: string | null
           referred_by_code?: string | null
           updated_at?: string
         }
         Update: {
+          country?: string | null
           created_at?: string
           display_name?: string | null
           email?: string | null
+          first_name?: string | null
           id?: string
+          last_name?: string | null
           referred_by_code?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      referral_devices: {
+        Row: {
+          created_at: string
+          fingerprint: string
+          hardware: Json | null
+          id: string
+          ip: string | null
+          platform: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          fingerprint: string
+          hardware?: Json | null
+          id?: string
+          ip?: string | null
+          platform?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          fingerprint?: string
+          hardware?: Json | null
+          id?: string
+          ip?: string | null
+          platform?: string | null
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }
