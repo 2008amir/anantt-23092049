@@ -83,16 +83,19 @@ function ProfileHome() {
         );
         setRewardsEarned(delivered.length);
       });
-    // Refetch unread badge whenever this page becomes active OR window refocuses
-    const fetchUnread = () =>
-      supabase
+    // Mark all personal unread notifications as read the moment the user
+    // lands on their profile (i.e. "enters the site"), so the bell badge
+    // clears and won't keep showing the same count again.
+    const markAllRead = async () => {
+      const { error } = await supabase
         .from("notifications")
-        .select("id", { count: "exact", head: true })
+        .update({ read: true })
         .eq("user_id", user.id)
-        .eq("read", false)
-        .then(({ count }) => setUnread(count ?? 0));
-    void fetchUnread();
-    const onFocus = () => void fetchUnread();
+        .eq("read", false);
+      if (!error) setUnread(0);
+    };
+    void markAllRead();
+    const onFocus = () => void markAllRead();
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, [user, location.pathname]);
