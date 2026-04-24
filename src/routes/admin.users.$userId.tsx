@@ -75,7 +75,8 @@ function UserDetailPage() {
       ]);
       setProfile((pRes.data as Profile | null) ?? null);
       setAddresses((aRes.data ?? []) as Address[]);
-      setOrders((oRes.data ?? []) as Order[]);
+      const verifiedOrders = ((oRes.data ?? []) as Order[]).filter((order) => order.payment_status === "paid");
+      setOrders(verifiedOrders);
       setWishlist((wRes.data ?? []) as unknown as WishlistRow[]);
       setRoles(((rRes.data ?? []) as RoleRow[]).map((r) => r.role));
       setLoading(false);
@@ -93,8 +94,7 @@ function UserDetailPage() {
       </div>
     );
 
-  const paidOrders = orders.filter((o) => o.payment_status === "paid");
-  const totalSpent = paidOrders.reduce((s, o) => s + Number(o.total), 0);
+  const totalSpent = orders.reduce((s, o) => s + Number(o.total), 0);
   const deliveredCount = orders.filter((o) => o.delivery_stage === "delivered").length;
 
   return (
