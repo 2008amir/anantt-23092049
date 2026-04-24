@@ -140,6 +140,7 @@ function ProfileHome() {
 
       <div className="mx-5 mt-4 divide-y divide-border border border-border bg-card/40">
         <Row to="/account/your-orders" icon={<Package className="h-5 w-5" strokeWidth={1.5} />} label="Your Orders" badge={orderCount > 0 ? String(orderCount) : undefined} onPress={trackAccountNavigation} />
+        <Row to="/account/enrolled" icon={<Gift className="h-5 w-5" strokeWidth={1.5} />} label="Enrolled Rewards" onPress={trackAccountNavigation} />
         <Row to="/account/messages" icon={<MessageSquare className="h-5 w-5" strokeWidth={1.5} />} label="Messages" onPress={trackAccountNavigation} />
         <Row to="/account/wishlist" icon={<Star className="h-5 w-5" strokeWidth={1.5} />} label="Reviews" onPress={trackAccountNavigation} />
       </div>
