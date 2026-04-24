@@ -86,23 +86,20 @@ function ExpiredPage() {
           <div className="space-y-3">
             {rows.map((row) => {
               const task = row.task;
-              if (!task) return null;
-              return (
-                <Link
-                  key={row.id}
-                  to="/account/reward/$id"
-                  params={{ id: task.id }}
-                  className="flex items-center gap-4 border border-border bg-card/40 p-4 opacity-75 transition-smooth hover:border-primary hover:opacity-100"
-                >
-                  {task.image ? (
+              const title = task?.title ?? "Removed reward";
+              const image = task?.image ?? null;
+              const taskType = task?.task_type ?? "referral";
+              const content = (
+                <>
+                  {image ? (
                     <img
-                      src={task.image}
+                      src={image}
                       alt=""
                       className="h-16 w-16 shrink-0 rounded object-cover grayscale"
                     />
                   ) : (
                     <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded bg-muted">
-                      {task.task_type === "referral" ? (
+                      {taskType === "referral" ? (
                         <Users className="h-6 w-6 text-muted-foreground" />
                       ) : (
                         <ShoppingBag className="h-6 w-6 text-muted-foreground" />
@@ -110,12 +107,32 @@ function ExpiredPage() {
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{task.title}</p>
+                    <p className="truncate font-medium">{title}</p>
                     <p className="mt-1 text-[11px] uppercase tracking-wider text-destructive">
-                      Expired
+                      {task ? "Expired" : "Expired · No longer available"}
                     </p>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </>
+              );
+              if (!task) {
+                return (
+                  <div
+                    key={row.id}
+                    className="flex items-center gap-4 border border-border bg-card/40 p-4 opacity-60"
+                  >
+                    {content}
+                  </div>
+                );
+              }
+              return (
+                <Link
+                  key={row.id}
+                  to="/account/reward/$id"
+                  params={{ id: task.id }}
+                  className="flex items-center gap-4 border border-border bg-card/40 p-4 opacity-75 transition-smooth hover:border-primary hover:opacity-100"
+                >
+                  {content}
                 </Link>
               );
             })}
