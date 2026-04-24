@@ -61,6 +61,7 @@ function ProfileHome() {
   const [orderCount, setOrderCount] = useState(0);
   const [lifetime, setLifetime] = useState(0);
   const [rewardsEarned, setRewardsEarned] = useState(0);
+  const [unread, setUnread] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -83,6 +84,13 @@ function ProfileHome() {
         );
         setRewardsEarned(delivered.length);
       });
+    // Unread notifications badge
+    void supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("read", false)
+      .then(({ count }) => setUnread(count ?? 0));
   }, [user]);
 
   if (!user) return null;
