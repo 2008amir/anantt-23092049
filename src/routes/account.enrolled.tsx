@@ -132,9 +132,6 @@ function EnrolledPage() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{task.title}</p>
                     <p
-                      className="mt-1 hidden"
-                    />
-                    <p
                       className={`mt-1 text-[11px] uppercase tracking-wider ${
                         completed
                           ? "text-primary"
