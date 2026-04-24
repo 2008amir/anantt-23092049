@@ -1,6 +1,7 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import appCss from "../styles.css?url";
 import { StoreProvider } from "@/lib/store";
+import { ThemeProvider } from "@/lib/theme";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Splash } from "@/components/Splash";
@@ -83,21 +84,23 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   return (
-    <StoreProvider>
-      <ActivityTracker />
-      <ReferralCapture />
-      <Splash>
-        <div className="flex flex-col bg-background" style={{ minHeight: "100dvh" }}>
-          <Header />
-          <main className="flex-1">
-            <Outlet />
-          </main>
-          <CartBubble />
-          <Footer />
-          <Toaster position="top-center" richColors closeButton />
-        </div>
-      </Splash>
-    </StoreProvider>
+    <ThemeProvider>
+      <StoreProvider>
+        <ActivityTracker />
+        <ReferralCapture />
+        <Splash>
+          <div className="flex flex-col bg-background" style={{ minHeight: "100dvh" }}>
+            <Header />
+            <main className="flex-1">
+              <Outlet />
+            </main>
+            <CartBubble />
+            <Footer />
+            <Toaster position="top-center" richColors closeButton />
+          </div>
+        </Splash>
+      </StoreProvider>
+    </ThemeProvider>
   );
 }
 

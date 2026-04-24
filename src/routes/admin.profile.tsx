@@ -1,9 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { User, Lock, Save, LogOut } from "lucide-react";
+import { User, Lock, Save, LogOut, Palette } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const Route = createFileRoute("/admin/profile")({
   component: AdminProfilePage,
@@ -77,6 +78,18 @@ function AdminProfilePage() {
       <div>
         <h1 className="font-serif text-3xl text-foreground">Profile</h1>
         <p className="mt-1 text-sm text-muted-foreground">Manage your admin account.</p>
+      </div>
+
+      {/* Appearance */}
+      <div className="rounded-lg border border-border/40 bg-card p-6">
+        <div className="mb-4 flex items-center gap-2">
+          <Palette className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-medium uppercase tracking-wider">Appearance</h2>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">Theme</p>
+          <ThemeToggle />
+        </div>
       </div>
 
       {/* Account info */}

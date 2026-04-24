@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/lib/store";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const Route = createFileRoute("/deliverer")({
   head: () => ({
@@ -195,12 +196,15 @@ function DelivererDashboard() {
             {active.length} active · {done.length} delivered
           </p>
         </div>
-        <button
-          onClick={() => void signOut().then(() => navigate({ to: "/" }))}
-          className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-xs uppercase tracking-wider hover:bg-muted"
-        >
-          <LogOut className="h-3.5 w-3.5" /> Sign out
-        </button>
+        <div className="flex items-center gap-2">
+          <ThemeToggle variant="compact" />
+          <button
+            onClick={() => void signOut().then(() => navigate({ to: "/" }))}
+            className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-xs uppercase tracking-wider hover:bg-muted"
+          >
+            <LogOut className="h-3.5 w-3.5" /> Sign out
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}

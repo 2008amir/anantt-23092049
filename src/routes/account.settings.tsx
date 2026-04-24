@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/lib/store";
 import { initFlutterwave, verifyFlutterwave } from "@/lib/flutterwave.functions";
 import { openFlutterwavePopup } from "@/lib/flutterwave-popup";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const Route = createFileRoute("/account/settings")({
   component: SettingsPanel,
@@ -251,6 +252,14 @@ function SettingsPanel() {
           <Field label="New Password" type="password" />
           <Field label="Confirm Password" type="password" />
         </Section>
+
+        <div className="border border-border p-6">
+          <p className="text-xs uppercase tracking-[0.25em] text-primary">Appearance</p>
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">Theme</p>
+            <ThemeToggle />
+          </div>
+        </div>
 
         <div className="flex flex-wrap items-center gap-3 border-t border-border pt-6">
           <button
