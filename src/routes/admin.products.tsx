@@ -587,16 +587,18 @@ function AddProductForm({ onCreated }: { onCreated: () => void }) {
         </div>
         {aiOpen && (
           <div className="mt-2 grid gap-3 rounded-md border border-border/40 bg-muted/30 p-4 sm:grid-cols-3">
-            <NumberField label="How many countries" value={aiCountries} onChange={setAiCountries} />
-            <NumberField label="How many messages" value={aiMessages} onChange={setAiMessages} />
-            <div className="flex items-end">
+            <div className="sm:col-span-2">
+              <CountryMultiSelect value={aiCountries} onChange={setAiCountries} />
+            </div>
+            <NumberField label="Messages per country" value={aiMessages} onChange={setAiMessages} />
+            <div className="flex items-end sm:col-span-3">
               <button
                 onClick={() => void generateReviews()}
                 disabled={aiLoading}
                 className="inline-flex w-full items-center justify-center gap-1 rounded-md bg-primary px-3 py-2 text-xs text-primary-foreground hover:opacity-90 disabled:opacity-60"
               >
                 {aiLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                Generate
+                Generate {aiCountries.length > 0 ? `${aiCountries.length * (Number(aiMessages) || 0)} reviews` : ""}
               </button>
             </div>
           </div>
