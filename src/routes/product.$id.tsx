@@ -216,20 +216,27 @@ function ProductPage() {
 
           <div className="mt-6 flex items-center gap-4">
             <div className="flex items-center border border-border">
-              <button type="button" onClick={() => setQty((q) => Math.max(1, q - 1))} className="p-3 text-muted-foreground transition-smooth hover:text-primary" aria-label="Decrease">
+              <button type="button" onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={qty <= 1} className="p-3 text-muted-foreground transition-smooth hover:text-primary disabled:opacity-40 disabled:hover:text-muted-foreground" aria-label="Decrease">
                 <Minus className="h-3 w-3" />
               </button>
               <span className="w-10 text-center text-sm">{qty}</span>
-              <button type="button" onClick={() => setQty((q) => q + 1)} className="p-3 text-muted-foreground transition-smooth hover:text-primary" aria-label="Increase">
+              <button
+                type="button"
+                onClick={() => setQty((q) => Math.min(product.stock || q, q + 1))}
+                disabled={product.stock > 0 && qty >= product.stock}
+                className="p-3 text-muted-foreground transition-smooth hover:text-primary disabled:opacity-40 disabled:hover:text-muted-foreground"
+                aria-label="Increase"
+              >
                 <Plus className="h-3 w-3" />
               </button>
             </div>
             <button
               type="button"
               onClick={handleAddToCart}
-              className="flex-1 bg-gold-gradient px-8 py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold transition-smooth hover:opacity-90"
+              disabled={product.stock <= 0}
+              className="flex-1 bg-gold-gradient px-8 py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold transition-smooth hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Add to Cart
+              {product.stock <= 0 ? "Out of Stock" : "Add to Cart"}
             </button>
             <button
               type="button"
