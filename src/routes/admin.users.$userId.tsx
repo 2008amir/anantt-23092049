@@ -66,6 +66,7 @@ function UserDetailPage() {
           .from("orders")
           .select("id, total, status, payment_status, delivery_stage, created_at")
           .eq("user_id", userId)
+          .eq("payment_status", "paid")
           .order("created_at", { ascending: false }),
         supabase
           .from("wishlist")
@@ -75,8 +76,7 @@ function UserDetailPage() {
       ]);
       setProfile((pRes.data as Profile | null) ?? null);
       setAddresses((aRes.data ?? []) as Address[]);
-      const verifiedOrders = ((oRes.data ?? []) as Order[]).filter((order) => order.payment_status === "paid");
-      setOrders(verifiedOrders);
+      setOrders((oRes.data ?? []) as Order[]);
       setWishlist((wRes.data ?? []) as unknown as WishlistRow[]);
       setRoles(((rRes.data ?? []) as RoleRow[]).map((r) => r.role));
       setLoading(false);
