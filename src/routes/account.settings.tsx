@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/lib/store";
 import { initFlutterwave, verifyFlutterwave } from "@/lib/flutterwave.functions";
 import { openFlutterwavePopup } from "@/lib/flutterwave-popup";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const Route = createFileRoute("/account/settings")({
   component: SettingsPanel,
