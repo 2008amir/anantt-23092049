@@ -44,17 +44,24 @@ function EnrolledPage() {
         ]);
         if (cancelled) return;
         setReferrals(refs);
-        if (enrollments.length === 0) {
+        // Exclude expired (unclaimed) ones — they live on /account/expired
+        const active = enrollments.filter(
+          (e) =>
+            e.status === "completed" ||
+            e.expires_at === null ||
+            new Date(e.expires_at) >= new Date(),
+        );
+        if (active.length === 0) {
           setRows([]);
           return;
         }
         const { data: tasks } = await supabase
           .from("rewards")
           .select("*")
-          .in("id", enrollments.map((e) => e.reward_id));
+          .in("id", active.map((e) => e.reward_id));
         const map = new Map<string, RewardTask>();
         for (const t of (tasks ?? []) as unknown as RewardTask[]) map.set(t.id, t);
-        setRows(enrollments.map((e) => ({ ...e, task: map.get(e.reward_id) ?? null })));
+        setRows(active.map((e) => ({ ...e, task: map.get(e.reward_id) ?? null })));
       } catch (err) {
         console.error(err);
       } finally {
