@@ -23,7 +23,6 @@ import {
   type Referral,
   type RewardTask,
 } from "@/lib/rewards";
-import { formatNaira } from "@/lib/price";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/account/reward/$id")({
