@@ -83,6 +83,28 @@ function ClaimPage() {
     if (!product) return;
     setPlacing(true);
     try {
+      // Require a saved shipping address before we can move to "Processing"
+      const { data: addrs } = await supabase
+        .from("addresses")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("is_default", { ascending: false });
+      const list = (addrs ?? []) as Array<{
+        first_name: string;
+        last_name: string;
+        phone: string;
+        address_line: string;
+        city: string;
+        state: string;
+        country: string;
+      }>;
+      if (list.length === 0) {
+        toast.error("Please add a shipping address first.");
+        navigate({ to: "/account/addresses" });
+        return;
+      }
+      const a = list[0];
+
       const { data: order, error } = await supabase
         .from("orders")
         .insert({
@@ -99,6 +121,14 @@ function ClaimPage() {
             reward_claim: true,
             enrollment_id: enrollment.id,
             task_title: task.title,
+            name: `${a.first_name} ${a.last_name}`.trim(),
+            first_name: a.first_name,
+            last_name: a.last_name,
+            phone: a.phone,
+            address: a.address_line,
+            state: a.state,
+            city: a.city,
+            country: a.country,
           },
         })
         .select()
@@ -130,7 +160,6 @@ function ClaimPage() {
       navigate({ to: "/orders/$id", params: { id: order.id } });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to claim");
-      // Cancel flow → enrolled list per spec
       navigate({ to: "/account/enrolled" });
     } finally {
       setPlacing(false);
