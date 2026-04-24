@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Gift } from "lucide-react";
-import { fetchActiveTasks, type RewardTask } from "@/lib/rewards";
+import { useStore } from "@/lib/store";
+import { fetchActiveTasks, fetchEnrollments, type RewardTask } from "@/lib/rewards";
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -13,6 +14,7 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 export function RewardStrip() {
+  const { user } = useStore();
   const [tasks, setTasks] = useState<RewardTask[]>([]);
   const [index, setIndex] = useState(0);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
@@ -23,7 +25,25 @@ export function RewardStrip() {
       try {
         const list = await fetchActiveTasks();
         if (cancelled) return;
-        setTasks(shuffle(list));
+        // Signed-in users see all referral tasks plus any purchase tasks
+        // they haven't already enrolled in. Anonymous visitors see every
+        // active task — the strip simply starts showing up as soon as they
+        // create an account, without extra work.
+        let visible = list;
+        if (user) {
+          const enrollments = await fetchEnrollments(user.id);
+          const enrolledPurchase = new Set(
+            enrollments
+              .filter((e) => {
+                const t = list.find((x) => x.id === e.reward_id);
+                return t?.task_type === "purchase";
+              })
+              .map((e) => e.reward_id),
+          );
+          visible = list.filter((t) => !enrolledPurchase.has(t.id));
+        }
+        if (cancelled) return;
+        setTasks(shuffle(visible));
       } catch (err) {
         console.error("reward strip", err);
       }
@@ -31,7 +51,7 @@ export function RewardStrip() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [user]);
 
   const count = tasks.length;
   const [lastInteract, setLastInteract] = useState(0);
