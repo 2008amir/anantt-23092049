@@ -60,7 +60,17 @@ type StoreState = {
   clearCart: () => Promise<void>;
   toggleWishlist: (productId: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, displayName?: string) => Promise<void>;
+  signUp: (
+    email: string,
+    password: string,
+    extra?: {
+      displayName?: string;
+      firstName?: string;
+      lastName?: string;
+      country?: string;
+      referralCode?: string;
+    },
+  ) => Promise<void>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -248,38 +258,80 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   }, []);
 
-  const signUp = useCallback(async (email: string, password: string, displayName?: string) => {
-    const redirectUrl = typeof window !== "undefined" ? `${window.location.origin}/` : undefined;
-    // Pull pending referral code captured from ?ref= on the landing page
-    let ref: string | null = null;
-    if (typeof window !== "undefined") {
-      try {
-        ref = localStorage.getItem("ml_ref_code");
-      } catch {
-        // ignore
-      }
-    }
-    const meta: Record<string, string> = {};
-    if (displayName) meta.display_name = displayName;
-    if (ref) meta.ref = ref;
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: Object.keys(meta).length ? meta : undefined,
+  const signUp = useCallback(
+    async (
+      email: string,
+      password: string,
+      extra?: {
+        displayName?: string;
+        firstName?: string;
+        lastName?: string;
+        country?: string;
+        referralCode?: string;
       },
-    });
-    if (error) throw error;
-    // Clear referral code after successful signup attempt
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.removeItem("ml_ref_code");
-      } catch {
-        // ignore
+    ) => {
+      const redirectUrl =
+        typeof window !== "undefined" ? `${window.location.origin}/` : undefined;
+
+      // Referral code: prefer form input, fall back to captured ?ref=
+      let ref: string | null = extra?.referralCode?.trim() || null;
+      if (!ref && typeof window !== "undefined") {
+        try {
+          ref = localStorage.getItem("ml_ref_code");
+        } catch {
+          // ignore
+        }
       }
-    }
-  }, []);
+
+      // Device fingerprint — collect before signup so trigger can dedupe
+      const { collectDeviceSignals } = await import("./device-fingerprint");
+      const device = await collectDeviceSignals();
+
+      const meta: Record<string, string> = {};
+      if (extra?.displayName) meta.display_name = extra.displayName;
+      if (extra?.firstName) meta.first_name = extra.firstName;
+      if (extra?.lastName) meta.last_name = extra.lastName;
+      if (extra?.country) meta.country = extra.country;
+      if (ref) meta.ref = ref;
+      meta.device_fp = device.fingerprint;
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: meta,
+        },
+      });
+      if (error) throw error;
+
+      // Register device fingerprint (best-effort). RLS allows owner insert.
+      if (data.user?.id) {
+        try {
+          await supabase.from("referral_devices").insert({
+            fingerprint: device.fingerprint,
+            user_id: data.user.id,
+            ip: device.ip,
+            user_agent: device.user_agent,
+            platform: device.platform,
+            hardware: device.hardware,
+          });
+        } catch {
+          // duplicate fingerprint is expected on repeat signups — ignore
+        }
+      }
+
+      // Clear captured referral code after successful signup attempt
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.removeItem("ml_ref_code");
+        } catch {
+          // ignore
+        }
+      }
+    },
+    [],
+  );
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
