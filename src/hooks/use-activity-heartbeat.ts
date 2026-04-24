@@ -15,12 +15,32 @@ export function useActivityHeartbeat() {
 
   useEffect(() => {
     if (!user) return;
+    void pingActivity();
+  }, [user, location.pathname]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const handleActivity = () => {
+      void pingActivity();
+    };
+
+    window.addEventListener("pointerdown", handleActivity, { passive: true });
+    window.addEventListener("keydown", handleActivity);
+
+    return () => {
+      window.removeEventListener("pointerdown", handleActivity);
+      window.removeEventListener("keydown", handleActivity);
+    };
+  }, [user]);
+
+  async function pingActivity() {
     const now = Date.now();
-    if (now - lastPingRef.current < 60_000) return;
+    if (now - lastPingRef.current < 5_000) return;
     lastPingRef.current = now;
     void supabase
       .from("profiles")
       .update({ updated_at: new Date().toISOString() })
       .eq("id", user.id);
-  }, [user, location.pathname]);
+  }
 }
