@@ -210,14 +210,14 @@ function RewardDetailPage() {
         </div>
       )}
 
-      {/* Not yet enrolled */}
-      {!enrollment && (
+      {/* Not yet enrolled — or referral task where user can start again */}
+      {(!enrollment || (task.task_type === "referral" && (!!completed || !!expired))) && (
         <button
           onClick={() => void start()}
           disabled={starting}
           className="mt-6 w-full bg-gold-gradient py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold transition-smooth hover:opacity-90 disabled:opacity-60"
         >
-          {starting ? "Starting…" : "Start task"}
+          {starting ? "Starting…" : enrollment ? "Start another" : "Start task"}
         </button>
       )}
 
