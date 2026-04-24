@@ -3,7 +3,7 @@ import { Truck, ShieldCheck, ShoppingBag, Flame, Star, Award, Loader2 } from "lu
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore, useProducts } from "@/lib/store";
-import { useAICategories } from "@/hooks/use-ai-categories";
+import { useCategories } from "@/hooks/use-categories";
 import { personalizedFeed } from "@/lib/ai.functions";
 import { flyToCart } from "@/components/CartBubble";
 
@@ -28,7 +28,7 @@ function Index() {
   const { products, loading } = useProducts();
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("all");
   const [cat, setCat] = useState<string>("All");
-  const { categories: aiCategories } = useAICategories();
+  const { categories: aiCategories } = useCategories();
   const [personalizedOrder, setPersonalizedOrder] = useState<string[] | null>(null);
 
   useEffect(() => {

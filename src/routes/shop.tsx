@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { type Product } from "@/lib/products";
 import { textSearch } from "@/lib/ai.functions";
-import { useAICategories } from "@/hooks/use-ai-categories";
+import { useCategories } from "@/hooks/use-categories";
 import { useProducts } from "@/lib/store";
 
 
@@ -25,7 +25,7 @@ export const Route = createFileRoute("/shop")({
 
 function Shop() {
   const { category, q } = Route.useSearch();
-  const { categories: aiCategories, loading: catsLoading } = useAICategories();
+  const { categories: aiCategories, loading: catsLoading } = useCategories();
   const { products } = useProducts();
 
   const [aiIds, setAiIds] = useState<string[] | null>(null);
