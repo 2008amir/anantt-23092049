@@ -288,89 +288,90 @@ function ReferralView({
   expired: boolean;
 }) {
   const goal = task.referral_goal ?? 0;
-  // Progress bar shows count but never reveals the raw target (per spec)
   const pct = progressPercent(referrals.length, goal);
   const link = referralLink(enrollment.referral_code);
 
+  // Fetch invited users (name/email) for this enrollment
+  const [invited, setInvited] = useState<{ id: string; first_name: string | null; last_name: string | null; display_name: string | null; email: string | null }[]>([]);
+  useEffect(() => {
+    if (referrals.length === 0) {
+      setInvited([]);
+      return;
+    }
+    const ids = referrals.map((r) => r.referred_user_id);
+    void supabase
+      .from("profiles")
+      .select("id, first_name, last_name, display_name, email")
+      .in("id", ids)
+      .then(({ data }) => setInvited((data ?? []) as typeof invited));
+  }, [referrals]);
+
   return (
     <div className="mt-6 space-y-5">
-      {/* Progress bar (hides actual goal per spec) */}
       <div>
         <div className="flex items-center justify-between text-[11px] uppercase tracking-wider text-muted-foreground">
           <span>Progress</span>
           <span className="text-primary">{pct.toFixed(pct === 100 ? 0 : 1)}%</span>
         </div>
         <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-gold-gradient transition-all duration-700"
-            style={{ width: `${pct}%` }}
-          />
+          <div className="h-full rounded-full bg-gold-gradient transition-all duration-700" style={{ width: `${pct}%` }} />
         </div>
         {task.require_purchase && !completed && (
           <p className="mt-2 text-[11px] text-muted-foreground">
-            Referred friends must complete a paid order to count fully. Tell your
-            friends to start their order.
+            Referred friends must complete a paid order to count fully.
           </p>
         )}
       </div>
 
-      {/* Referral code */}
       <div className="rounded-md border border-border bg-card/50 p-4">
-        <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-          Your referral code
-        </p>
+        <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Your referral code</p>
         <div className="mt-2 flex items-center gap-2">
-          <p className="flex-1 font-mono text-lg tracking-widest text-foreground">
-            {enrollment.referral_code}
-          </p>
-          <button
-            type="button"
-            onClick={() => onCopy(enrollment.referral_code, "code")}
-            className="flex items-center gap-1 rounded-md border border-border px-3 py-2 text-xs uppercase tracking-wider transition-smooth hover:border-primary hover:text-primary"
-          >
-            {copied === "code" ? (
-              <>
-                <Check className="h-3.5 w-3.5" /> Copied
-              </>
-            ) : (
-              <>
-                <Copy className="h-3.5 w-3.5" /> Copy code
-              </>
-            )}
+          <p className="flex-1 font-mono text-lg tracking-widest text-foreground">{enrollment.referral_code}</p>
+          <button type="button" onClick={() => onCopy(enrollment.referral_code, "code")} className="flex items-center gap-1 rounded-md border border-border px-3 py-2 text-xs uppercase tracking-wider transition-smooth hover:border-primary hover:text-primary">
+            {copied === "code" ? (<><Check className="h-3.5 w-3.5" /> Copied</>) : (<><Copy className="h-3.5 w-3.5" /> Copy code</>)}
           </button>
         </div>
       </div>
 
-      {/* Referral link */}
       <div className="rounded-md border border-border bg-card/50 p-4">
-        <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-          Your referral link
-        </p>
+        <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Your referral link</p>
         <p className="mt-2 break-all text-sm text-foreground">{link}</p>
         <div className="mt-3 flex gap-2">
-          <button
-            type="button"
-            onClick={() => onCopy(link, "link")}
-            className="flex flex-1 items-center justify-center gap-1 rounded-md border border-border px-3 py-2 text-xs uppercase tracking-wider transition-smooth hover:border-primary hover:text-primary"
-          >
-            {copied === "link" ? (
-              <>
-                <Check className="h-3.5 w-3.5" /> Copied
-              </>
-            ) : (
-              <>
-                <Copy className="h-3.5 w-3.5" /> Copy link
-              </>
-            )}
+          <button type="button" onClick={() => onCopy(link, "link")} className="flex flex-1 items-center justify-center gap-1 rounded-md border border-border px-3 py-2 text-xs uppercase tracking-wider transition-smooth hover:border-primary hover:text-primary">
+            {copied === "link" ? (<><Check className="h-3.5 w-3.5" /> Copied</>) : (<><Copy className="h-3.5 w-3.5" /> Copy link</>)}
           </button>
-          <button
-            type="button"
-            onClick={() => onShare(link, task.title)}
-            className="flex flex-1 items-center justify-center gap-1 rounded-md bg-gold-gradient px-3 py-2 text-xs uppercase tracking-wider text-primary-foreground shadow-gold transition-smooth hover:opacity-90"
-          >
+          <button type="button" onClick={() => onShare(link, task.title)} className="flex flex-1 items-center justify-center gap-1 rounded-md bg-gold-gradient px-3 py-2 text-xs uppercase tracking-wider text-primary-foreground shadow-gold transition-smooth hover:opacity-90">
             <Share2 className="h-3.5 w-3.5" /> Share referral link
           </button>
         </div>
+      </div>
+
+      {/* Invited users */}
+      <div className="rounded-md border border-border bg-card/50 p-4">
+        <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+          People you invited ({invited.length})
+        </p>
+        {invited.length === 0 ? (
+          <p className="mt-2 text-sm text-muted-foreground">No one has signed up with your link yet.</p>
+        ) : (
+          <ul className="mt-3 divide-y divide-border">
+            {invited.map((p) => {
+              const name = [p.first_name, p.last_name].filter(Boolean).join(" ") || p.display_name || "Friend";
+              const ref = referrals.find((r) => r.referred_user_id === p.id);
+              return (
+                <li key={p.id} className="flex items-center justify-between py-2 text-sm">
+                  <div className="min-w-0">
+                    <p className="truncate text-foreground">{name}</p>
+                    <p className="truncate text-xs text-muted-foreground">{p.email ?? "—"}</p>
+                  </div>
+                  {ref?.has_purchased && (
+                    <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-primary">Purchased</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
 
       {expired && !completed && (
