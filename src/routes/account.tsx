@@ -63,6 +63,7 @@ function ProfileHome() {
   const [rewardsEarned, setRewardsEarned] = useState(0);
   const [unread, setUnread] = useState(0);
 
+  const { location } = useRouterState();
   useEffect(() => {
     if (!user) return;
     void supabase
@@ -72,26 +73,29 @@ function ProfileHome() {
       .then(({ data }) => {
         if (!data) return;
         setOrderCount(data.length);
-        // Credit Balance: only successful (paid) transactions
         const paid = data.filter(
           (o: { payment_status?: string | null }) => o.payment_status === "paid",
         );
         setLifetime(paid.reduce((s: number, o: { total: number | string }) => s + Number(o.total), 0));
-        // Privileges & Offers: rewards earned = successfully delivered + paid orders
         const delivered = data.filter(
           (o: { payment_status?: string | null; delivery_stage?: string | null }) =>
             o.payment_status === "paid" && o.delivery_stage === "delivered",
         );
         setRewardsEarned(delivered.length);
       });
-    // Unread notifications badge
-    void supabase
-      .from("notifications")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .eq("read", false)
-      .then(({ count }) => setUnread(count ?? 0));
-  }, [user]);
+    // Refetch unread badge whenever this page becomes active OR window refocuses
+    const fetchUnread = () =>
+      supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("read", false)
+        .then(({ count }) => setUnread(count ?? 0));
+    void fetchUnread();
+    const onFocus = () => void fetchUnread();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [user, location.pathname]);
 
   if (!user) return null;
   const displayName = profile?.display_name ?? user.email?.split("@")[0] ?? "Guest";

@@ -256,13 +256,26 @@ function RewardsPage() {
                 required
               />
             </Field>
-            <Field label="Image URL (optional)">
-              <input
-                value={form.image}
-                onChange={(e) => setForm({ ...form, image: e.target.value })}
-                className="input"
-                placeholder="https://…"
-              />
+            <Field label="Image (optional)">
+              <div className="space-y-2">
+                {form.image && (
+                  <img src={form.image} alt="" className="h-24 w-24 rounded object-cover border border-border/40" />
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const path = `rewards/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+                    const { error: upErr } = await supabase.storage.from("product-images").upload(path, file, { cacheControl: "3600", upsert: false });
+                    if (upErr) { setError(upErr.message); return; }
+                    const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+                    setForm((f) => ({ ...f, image: urlData.publicUrl }));
+                  }}
+                  className="text-xs"
+                />
+              </div>
             </Field>
           </div>
 

@@ -9,6 +9,8 @@ export const Route = createFileRoute("/admin/orders")({
   component: OrdersPage,
 });
 
+type OrderItem = { product_id: string; product_name: string; product_image: string; quantity: number };
+
 type Order = {
   id: string;
   user_id: string;
@@ -19,6 +21,7 @@ type Order = {
   deliverer_id: string | null;
   shipping_address: { first_name?: string; last_name?: string; state?: string; city?: string } | null;
   created_at: string;
+  order_items: OrderItem[];
 };
 
 type Deliverer = { id: string; name: string; phone: string; state: string; city: string | null };
@@ -36,10 +39,14 @@ function OrdersPage() {
   const reload = async () => {
     setLoading(true);
     const [ordersRes, delRes] = await Promise.all([
-      supabase.from("orders").select("*").eq("payment_status", "paid").order("created_at", { ascending: false }),
+      supabase
+        .from("orders")
+        .select("*, order_items(product_id, product_name, product_image, quantity)")
+        .eq("payment_status", "paid")
+        .order("created_at", { ascending: false }),
       supabase.from("deliverers").select("*").eq("active", true),
     ]);
-    const ordersList = (ordersRes.data ?? []) as Order[];
+    const ordersList = (ordersRes.data ?? []) as unknown as Order[];
     const userIds = Array.from(new Set(ordersList.map((o) => o.user_id)));
     const profRes = userIds.length
       ? await supabase.from("profiles").select("id, display_name, email").in("id", userIds)
@@ -177,6 +184,23 @@ function OrdersPage() {
                     <StatusPill stage={order.delivery_stage} />
                   </div>
                 </div>
+
+                {order.order_items && order.order_items.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {order.order_items.slice(0, 6).map((it) => (
+                      <div key={it.product_id + it.product_name} className="flex items-center gap-2 rounded-md border border-border/40 bg-background/50 px-2 py-1">
+                        <img src={it.product_image} alt="" className="h-10 w-10 rounded object-cover" />
+                        <div className="text-xs">
+                          <p className="line-clamp-1 max-w-[140px] text-foreground">{it.product_name}</p>
+                          <p className="text-muted-foreground">×{it.quantity}</p>
+                        </div>
+                      </div>
+                    ))}
+                    {order.order_items.length > 6 && (
+                      <span className="self-center text-xs text-muted-foreground">+{order.order_items.length - 6} more</span>
+                    )}
+                  </div>
+                )}
 
                 {tab === "current" && (
                   <div className="mt-4 border-t border-border/40 pt-4">

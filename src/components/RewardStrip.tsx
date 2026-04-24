@@ -104,10 +104,12 @@ export function RewardStrip() {
   return (
     <div className="mx-auto mt-3 max-w-5xl px-2">
       <div
-        className="overflow-hidden rounded-2xl border border-primary/30 bg-card/30 p-2 shadow-luxury backdrop-blur-md"
+        className="overflow-hidden rounded-2xl border-2 border-primary/60 p-2 shadow-luxury backdrop-blur-md"
         style={{
           backgroundImage:
-            "linear-gradient(135deg, color-mix(in oklab, var(--primary) 8%, transparent), color-mix(in oklab, var(--primary) 2%, transparent))",
+            "linear-gradient(135deg, color-mix(in oklab, var(--primary) 28%, transparent), color-mix(in oklab, var(--primary) 12%, transparent), color-mix(in oklab, var(--primary) 22%, transparent))",
+          boxShadow:
+            "0 8px 24px -8px color-mix(in oklab, var(--primary) 40%, transparent), inset 0 0 0 1px color-mix(in oklab, var(--primary) 35%, transparent)",
         }}
       >
         <div
