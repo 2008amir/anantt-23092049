@@ -61,6 +61,7 @@ function ProfileHome() {
   const [orderCount, setOrderCount] = useState(0);
   const [lifetime, setLifetime] = useState(0);
   const [rewardsEarned, setRewardsEarned] = useState(0);
+  const [unread, setUnread] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -83,6 +84,13 @@ function ProfileHome() {
         );
         setRewardsEarned(delivered.length);
       });
+    // Unread notifications badge
+    void supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("read", false)
+      .then(({ count }) => setUnread(count ?? 0));
   }, [user]);
 
   if (!user) return null;
@@ -116,7 +124,11 @@ function ProfileHome() {
           className="relative flex h-10 w-10 items-center justify-center rounded-full border border-border text-foreground transition-smooth hover:border-primary hover:text-primary"
         >
           <Bell className="h-5 w-5" strokeWidth={1.5} />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />
+          {unread > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+              {unread > 9 ? "9+" : unread}
+            </span>
+          )}
         </button>
       </div>
 

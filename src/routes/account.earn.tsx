@@ -35,7 +35,17 @@ function EarnFreePage() {
     };
   }, [user]);
 
-  const enrolledIds = new Set(enrollments.map((e) => e.reward_id));
+  // Only purchase tasks disappear once enrolled. Referral tasks can be
+  // enrolled multiple times, so they always remain visible in the list.
+  const enrolledPurchaseIds = new Set(
+    enrollments
+      .filter((e) => {
+        const task = tasks.find((t) => t.id === e.reward_id);
+        return task?.task_type === "purchase";
+      })
+      .map((e) => e.reward_id),
+  );
+  const visibleTasks = tasks.filter((t) => !enrolledPurchaseIds.has(t.id));
 
   return (
     <div>
@@ -59,7 +69,7 @@ function EarnFreePage() {
           <div className="flex justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
-        ) : tasks.length === 0 ? (
+        ) : visibleTasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-4 border border-dashed border-border bg-card/30 px-6 py-20 text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gold-gradient/10">
               <Gift className="h-7 w-7 text-primary" strokeWidth={1.5} />
@@ -73,7 +83,7 @@ function EarnFreePage() {
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
-            {tasks.map((t) => (
+            {visibleTasks.map((t) => (
               <Link
                 key={t.id}
                 to="/account/reward/$id"
@@ -109,7 +119,7 @@ function EarnFreePage() {
                   )}
                   <div className="mt-3 flex items-center justify-end">
                     <span className="flex items-center gap-1 text-[11px] uppercase tracking-wider text-primary">
-                      {enrolledIds.has(t.id) ? "View" : "Start"}
+                      Start
                       <ChevronRight className="h-3.5 w-3.5" />
                     </span>
                   </div>

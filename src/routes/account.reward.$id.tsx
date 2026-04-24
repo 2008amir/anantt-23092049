@@ -53,20 +53,33 @@ function RewardDetailPage() {
       if (!user) return;
       setLoading(true);
       try {
-        const [{ data: taskRow }, { data: existing }] = await Promise.all([
+        const [{ data: taskRow }, { data: allEnrollments }] = await Promise.all([
           supabase.from("rewards").select("*").eq("id", id).maybeSingle(),
           supabase
             .from("reward_enrollments")
             .select("*")
             .eq("user_id", user.id)
             .eq("reward_id", id)
-            .maybeSingle(),
+            .order("started_at", { ascending: false }),
         ]);
-        setTask((taskRow as unknown as RewardTask) ?? null);
-        setEnrollment((existing as Enrollment) ?? null);
-        if (existing) {
+        const row = (taskRow as unknown as RewardTask) ?? null;
+        setTask(row);
+        // For referral tasks the user can enroll many times; we show the most
+        // recent still-active (not expired, not completed) enrollment. For
+        // purchase tasks there is at most one enrollment anyway.
+        const list = (allEnrollments ?? []) as Enrollment[];
+        const active = list.find(
+          (e) =>
+            e.status === "active" &&
+            (!e.expires_at || new Date(e.expires_at) > new Date()),
+        );
+        const shown = active ?? list[0] ?? null;
+        setEnrollment(shown);
+        if (shown) {
           const refs = await fetchReferrals(user.id);
-          setReferrals(refs.filter((r) => r.enrollment_id === (existing as Enrollment).id));
+          setReferrals(refs.filter((r) => r.enrollment_id === shown.id));
+        } else {
+          setReferrals([]);
         }
       } finally {
         setLoading(false);
@@ -112,6 +125,7 @@ function RewardDetailPage() {
     try {
       const created = await enrollInTask(user.id, task);
       setEnrollment(created);
+      setReferrals([]);
       toast.success("Task started");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to start");
@@ -197,14 +211,14 @@ function RewardDetailPage() {
         </div>
       )}
 
-      {/* Not yet enrolled */}
-      {!enrollment && (
+      {/* Not yet enrolled — or referral task where user can start again */}
+      {(!enrollment || (task.task_type === "referral" && (!!completed || !!expired))) && (
         <button
           onClick={() => void start()}
           disabled={starting}
           className="mt-6 w-full bg-gold-gradient py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold transition-smooth hover:opacity-90 disabled:opacity-60"
         >
-          {starting ? "Starting…" : "Start task"}
+          {starting ? "Starting…" : enrollment ? "Start another" : "Start task"}
         </button>
       )}
 

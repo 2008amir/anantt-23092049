@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Gift } from "lucide-react";
-import { fetchActiveTasks, type RewardTask } from "@/lib/rewards";
+import { useStore } from "@/lib/store";
+import { fetchActiveTasks, fetchEnrollments, type RewardTask } from "@/lib/rewards";
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -13,6 +14,7 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 export function RewardStrip() {
+  const { user } = useStore();
   const [tasks, setTasks] = useState<RewardTask[]>([]);
   const [index, setIndex] = useState(0);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
@@ -23,7 +25,25 @@ export function RewardStrip() {
       try {
         const list = await fetchActiveTasks();
         if (cancelled) return;
-        setTasks(shuffle(list));
+        // Signed-in users see all referral tasks plus any purchase tasks
+        // they haven't already enrolled in. Anonymous visitors see every
+        // active task — the strip simply starts showing up as soon as they
+        // create an account, without extra work.
+        let visible = list;
+        if (user) {
+          const enrollments = await fetchEnrollments(user.id);
+          const enrolledPurchase = new Set(
+            enrollments
+              .filter((e) => {
+                const t = list.find((x) => x.id === e.reward_id);
+                return t?.task_type === "purchase";
+              })
+              .map((e) => e.reward_id),
+          );
+          visible = list.filter((t) => !enrolledPurchase.has(t.id));
+        }
+        if (cancelled) return;
+        setTasks(shuffle(visible));
       } catch (err) {
         console.error("reward strip", err);
       }
@@ -31,21 +51,33 @@ export function RewardStrip() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [user]);
 
   const count = tasks.length;
+  const [lastInteract, setLastInteract] = useState(0);
 
-  // Auto-rotate every 30s — reshuffle order each cycle so positions change
+  // Auto-rotate every 10s. Reshuffle positions every full cycle so
+  // the ordering changes across refreshes and over time.
   useEffect(() => {
     if (count <= 1) return;
     const t = setInterval(() => {
-      setTasks((prev) => shuffle(prev));
-      setIndex(0);
       const el = scrollerRef.current;
-      if (el) el.scrollTo({ left: 0, behavior: "smooth" });
-    }, 30000);
+      if (!el) return;
+      setIndex((prev) => {
+        const next = prev + 1;
+        if (next >= count) {
+          // end of list → reshuffle and return to start
+          setTasks((p) => shuffle(p));
+          el.scrollTo({ left: 0, behavior: "smooth" });
+          return 0;
+        }
+        el.scrollTo({ left: next * el.clientWidth, behavior: "smooth" });
+        return next;
+      });
+    }, 10000);
     return () => clearInterval(t);
-  }, [count]);
+    // lastInteract is a dep so manual scroll resets the 10s timer
+  }, [count, lastInteract]);
 
   const onScroll = () => {
     const el = scrollerRef.current;
@@ -54,6 +86,11 @@ export function RewardStrip() {
     if (w === 0) return;
     const i = Math.round(el.scrollLeft / w);
     if (i !== index && i >= 0 && i < count) setIndex(i);
+  };
+
+  // Reset the 10s timer whenever the user manually swipes the carousel.
+  const onManualScroll = () => {
+    setLastInteract(Date.now());
   };
 
   const counterLabel = useMemo(
@@ -76,6 +113,9 @@ export function RewardStrip() {
         <div
           ref={scrollerRef}
           onScroll={onScroll}
+          onTouchStart={onManualScroll}
+          onMouseDown={onManualScroll}
+          onWheel={onManualScroll}
           className="flex snap-x snap-mandatory overflow-x-auto no-scrollbar"
           style={{ scrollBehavior: "smooth" }}
         >

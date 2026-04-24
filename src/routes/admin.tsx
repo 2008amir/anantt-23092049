@@ -11,6 +11,7 @@ import {
   LogOut,
   Gift,
   UserCog,
+  Send,
 } from "lucide-react";
 import { useIsAdmin } from "@/hooks/use-admin";
 import { useStore } from "@/lib/store";
@@ -31,6 +32,7 @@ const NAV = [
   { to: "/admin/orders", label: "Orders", icon: ShoppingBag, exact: false },
   { to: "/admin/products", label: "Products", icon: Package, exact: false },
   { to: "/admin/rewards", label: "Rewards", icon: Gift, exact: false },
+  { to: "/admin/post", label: "Post", icon: Send, exact: false },
   { to: "/admin/deliverers", label: "Deliverers", icon: Truck, exact: false },
   { to: "/admin/users", label: "Users", icon: Users, exact: false },
   { to: "/admin/messages", label: "Messages", icon: MessageSquare, exact: false },

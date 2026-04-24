@@ -29,6 +29,7 @@ import { Route as AdminSearchRouteImport } from './routes/admin.search'
 import { Route as AdminRewardsRouteImport } from './routes/admin.rewards'
 import { Route as AdminProfileRouteImport } from './routes/admin.profile'
 import { Route as AdminProductsRouteImport } from './routes/admin.products'
+import { Route as AdminPostRouteImport } from './routes/admin.post'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminMessagesRouteImport } from './routes/admin.messages'
 import { Route as AdminDeliveryPricesRouteImport } from './routes/admin.delivery-prices'
@@ -148,6 +149,11 @@ const AdminProfileRoute = AdminProfileRouteImport.update({
 const AdminProductsRoute = AdminProductsRouteImport.update({
   id: '/products',
   path: '/products',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPostRoute = AdminPostRouteImport.update({
+  id: '/post',
+  path: '/post',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminOrdersRoute = AdminOrdersRouteImport.update({
@@ -277,6 +283,7 @@ export interface FileRoutesByFullPath {
   '/admin/delivery-prices': typeof AdminDeliveryPricesRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/orders': typeof AdminOrdersRoute
+  '/admin/post': typeof AdminPostRoute
   '/admin/products': typeof AdminProductsRoute
   '/admin/profile': typeof AdminProfileRoute
   '/admin/rewards': typeof AdminRewardsRoute
@@ -317,6 +324,7 @@ export interface FileRoutesByTo {
   '/admin/delivery-prices': typeof AdminDeliveryPricesRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/orders': typeof AdminOrdersRoute
+  '/admin/post': typeof AdminPostRoute
   '/admin/products': typeof AdminProductsRoute
   '/admin/profile': typeof AdminProfileRoute
   '/admin/rewards': typeof AdminRewardsRoute
@@ -360,6 +368,7 @@ export interface FileRoutesById {
   '/admin/delivery-prices': typeof AdminDeliveryPricesRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/orders': typeof AdminOrdersRoute
+  '/admin/post': typeof AdminPostRoute
   '/admin/products': typeof AdminProductsRoute
   '/admin/profile': typeof AdminProfileRoute
   '/admin/rewards': typeof AdminRewardsRoute
@@ -404,6 +413,7 @@ export interface FileRouteTypes {
     | '/admin/delivery-prices'
     | '/admin/messages'
     | '/admin/orders'
+    | '/admin/post'
     | '/admin/products'
     | '/admin/profile'
     | '/admin/rewards'
@@ -444,6 +454,7 @@ export interface FileRouteTypes {
     | '/admin/delivery-prices'
     | '/admin/messages'
     | '/admin/orders'
+    | '/admin/post'
     | '/admin/products'
     | '/admin/profile'
     | '/admin/rewards'
@@ -486,6 +497,7 @@ export interface FileRouteTypes {
     | '/admin/delivery-prices'
     | '/admin/messages'
     | '/admin/orders'
+    | '/admin/post'
     | '/admin/products'
     | '/admin/profile'
     | '/admin/rewards'
@@ -663,6 +675,13 @@ declare module '@tanstack/react-router' {
       path: '/products'
       fullPath: '/admin/products'
       preLoaderRoute: typeof AdminProductsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/post': {
+      id: '/admin/post'
+      path: '/post'
+      fullPath: '/admin/post'
+      preLoaderRoute: typeof AdminPostRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/orders': {
@@ -848,6 +867,7 @@ interface AdminRouteChildren {
   AdminDeliveryPricesRoute: typeof AdminDeliveryPricesRoute
   AdminMessagesRoute: typeof AdminMessagesRoute
   AdminOrdersRoute: typeof AdminOrdersRoute
+  AdminPostRoute: typeof AdminPostRoute
   AdminProductsRoute: typeof AdminProductsRoute
   AdminProfileRoute: typeof AdminProfileRoute
   AdminRewardsRoute: typeof AdminRewardsRoute
@@ -862,6 +882,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminDeliveryPricesRoute: AdminDeliveryPricesRoute,
   AdminMessagesRoute: AdminMessagesRoute,
   AdminOrdersRoute: AdminOrdersRoute,
+  AdminPostRoute: AdminPostRoute,
   AdminProductsRoute: AdminProductsRoute,
   AdminProfileRoute: AdminProfileRoute,
   AdminRewardsRoute: AdminRewardsRoute,
