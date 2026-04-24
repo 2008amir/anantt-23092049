@@ -253,6 +253,14 @@ function SettingsPanel() {
           <Field label="Confirm Password" type="password" />
         </Section>
 
+        <div className="border border-border p-6">
+          <p className="text-xs uppercase tracking-[0.25em] text-primary">Appearance</p>
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">Theme</p>
+            <ThemeToggle />
+          </div>
+        </div>
+
         <div className="flex flex-wrap items-center gap-3 border-t border-border pt-6">
           <button
             type="button"
