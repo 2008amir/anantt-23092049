@@ -85,6 +85,14 @@ function ProductPage() {
   };
 
   const handleAddToCart = () => {
+    if (product.stock <= 0) {
+      setVariantError("This piece is currently out of stock.");
+      return;
+    }
+    if (qty > product.stock) {
+      setVariantError(`Only ${product.stock} available in stock.`);
+      return;
+    }
     if (hasColors && !selectedColor) {
       setVariantError("Please select a color before adding to cart.");
       return;
@@ -125,16 +133,25 @@ function ProductPage() {
             <Stars rating={product.rating} />
             <span className="text-sm text-muted-foreground">{product.rating} · {product.reviewCount} reviews</span>
           </div>
-          <div className="mt-6 flex items-baseline gap-4">
-            <p className="font-serif text-3xl text-gold-gradient">{formatNaira(effectivePrice(product))}</p>
-            {hasDiscount(product) && (
-              <>
-                <p className="font-serif text-xl text-muted-foreground line-through">{formatNaira(product.price)}</p>
-                <span className="rounded-full bg-primary/10 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-primary">
-                  Save {formatNaira(savings(product))}
-                </span>
-              </>
+          <div className="mt-6">
+            {product.stock > 0 ? (
+              <p className={`text-[10px] uppercase tracking-[0.25em] ${product.stock <= 5 ? "text-destructive" : "text-muted-foreground"}`}>
+                {product.stock <= 5 ? `Only ${product.stock} left in stock` : `${product.stock} in stock`}
+              </p>
+            ) : (
+              <p className="text-[10px] uppercase tracking-[0.25em] text-destructive">Out of stock</p>
             )}
+            <div className="mt-2 flex items-baseline gap-4">
+              <p className="font-serif text-3xl text-gold-gradient">{formatNaira(effectivePrice(product))}</p>
+              {hasDiscount(product) && (
+                <>
+                  <p className="font-serif text-xl text-muted-foreground line-through">{formatNaira(product.price)}</p>
+                  <span className="rounded-full bg-primary/10 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-primary">
+                    Save {formatNaira(savings(product))}
+                  </span>
+                </>
+              )}
+            </div>
           </div>
           <p className="mt-6 leading-relaxed text-muted-foreground">{product.description}</p>
 
@@ -199,20 +216,27 @@ function ProductPage() {
 
           <div className="mt-6 flex items-center gap-4">
             <div className="flex items-center border border-border">
-              <button type="button" onClick={() => setQty((q) => Math.max(1, q - 1))} className="p-3 text-muted-foreground transition-smooth hover:text-primary" aria-label="Decrease">
+              <button type="button" onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={qty <= 1} className="p-3 text-muted-foreground transition-smooth hover:text-primary disabled:opacity-40 disabled:hover:text-muted-foreground" aria-label="Decrease">
                 <Minus className="h-3 w-3" />
               </button>
               <span className="w-10 text-center text-sm">{qty}</span>
-              <button type="button" onClick={() => setQty((q) => q + 1)} className="p-3 text-muted-foreground transition-smooth hover:text-primary" aria-label="Increase">
+              <button
+                type="button"
+                onClick={() => setQty((q) => Math.min(product.stock || q, q + 1))}
+                disabled={product.stock > 0 && qty >= product.stock}
+                className="p-3 text-muted-foreground transition-smooth hover:text-primary disabled:opacity-40 disabled:hover:text-muted-foreground"
+                aria-label="Increase"
+              >
                 <Plus className="h-3 w-3" />
               </button>
             </div>
             <button
               type="button"
               onClick={handleAddToCart}
-              className="flex-1 bg-gold-gradient px-8 py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold transition-smooth hover:opacity-90"
+              disabled={product.stock <= 0}
+              className="flex-1 bg-gold-gradient px-8 py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold transition-smooth hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Add to Cart
+              {product.stock <= 0 ? "Out of Stock" : "Add to Cart"}
             </button>
             <button
               type="button"
