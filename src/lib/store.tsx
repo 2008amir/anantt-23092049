@@ -314,9 +314,9 @@ export function useCartTotal(products: Product[]) {
   const items = cart
     .map((c) => {
       const p = products.find((p) => p.id === c.product_id);
-      return p ? { product: p, quantity: c.quantity } : null;
+      return p ? { product: p, quantity: c.quantity, variant: c.variant ?? null } : null;
     })
-    .filter(Boolean) as { product: Product; quantity: number }[];
+    .filter(Boolean) as { product: Product; quantity: number; variant: CartVariant }[];
   const subtotal = items.reduce((sum, i) => {
     const unit = i.product.discountPrice && i.product.discountPrice > 0 && i.product.discountPrice < i.product.price
       ? i.product.discountPrice
