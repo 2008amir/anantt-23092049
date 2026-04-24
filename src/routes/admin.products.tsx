@@ -409,6 +409,10 @@ function AddProductForm({ onCreated }: { onCreated: () => void }) {
       alert("Enter the product name first");
       return;
     }
+    if (aiCountries.length === 0) {
+      alert("Pick at least one country");
+      return;
+    }
     setAiLoading(true);
     try {
       const {
@@ -424,7 +428,7 @@ function AddProductForm({ onCreated }: { onCreated: () => void }) {
         data: {
           productName: name,
           productDescription: description,
-          countries: Math.max(1, Math.min(50, Number(aiCountries) || 1)),
+          countries: aiCountries.slice(0, 60),
           messages: Math.max(1, Math.min(50, Number(aiMessages) || 1)),
           accessToken,
         },
