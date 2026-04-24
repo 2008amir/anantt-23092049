@@ -213,18 +213,18 @@ function OrderDetail() {
       </div>
 
       {isPaid && (
-        <section className="mt-12 border border-border bg-card/50 p-8">
+        <section className="mt-12 border border-border bg-card/50 p-4 sm:p-8">
           <h2 className="font-serif text-2xl text-center">Shipping Status</h2>
-          <div className="mx-auto mt-8 flex w-fit items-center justify-center">
+          <div className="mx-auto mt-8 flex w-full max-w-md items-start justify-center">
             {statusSteps.map((s, i) => (
-              <div key={i} className="flex items-center">
-                <div className="flex flex-col items-center">
-                  <div className={`flex h-12 w-12 items-center justify-center rounded-full border ${s.done ? "border-primary bg-gold-gradient text-primary-foreground" : "border-border text-muted-foreground"}`}>
-                    <s.icon className="h-5 w-5" />
+              <div key={i} className="flex flex-1 items-start">
+                <div className="flex flex-1 flex-col items-center">
+                  <div className={`flex h-9 w-9 sm:h-12 sm:w-12 items-center justify-center rounded-full border ${s.done ? "border-primary bg-gold-gradient text-primary-foreground" : "border-border text-muted-foreground"}`}>
+                    <s.icon className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
-                  <span className={`mt-2 text-xs uppercase tracking-[0.2em] ${s.done ? "text-primary" : "text-muted-foreground"}`}>{s.label}</span>
+                  <span className={`mt-2 text-[9px] sm:text-xs uppercase tracking-[0.15em] sm:tracking-[0.2em] text-center ${s.done ? "text-primary" : "text-muted-foreground"}`}>{s.label}</span>
                 </div>
-                {i < statusSteps.length - 1 && (<div className={`mx-3 h-px w-10 sm:w-16 ${statusSteps[i + 1].done ? "bg-primary" : "bg-border"}`} />)}
+                {i < statusSteps.length - 1 && (<div className={`mt-4 sm:mt-6 h-px flex-1 min-w-[8px] ${statusSteps[i + 1].done ? "bg-primary" : "bg-border"}`} />)}
               </div>
             ))}
           </div>
