@@ -100,11 +100,10 @@ function EnrolledPage() {
           <div className="space-y-3">
             {rows.map((row) => {
               const task = row.task;
-              if (!task) return null;
               const myRefs = referrals.filter((r) => r.enrollment_id === row.id);
               const completed =
                 row.status === "completed" ||
-                (task.task_type === "referral" && isTaskCompleted(task, myRefs));
+                (task?.task_type === "referral" && task && isTaskCompleted(task, myRefs));
               const expired =
                 row.status !== "completed" &&
                 row.expires_at !== null &&
@@ -114,22 +113,20 @@ function EnrolledPage() {
                 : expired
                   ? "Expired"
                   : timeRemaining(row.expires_at);
-              return (
-                <Link
-                  key={row.id}
-                  to="/account/reward/$id"
-                  params={{ id: task.id }}
-                  className="flex items-center gap-4 border border-border bg-card/50 p-4 transition-smooth hover:border-primary"
-                >
-                  {task.image ? (
+              const title = task?.title ?? "Removed reward";
+              const image = task?.image ?? null;
+              const taskType = task?.task_type ?? "referral";
+              const content = (
+                <>
+                  {image ? (
                     <img
-                      src={task.image}
+                      src={image}
                       alt=""
                       className="h-16 w-16 shrink-0 rounded object-cover"
                     />
                   ) : (
                     <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded bg-gold-gradient/10">
-                      {task.task_type === "referral" ? (
+                      {taskType === "referral" ? (
                         <Users className="h-6 w-6 text-primary" />
                       ) : (
                         <ShoppingBag className="h-6 w-6 text-primary" />
@@ -137,7 +134,7 @@ function EnrolledPage() {
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{task.title}</p>
+                    <p className="truncate font-medium">{title}</p>
                     <p
                       className={`mt-1 text-[11px] uppercase tracking-wider ${
                         completed
@@ -147,10 +144,30 @@ function EnrolledPage() {
                             : "text-muted-foreground"
                       }`}
                     >
-                      {label}
+                      {task ? label : "No longer available"}
                     </p>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </>
+              );
+              if (!task) {
+                return (
+                  <div
+                    key={row.id}
+                    className="flex items-center gap-4 border border-border bg-card/50 p-4 opacity-60"
+                  >
+                    {content}
+                  </div>
+                );
+              }
+              return (
+                <Link
+                  key={row.id}
+                  to="/account/reward/$id"
+                  params={{ id: task.id }}
+                  className="flex items-center gap-4 border border-border bg-card/50 p-4 transition-smooth hover:border-primary"
+                >
+                  {content}
                 </Link>
               );
             })}
