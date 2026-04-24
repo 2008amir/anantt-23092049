@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { Gift, Loader2, Users, ShoppingBag, ChevronRight } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { fetchActiveTasks, fetchEnrollments, type Enrollment, type RewardTask } from "@/lib/rewards";
-import { formatNaira } from "@/lib/price";
 
 export const Route = createFileRoute("/account/earn")({
   head: () => ({ meta: [{ title: "Earn & Free — Maison Luxe" }] }),
@@ -108,13 +107,7 @@ function EarnFreePage() {
                       {t.description}
                     </p>
                   )}
-                  <div className="mt-3 flex items-center justify-between">
-                    <p className="text-sm text-foreground">
-                      Reward up to{" "}
-                      <span className="font-medium text-primary">
-                        {formatNaira(t.reward_price ?? 0)}
-                      </span>
-                    </p>
+                  <div className="mt-3 flex items-center justify-end">
                     <span className="flex items-center gap-1 text-[11px] uppercase tracking-wider text-primary">
                       {enrolledIds.has(t.id) ? "View" : "Start"}
                       <ChevronRight className="h-3.5 w-3.5" />

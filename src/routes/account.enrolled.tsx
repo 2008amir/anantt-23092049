@@ -12,7 +12,6 @@ import {
   type RewardTask,
   type Referral,
 } from "@/lib/rewards";
-import { formatNaira } from "@/lib/price";
 
 export const Route = createFileRoute("/account/enrolled")({
   head: () => ({ meta: [{ title: "Enrolled Rewards — Maison Luxe" }] }),
@@ -132,9 +131,9 @@ function EnrolledPage() {
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{task.title}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Reward up to {formatNaira(task.reward_price ?? 0)}
-                    </p>
+                    <p
+                      className="mt-1 hidden"
+                    />
                     <p
                       className={`mt-1 text-[11px] uppercase tracking-wider ${
                         completed
