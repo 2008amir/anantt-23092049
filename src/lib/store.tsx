@@ -308,7 +308,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       // Register device fingerprint (best-effort). RLS allows owner insert.
       if (data.user?.id) {
         try {
-          await supabase.from("referral_devices").insert({
+          await (supabase.from("referral_devices") as unknown as {
+            insert: (row: Record<string, unknown>) => Promise<unknown>;
+          }).insert({
             fingerprint: device.fingerprint,
             user_id: data.user.id,
             ip: device.ip,
