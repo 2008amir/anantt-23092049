@@ -177,16 +177,8 @@ function RewardDetailPage() {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-3 rounded-md border border-border bg-card/50 p-4 text-sm sm:grid-cols-2">
-        <div>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            Reward
-          </p>
-          <p className="mt-1 font-medium text-primary">
-            Free product up to {formatNaira(task.reward_price ?? 0)}
-          </p>
-        </div>
-        {enrollment?.expires_at && (
+      {enrollment?.expires_at && (
+        <div className="mt-6 grid gap-3 rounded-md border border-border bg-card/50 p-4 text-sm">
           <div>
             <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
               Time remaining
@@ -203,8 +195,8 @@ function RewardDetailPage() {
               {completed ? "Task completed" : timeRemaining(enrollment.expires_at)}
             </p>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Not yet enrolled */}
       {!enrollment && (
