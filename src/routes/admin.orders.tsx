@@ -9,6 +9,8 @@ export const Route = createFileRoute("/admin/orders")({
   component: OrdersPage,
 });
 
+type OrderItem = { product_id: string; product_name: string; product_image: string; quantity: number };
+
 type Order = {
   id: string;
   user_id: string;
@@ -19,6 +21,7 @@ type Order = {
   deliverer_id: string | null;
   shipping_address: { first_name?: string; last_name?: string; state?: string; city?: string } | null;
   created_at: string;
+  order_items: OrderItem[];
 };
 
 type Deliverer = { id: string; name: string; phone: string; state: string; city: string | null };
@@ -36,10 +39,14 @@ function OrdersPage() {
   const reload = async () => {
     setLoading(true);
     const [ordersRes, delRes] = await Promise.all([
-      supabase.from("orders").select("*").eq("payment_status", "paid").order("created_at", { ascending: false }),
+      supabase
+        .from("orders")
+        .select("*, order_items(product_id, product_name, product_image, quantity)")
+        .eq("payment_status", "paid")
+        .order("created_at", { ascending: false }),
       supabase.from("deliverers").select("*").eq("active", true),
     ]);
-    const ordersList = (ordersRes.data ?? []) as Order[];
+    const ordersList = (ordersRes.data ?? []) as unknown as Order[];
     const userIds = Array.from(new Set(ordersList.map((o) => o.user_id)));
     const profRes = userIds.length
       ? await supabase.from("profiles").select("id, display_name, email").in("id", userIds)
