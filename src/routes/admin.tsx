@@ -11,6 +11,7 @@ import {
   LogOut,
   Gift,
   UserCog,
+  Send,
 } from "lucide-react";
 import { useIsAdmin } from "@/hooks/use-admin";
 import { useStore } from "@/lib/store";
