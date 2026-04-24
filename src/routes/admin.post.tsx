@@ -24,7 +24,7 @@ function PostPage() {
   const [body, setBody] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [audience, setAudience] = useState<"all" | "user">("all");
-  const [userId, setUserId] = useState("");
+  const [userEmail, setUserEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [recent, setRecent] = useState<NotificationRow[]>([]);
