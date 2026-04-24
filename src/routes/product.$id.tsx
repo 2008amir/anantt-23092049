@@ -85,6 +85,14 @@ function ProductPage() {
   };
 
   const handleAddToCart = () => {
+    if (product.stock <= 0) {
+      setVariantError("This piece is currently out of stock.");
+      return;
+    }
+    if (qty > product.stock) {
+      setVariantError(`Only ${product.stock} available in stock.`);
+      return;
+    }
     if (hasColors && !selectedColor) {
       setVariantError("Please select a color before adding to cart.");
       return;
