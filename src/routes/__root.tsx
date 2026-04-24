@@ -76,6 +76,7 @@ function RootComponent() {
   return (
     <StoreProvider>
       <ActivityTracker />
+      <ReferralCapture />
       <Splash>
         <div className="flex flex-col bg-background" style={{ minHeight: "100dvh" }}>
           <Header />
@@ -93,5 +94,20 @@ function RootComponent() {
 
 function ActivityTracker() {
   useActivityHeartbeat();
+  return null;
+}
+
+function ReferralCapture() {
+  if (typeof window !== "undefined") {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get("ref");
+      if (ref && /^[A-Z0-9]{4,16}$/i.test(ref)) {
+        localStorage.setItem("ml_ref_code", ref.toUpperCase());
+      }
+    } catch {
+      // ignore
+    }
+  }
   return null;
 }
