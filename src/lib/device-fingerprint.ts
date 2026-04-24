@@ -232,7 +232,12 @@ export async function collectDeviceSignals(): Promise<DeviceSignals> {
     };
   };
 
-  const [ip, audio] = await Promise.all([fetchIP(), getAudioFingerprint()]);
+  const [serverId, audio] = await Promise.all([
+    fetchServerIdentity(),
+    getAudioFingerprint(),
+  ]);
+  // Prefer server-observed IP/UA — they're harder to forge than browser values
+  const ip = serverId.ip;
 
   // High-entropy UA hints give us real OS/model when the browser supports it
   let uaHigh: Record<string, unknown> | null = null;
@@ -281,8 +286,12 @@ export async function collectDeviceSignals(): Promise<DeviceSignals> {
   // tied signals (WebGL/canvas/audio/screen/fonts/UA-high) still re-identify
   // the physical device with very high probability.
   const parts = [
+    // Server-issued device id (httpOnly cookie) — strongest, most stable signal.
+    // If present it dominates the hash so the device id is consistent across
+    // sessions even if other signals drift slightly (driver updates, etc.).
+    serverId.device_id ?? "no-srv-id",
     ip ?? "no-ip",
-    nav.userAgent,
+    serverId.ua ?? nav.userAgent,
     nav.platform,
     JSON.stringify(uaHigh ?? {}),
     String(hardware.cores),
