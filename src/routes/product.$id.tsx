@@ -158,6 +158,45 @@ function ProductPage() {
             {loadingSimilar ? "Finding similar…" : "Find similar pieces"}
           </button>
 
+          {/* Variant selectors (only when admin enabled them) */}
+          {(hasColors || hasSizes) && (
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              {hasColors && (
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Color</span>
+                  <select
+                    value={selectedColor}
+                    onChange={(e) => { setSelectedColor(e.target.value); setVariantError(null); }}
+                    className="mt-2 w-full border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-smooth focus:border-primary"
+                  >
+                    <option value="">Select preferred color…</option>
+                    {product.colors.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              {hasSizes && (
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Size</span>
+                  <select
+                    value={selectedSize}
+                    onChange={(e) => { setSelectedSize(e.target.value); setVariantError(null); }}
+                    className="mt-2 w-full border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-smooth focus:border-primary"
+                  >
+                    <option value="">Select preferred size…</option>
+                    {product.sizes.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </label>
+              )}
+            </div>
+          )}
+          {variantError && (
+            <p className="mt-3 text-xs text-destructive">{variantError}</p>
+          )}
+
           <div className="mt-6 flex items-center gap-4">
             <div className="flex items-center border border-border">
               <button type="button" onClick={() => setQty((q) => Math.max(1, q - 1))} className="p-3 text-muted-foreground transition-smooth hover:text-primary" aria-label="Decrease">
@@ -170,10 +209,7 @@ function ProductPage() {
             </div>
             <button
               type="button"
-              onClick={() => {
-                flyToCart(imgRef.current, product.image);
-                void addToCart(product.id, qty);
-              }}
+              onClick={handleAddToCart}
               className="flex-1 bg-gold-gradient px-8 py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold transition-smooth hover:opacity-90"
             >
               Add to Cart
