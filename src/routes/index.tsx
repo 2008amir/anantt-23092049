@@ -6,6 +6,7 @@ import { useStore, useProducts } from "@/lib/store";
 import { useCategories } from "@/hooks/use-categories";
 import { personalizedFeed } from "@/lib/ai.functions";
 import { flyToCart } from "@/components/CartBubble";
+import { RewardStrip } from "@/components/RewardStrip";
 import { effectivePrice, hasDiscount, savings, formatNaira } from "@/lib/price";
 
 export const Route = createFileRoute("/")({
@@ -113,6 +114,8 @@ function Index() {
         <span className="flex items-center gap-2 text-primary"><Truck className="h-4 w-4" /> Complimentary shipping</span>
         <span className="flex items-center gap-2 text-primary"><ShieldCheck className="h-4 w-4" /> 30-day price assurance</span>
       </div>
+
+      <RewardStrip />
 
       <div className="mx-auto mt-6 max-w-5xl border-b border-border/40 px-4">
         <div className="flex gap-6 overflow-x-auto text-xs uppercase tracking-[0.2em] no-scrollbar">
