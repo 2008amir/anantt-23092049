@@ -131,7 +131,16 @@ function CurrentList({ products, onChange }: { products: ProductRow[]; onChange:
               <p className="line-clamp-1 font-medium">{p.name}</p>
               <p className="text-xs text-muted-foreground">{p.brand}</p>
               <div className="mt-2 flex items-center justify-between text-sm">
-                <span className="font-serif text-base">₦{Number(p.price).toLocaleString()}</span>
+                <span className="flex items-baseline gap-1.5">
+                  {p.discount_price && Number(p.discount_price) > 0 && Number(p.discount_price) < Number(p.price) ? (
+                    <>
+                      <span className="font-serif text-base">₦{Number(p.discount_price).toLocaleString()}</span>
+                      <span className="text-xs text-muted-foreground line-through">₦{Number(p.price).toLocaleString()}</span>
+                    </>
+                  ) : (
+                    <span className="font-serif text-base">₦{Number(p.price).toLocaleString()}</span>
+                  )}
+                </span>
                 <span className="text-xs text-muted-foreground">Stock: {p.stock}</span>
               </div>
               <div className="mt-3 flex gap-2">
