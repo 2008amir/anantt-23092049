@@ -3,6 +3,12 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useStore } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { ADMIN_EMAIL } from "@/hooks/use-admin";
+import {
+  PasswordField,
+  PasswordRequirements,
+  isPasswordValid,
+  Spinner,
+} from "@/components/PasswordField";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Sign In — Maison Luxe" }] }),
