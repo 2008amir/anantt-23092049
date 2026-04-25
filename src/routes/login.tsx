@@ -101,7 +101,7 @@ function Login() {
   const signupSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
-    if (password.length < 6) return setError("Password must be at least 6 characters");
+    if (!isPasswordValid(password)) return setError("Password does not meet all requirements");
     if (password !== confirmPassword) return setError("Passwords do not match");
     setBusy(true);
     try {
