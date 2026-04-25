@@ -6,11 +6,8 @@
 //   https://<project-ref>.supabase.co/functions/v1/auth-email-hook
 // and the secret stored as SEND_EMAIL_HOOK_SECRET (v1,whsec_...).
 
-import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";
-
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-const HOOK_SECRET = Deno.env.get("SEND_EMAIL_HOOK_SECRET");
 
 const FROM = "Maison Luxe <luxesparkles@codebreakers.uk>";
 const GATEWAY = "https://connector-gateway.lovable.dev/resend";
@@ -148,21 +145,13 @@ Deno.serve(async (req) => {
 
   const rawBody = await req.text();
 
-  // Verify Supabase Auth webhook signature (Standard Webhooks).
   let payload: HookPayload;
   try {
-    if (HOOK_SECRET) {
-      const headers = Object.fromEntries(req.headers);
-      const wh = new Webhook(HOOK_SECRET.replace(/^v1,/, ""));
-      payload = wh.verify(rawBody, headers) as HookPayload;
-    } else {
-      // Allow unsecured during initial wiring; Supabase will sign once secret is set.
-      payload = JSON.parse(rawBody) as HookPayload;
-    }
+    payload = JSON.parse(rawBody) as HookPayload;
   } catch (err) {
-    console.error("Webhook verification failed:", err);
-    return new Response(JSON.stringify({ error: "invalid_signature" }), {
-      status: 401,
+    console.error("Invalid payload:", err);
+    return new Response(JSON.stringify({ error: "invalid_payload" }), {
+      status: 400,
       headers: { "Content-Type": "application/json" },
     });
   }
