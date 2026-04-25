@@ -80,39 +80,6 @@ export type Database = {
         }
         Relationships: []
       }
-      auth_email_codes: {
-        Row: {
-          attempts: number
-          code_hash: string
-          created_at: string
-          email: string
-          expires_at: string
-          id: string
-          purpose: string
-          used: boolean
-        }
-        Insert: {
-          attempts?: number
-          code_hash: string
-          created_at?: string
-          email: string
-          expires_at: string
-          id?: string
-          purpose: string
-          used?: boolean
-        }
-        Update: {
-          attempts?: number
-          code_hash?: string
-          created_at?: string
-          email?: string
-          expires_at?: string
-          id?: string
-          purpose?: string
-          used?: boolean
-        }
-        Relationships: []
-      }
       cart_items: {
         Row: {
           product_id: string
