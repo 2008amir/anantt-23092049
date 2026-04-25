@@ -532,6 +532,3 @@ function Input({
   );
 }
 
-// `signIn` from store kept available for type-completeness; not used here directly.
-void useStore;
-void signIn;
