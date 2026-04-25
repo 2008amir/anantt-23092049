@@ -3,6 +3,12 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useStore } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { ADMIN_EMAIL } from "@/hooks/use-admin";
+import {
+  PasswordField,
+  PasswordRequirements,
+  isPasswordValid,
+  Spinner,
+} from "@/components/PasswordField";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Sign In — Maison Luxe" }] }),
@@ -69,7 +75,7 @@ function Login() {
     e.preventDefault();
     setError("");
     if (!/^\S+@\S+\.\S+$/.test(email)) return setError("Please enter a valid email");
-    if (password.length < 6) return setError("Password must be at least 6 characters");
+    if (!password) return setError("Please enter your password");
     setBusy(true);
     try {
       await signIn(email, password);
@@ -95,7 +101,7 @@ function Login() {
   const signupSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
-    if (password.length < 6) return setError("Password must be at least 6 characters");
+    if (!isPasswordValid(password)) return setError("Password does not meet all requirements");
     if (password !== confirmPassword) return setError("Passwords do not match");
     setBusy(true);
     try {
@@ -137,14 +143,15 @@ function Login() {
         {mode === "signin" && (
           <form onSubmit={signinSubmit} className="mt-8 space-y-4">
             <Input label="Email" type="email" value={email} onChange={setEmail} />
-            <Input label="Password" type="password" value={password} onChange={setPassword} />
+            <PasswordField label="Password" value={password} onChange={setPassword} autoComplete="current-password" />
             {error && <p className="text-xs text-destructive">{error}</p>}
             <button
               type="submit"
               disabled={busy}
-              className="w-full bg-gold-gradient py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold transition-smooth hover:opacity-90 disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 bg-gold-gradient py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold transition-smooth hover:opacity-90 disabled:opacity-60"
             >
-              {busy ? "Please wait…" : "Sign In"}
+              {busy && <Spinner />}
+              {busy ? "Signing in…" : "Sign In"}
             </button>
           </form>
         )}
@@ -177,14 +184,16 @@ function Login() {
 
         {mode === "signup" && step === 2 && (
           <form onSubmit={signupSubmit} className="mt-8 space-y-4">
-            <Input label="Create Password" type="password" value={password} onChange={setPassword} />
-            <Input label="Confirm Password" type="password" value={confirmPassword} onChange={setConfirmPassword} />
+            <PasswordField label="Create Password" value={password} onChange={setPassword} autoComplete="new-password" />
+            <PasswordRequirements password={password} />
+            <PasswordField label="Confirm Password" value={confirmPassword} onChange={setConfirmPassword} autoComplete="new-password" invalid={confirmPassword.length > 0 && confirmPassword !== password} />
             {error && <p className="text-xs text-destructive">{error}</p>}
             <button
               type="submit"
               disabled={busy}
-              className="w-full bg-gold-gradient py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold transition-smooth hover:opacity-90 disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 bg-gold-gradient py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold transition-smooth hover:opacity-90 disabled:opacity-60"
             >
+              {busy && <Spinner />}
               {busy ? "Creating account…" : "Create Account"}
             </button>
             <button
