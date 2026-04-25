@@ -27,7 +27,7 @@ type SignupStep = 1 | 2 | 3;
 type LoginStep = 1 | 2;
 
 function Login() {
-  const { user, signIn } = useStore();
+  const { user } = useStore();
   const navigate = useNavigate();
 
   // Auto-route signed-in users
