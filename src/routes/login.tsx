@@ -143,14 +143,15 @@ function Login() {
         {mode === "signin" && (
           <form onSubmit={signinSubmit} className="mt-8 space-y-4">
             <Input label="Email" type="email" value={email} onChange={setEmail} />
-            <Input label="Password" type="password" value={password} onChange={setPassword} />
+            <PasswordField label="Password" value={password} onChange={setPassword} autoComplete="current-password" />
             {error && <p className="text-xs text-destructive">{error}</p>}
             <button
               type="submit"
               disabled={busy}
-              className="w-full bg-gold-gradient py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold transition-smooth hover:opacity-90 disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 bg-gold-gradient py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold transition-smooth hover:opacity-90 disabled:opacity-60"
             >
-              {busy ? "Please wait…" : "Sign In"}
+              {busy && <Spinner />}
+              {busy ? "Signing in…" : "Sign In"}
             </button>
           </form>
         )}
