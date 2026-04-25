@@ -135,63 +135,51 @@ function AdminProfilePage() {
         </div>
         <form onSubmit={handleChangePassword} className="space-y-4" noValidate>
           <div>
-            <label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">
-              Current password
-            </label>
-            <input
-              type="password"
+            <PasswordField
+              label="Current password"
               value={currentPassword}
-              onChange={(e) => {
-                setCurrentPassword(e.target.value);
+              onChange={(v) => {
+                setCurrentPassword(v);
                 if (errors.current) setErrors((p) => ({ ...p, current: undefined }));
               }}
               autoComplete="current-password"
-              aria-invalid={!!errors.current}
-              className={`w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none ${
-                errors.current ? "border-destructive focus:border-destructive" : "border-border focus:border-primary"
-              }`}
+              variant="admin"
+              invalid={!!errors.current}
             />
             {errors.current && (
               <p className="mt-1 text-xs text-destructive">{errors.current}</p>
             )}
           </div>
           <div>
-            <label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">
-              New password
-            </label>
-            <input
-              type="password"
+            <PasswordField
+              label="New password"
               value={newPassword}
-              onChange={(e) => {
-                setNewPassword(e.target.value);
+              onChange={(v) => {
+                setNewPassword(v);
                 if (errors.next) setErrors((p) => ({ ...p, next: undefined }));
               }}
               autoComplete="new-password"
-              aria-invalid={!!errors.next}
-              className={`w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none ${
-                errors.next ? "border-destructive focus:border-destructive" : "border-border focus:border-primary"
-              }`}
+              variant="admin"
+              invalid={!!errors.next}
             />
             {errors.next && (
               <p className="mt-1 text-xs text-destructive">{errors.next}</p>
             )}
+            <div className="mt-2">
+              <PasswordRequirements password={newPassword} />
+            </div>
           </div>
           <div>
-            <label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">
-              Confirm new password
-            </label>
-            <input
-              type="password"
+            <PasswordField
+              label="Confirm new password"
               value={confirmPassword}
-              onChange={(e) => {
-                setConfirmPassword(e.target.value);
+              onChange={(v) => {
+                setConfirmPassword(v);
                 if (errors.confirm) setErrors((p) => ({ ...p, confirm: undefined }));
               }}
               autoComplete="new-password"
-              aria-invalid={!!errors.confirm}
-              className={`w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none ${
-                errors.confirm ? "border-destructive focus:border-destructive" : "border-border focus:border-primary"
-              }`}
+              variant="admin"
+              invalid={!!errors.confirm}
             />
             {errors.confirm && (
               <p className="mt-1 text-xs text-destructive">{errors.confirm}</p>
@@ -207,7 +195,7 @@ function AdminProfilePage() {
             disabled={saving}
             className="inline-flex items-center gap-2 rounded-md bg-gold-gradient px-4 py-2 text-sm text-primary-foreground transition-smooth hover:opacity-90 disabled:opacity-50"
           >
-            <Save className="h-4 w-4" />
+            {saving ? <Spinner /> : <Save className="h-4 w-4" />}
             {saving ? "Updating…" : "Update Password"}
           </button>
         </form>
