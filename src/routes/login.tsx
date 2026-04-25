@@ -75,7 +75,7 @@ function Login() {
     e.preventDefault();
     setError("");
     if (!/^\S+@\S+\.\S+$/.test(email)) return setError("Please enter a valid email");
-    if (password.length < 6) return setError("Password must be at least 6 characters");
+    if (!password) return setError("Please enter your password");
     setBusy(true);
     try {
       await signIn(email, password);
