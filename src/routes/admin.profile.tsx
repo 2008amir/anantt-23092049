@@ -35,7 +35,7 @@ function AdminProfilePage() {
   function validate(): FieldErrors {
     const next: FieldErrors = {};
     if (!currentPassword) next.current = "Enter your current password";
-    if (newPassword.length < 6) next.next = "Must be at least 6 characters";
+    if (!isPasswordValid(newPassword)) next.next = "Password does not meet all requirements";
     if (newPassword && currentPassword && newPassword === currentPassword) {
       next.next = "New password must differ from current";
     }
