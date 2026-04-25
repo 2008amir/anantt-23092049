@@ -184,14 +184,16 @@ function Login() {
 
         {mode === "signup" && step === 2 && (
           <form onSubmit={signupSubmit} className="mt-8 space-y-4">
-            <Input label="Create Password" type="password" value={password} onChange={setPassword} />
-            <Input label="Confirm Password" type="password" value={confirmPassword} onChange={setConfirmPassword} />
+            <PasswordField label="Create Password" value={password} onChange={setPassword} autoComplete="new-password" />
+            <PasswordRequirements password={password} />
+            <PasswordField label="Confirm Password" value={confirmPassword} onChange={setConfirmPassword} autoComplete="new-password" invalid={confirmPassword.length > 0 && confirmPassword !== password} />
             {error && <p className="text-xs text-destructive">{error}</p>}
             <button
               type="submit"
               disabled={busy}
-              className="w-full bg-gold-gradient py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold transition-smooth hover:opacity-90 disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 bg-gold-gradient py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold transition-smooth hover:opacity-90 disabled:opacity-60"
             >
+              {busy && <Spinner />}
               {busy ? "Creating account…" : "Create Account"}
             </button>
             <button
