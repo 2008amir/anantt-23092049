@@ -371,10 +371,6 @@ function Checkout() {
       if (verified.success) {
         setPaymentSuccess({ orderId: order.id });
         setPlacing(false);
-        // Auto-redirect to order details after a short success display
-        setTimeout(() => {
-          navigate({ to: "/orders/$id", params: { id: order.id } });
-        }, 2000);
       } else {
         setErrors({ form: "Payment could not be verified. If you were charged, contact support." });
         setPlacing(false);
