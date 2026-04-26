@@ -123,6 +123,7 @@ function Checkout() {
   const [placing, setPlacing] = useState(false);
   const [virtualAccount, setVirtualAccount] = useState<VirtualAccount | null>(null);
   const [waitingForBankPayment, setWaitingForBankPayment] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState<{ orderId: string } | null>(null);
 
   // Fetch LGA delivery price when state + lga selected
   useEffect(() => {
