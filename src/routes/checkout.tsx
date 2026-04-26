@@ -672,29 +672,38 @@ function Checkout() {
                   </div>
                   <p className="mt-3 font-serif text-xl text-foreground">Payment Successful</p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Your order has been confirmed. Redirecting to order details…
+                    Your order has been confirmed. Thank you for shopping with Maison Luxe.
                   </p>
+                  <button
+                    type="button"
+                    onClick={() => navigate({ to: "/orders/$id", params: { id: paymentSuccess.orderId } })}
+                    className="mt-5 inline-block bg-gold-gradient px-8 py-3 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold hover:opacity-90"
+                  >
+                    View Order
+                  </button>
                 </div>
               )}
 
               {errors.form && <p className="mt-4 text-xs text-destructive">{errors.form}</p>}
-              <div className="mt-8 flex justify-between">
-                <button type="button" onClick={() => setStep(2)} className="border border-border px-8 py-4 text-xs uppercase tracking-[0.25em] text-foreground hover:border-primary">
-                  Back
-                </button>
-                <button
-                  type="submit"
-                  disabled={placing || waitingForBankPayment}
-                  className="flex items-center gap-2 bg-gold-gradient px-8 py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold hover:opacity-90 disabled:opacity-60"
-                >
-                  {(placing || waitingForBankPayment) && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {placing
-                    ? "Processing…"
-                    : waitingForBankPayment
-                      ? "Awaiting Transfer…"
-                      : `Pay ₦${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                </button>
-              </div>
+              {!paymentSuccess && (
+                <div className="mt-8 flex justify-between">
+                  <button type="button" onClick={() => setStep(2)} className="border border-border px-8 py-4 text-xs uppercase tracking-[0.25em] text-foreground hover:border-primary">
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={placing || waitingForBankPayment}
+                    className="flex items-center gap-2 bg-gold-gradient px-8 py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold hover:opacity-90 disabled:opacity-60"
+                  >
+                    {(placing || waitingForBankPayment) && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {placing
+                      ? "Processing…"
+                      : waitingForBankPayment
+                        ? "Awaiting Transfer…"
+                        : `Pay ₦${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </form>
