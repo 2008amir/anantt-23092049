@@ -325,10 +325,8 @@ function Checkout() {
         return;
       }
 
-      // Card / Opay / any non-bank-transfer → redirect to Flutterwave's
-      // hosted payment page where the customer picks the method and pays.
-      // After payment, Flutterwave redirects back to /orders/:id where we
-      // verify the transaction.
+      // Card / Opay / any non-bank-transfer → open Flutterwave INLINE popup.
+      // No redirect. Modal opens over the checkout page.
       const paymentOptions =
         method === "opay"
           ? "opay"
@@ -336,32 +334,51 @@ function Checkout() {
             ? "card"
             : "card,banktransfer,opay,ussd";
 
-      const callbackUrl = `${window.location.origin}/orders/${order.id}?tx_ref=${encodeURIComponent(tx_ref)}`;
-      const init = await initFlutterwave({
-        data: {
-          amount: total,
-          email: shipForm.email,
-          name: shipForm.name,
-          tx_ref,
-          callbackUrl,
-          paymentOptions,
-          meta: { order_id: order.id },
-          accessToken,
-        },
-      });
-
       await supabase
         .from("orders")
         .update({ payment_reference: tx_ref })
         .eq("id", order.id);
 
-      try {
-        sessionStorage.setItem(`pending_order_${order.id}`, tx_ref);
-      } catch {
-        // ignore
+      const popupResult = await openFlutterwavePopup({
+        amount: total,
+        email: shipForm.email,
+        name: shipForm.name,
+        phone: shipForm.phone,
+        tx_ref,
+        paymentOptions,
+        meta: { order_id: order.id },
+        title: "Maison Luxe",
+        description: `Order ${order.id.slice(0, 8)}`,
+      });
+
+      if (!popupResult) {
+        // User closed the modal without completing payment
+        await supabase
+          .from("orders")
+          .update({ payment_status: "failed", status: "Payment Failed" })
+          .eq("id", order.id);
+        setErrors({ form: "Payment was cancelled. Please try again to complete your order." });
+        setPlacing(false);
+        return;
       }
 
-      window.location.href = init.link;
+      // Verify on the backend before marking paid
+      const verified = await verifyFlutterwave({
+        data: { tx_ref, accessToken },
+      });
+      await finalize(order.id, tx_ref, verified.success);
+
+      if (verified.success) {
+        setPaymentSuccess({ orderId: order.id });
+        setPlacing(false);
+        // Auto-redirect to order details after a short success display
+        setTimeout(() => {
+          navigate({ to: "/orders/$id", params: { id: order.id } });
+        }, 2000);
+      } else {
+        setErrors({ form: "Payment could not be verified. If you were charged, contact support." });
+        setPlacing(false);
+      }
       return;
     } catch (err) {
       console.error(err);
