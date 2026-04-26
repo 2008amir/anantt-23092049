@@ -7,11 +7,11 @@ import type { Product } from "@/lib/products";
 import { effectivePrice, formatNaira } from "@/lib/price";
 import { NIGERIA_STATE_NAMES, NIGERIA_STATES } from "@/lib/nigeria-states";
 import {
-  initFlutterwave,
   verifyFlutterwave,
   chargeSavedCard,
   createVirtualAccount,
 } from "@/lib/flutterwave.functions";
+import { openFlutterwavePopup } from "@/lib/flutterwave-popup";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Checkout — Maison Luxe" }] }),
@@ -123,6 +123,7 @@ function Checkout() {
   const [placing, setPlacing] = useState(false);
   const [virtualAccount, setVirtualAccount] = useState<VirtualAccount | null>(null);
   const [waitingForBankPayment, setWaitingForBankPayment] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState<{ orderId: string } | null>(null);
 
   // Fetch LGA delivery price when state + lga selected
   useEffect(() => {
@@ -324,10 +325,8 @@ function Checkout() {
         return;
       }
 
-      // Card / Opay / any non-bank-transfer → redirect to Flutterwave's
-      // hosted payment page where the customer picks the method and pays.
-      // After payment, Flutterwave redirects back to /orders/:id where we
-      // verify the transaction.
+      // Card / Opay / any non-bank-transfer → open Flutterwave INLINE popup.
+      // No redirect. Modal opens over the checkout page.
       const paymentOptions =
         method === "opay"
           ? "opay"
@@ -335,32 +334,51 @@ function Checkout() {
             ? "card"
             : "card,banktransfer,opay,ussd";
 
-      const callbackUrl = `${window.location.origin}/orders/${order.id}?tx_ref=${encodeURIComponent(tx_ref)}`;
-      const init = await initFlutterwave({
-        data: {
-          amount: total,
-          email: shipForm.email,
-          name: shipForm.name,
-          tx_ref,
-          callbackUrl,
-          paymentOptions,
-          meta: { order_id: order.id },
-          accessToken,
-        },
-      });
-
       await supabase
         .from("orders")
         .update({ payment_reference: tx_ref })
         .eq("id", order.id);
 
-      try {
-        sessionStorage.setItem(`pending_order_${order.id}`, tx_ref);
-      } catch {
-        // ignore
+      const popupResult = await openFlutterwavePopup({
+        amount: total,
+        email: shipForm.email,
+        name: shipForm.name,
+        phone: shipForm.phone,
+        tx_ref,
+        paymentOptions,
+        meta: { order_id: order.id },
+        title: "Maison Luxe",
+        description: `Order ${order.id.slice(0, 8)}`,
+      });
+
+      if (!popupResult) {
+        // User closed the modal without completing payment
+        await supabase
+          .from("orders")
+          .update({ payment_status: "failed", status: "Payment Failed" })
+          .eq("id", order.id);
+        setErrors({ form: "Payment was cancelled. Please try again to complete your order." });
+        setPlacing(false);
+        return;
       }
 
-      window.location.href = init.link;
+      // Verify on the backend before marking paid
+      const verified = await verifyFlutterwave({
+        data: { tx_ref, accessToken },
+      });
+      await finalize(order.id, tx_ref, verified.success);
+
+      if (verified.success) {
+        setPaymentSuccess({ orderId: order.id });
+        setPlacing(false);
+        // Auto-redirect to order details after a short success display
+        setTimeout(() => {
+          navigate({ to: "/orders/$id", params: { id: order.id } });
+        }, 2000);
+      } else {
+        setErrors({ form: "Payment could not be verified. If you were charged, contact support." });
+        setPlacing(false);
+      }
       return;
     } catch (err) {
       console.error(err);
@@ -647,6 +665,18 @@ function Checkout() {
                   <p className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     Waiting for payment… Your order will not ship until we confirm the transfer.
+                  </p>
+                </div>
+              )}
+
+              {paymentSuccess && (
+                <div className="mt-6 border border-emerald-500/40 bg-emerald-500/10 p-6 text-center">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500 text-white">
+                    <Check className="h-6 w-6" />
+                  </div>
+                  <p className="mt-3 font-serif text-xl text-foreground">Payment Successful</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Your order has been confirmed. Redirecting to order details…
                   </p>
                 </div>
               )}
