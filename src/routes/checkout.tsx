@@ -7,11 +7,11 @@ import type { Product } from "@/lib/products";
 import { effectivePrice, formatNaira } from "@/lib/price";
 import { NIGERIA_STATE_NAMES, NIGERIA_STATES } from "@/lib/nigeria-states";
 import {
-  initFlutterwave,
   verifyFlutterwave,
   chargeSavedCard,
   createVirtualAccount,
 } from "@/lib/flutterwave.functions";
+import { openFlutterwavePopup } from "@/lib/flutterwave-popup";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Checkout — Maison Luxe" }] }),
