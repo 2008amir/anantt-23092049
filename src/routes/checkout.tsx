@@ -669,6 +669,18 @@ function Checkout() {
                 </div>
               )}
 
+              {paymentSuccess && (
+                <div className="mt-6 border border-emerald-500/40 bg-emerald-500/10 p-6 text-center">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500 text-white">
+                    <Check className="h-6 w-6" />
+                  </div>
+                  <p className="mt-3 font-serif text-xl text-foreground">Payment Successful</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Your order has been confirmed. Redirecting to order details…
+                  </p>
+                </div>
+              )}
+
               {errors.form && <p className="mt-4 text-xs text-destructive">{errors.form}</p>}
               <div className="mt-8 flex justify-between">
                 <button type="button" onClick={() => setStep(2)} className="border border-border px-8 py-4 text-xs uppercase tracking-[0.25em] text-foreground hover:border-primary">
