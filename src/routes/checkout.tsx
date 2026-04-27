@@ -9,7 +9,6 @@ import { NIGERIA_STATE_NAMES, NIGERIA_STATES } from "@/lib/nigeria-states";
 import {
   verifyFlutterwave,
   chargeSavedCard,
-  createVirtualAccount,
 } from "@/lib/flutterwave.functions";
 import { openFlutterwavePopup } from "@/lib/flutterwave-popup";
 
@@ -31,13 +30,6 @@ type SavedCard = {
   is_default: boolean;
 };
 
-type VirtualAccount = {
-  account_number: string;
-  bank_name: string;
-  account_name: string;
-  expiry_date: string;
-  amount: number;
-};
 
 const CARD_BRAND_LOGOS: Record<string, string> = {
   visa: "https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg",
@@ -121,8 +113,6 @@ function Checkout() {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [placing, setPlacing] = useState(false);
-  const [virtualAccount, setVirtualAccount] = useState<VirtualAccount | null>(null);
-  const [waitingForBankPayment, setWaitingForBankPayment] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState<{ orderId: string } | null>(null);
 
   // Fetch LGA delivery price when state + lga selected
@@ -291,48 +281,24 @@ function Checkout() {
         return;
       }
 
-      if (method === "bank_transfer") {
-        // Generate a dedicated virtual bank account for this exact order
-        const va = await createVirtualAccount({
-          data: {
-            amount: total,
-            email: shipForm.email,
-            tx_ref,
-            name: shipForm.name,
-            accessToken,
-          },
-        });
-        await supabase
-          .from("orders")
-          .update({ payment_reference: tx_ref })
-          .eq("id", order.id);
-        // Override account name to luxesparkle-{username}
-        const usernameSlug = (user?.email ?? shipForm.email)
-          .split("@")[0]
-          .toLowerCase()
-          .replace(/[^a-z0-9]/g, "");
-        setVirtualAccount({
-          account_number: va.account_number,
-          bank_name: va.bank_name,
-          account_name: `luxesparkle-${usernameSlug}`,
-          expiry_date: va.expiry_date,
-          amount: va.amount,
-        });
-        setWaitingForBankPayment(true);
-        // Poll for payment completion
-        void pollVirtualAccountPayment(order.id, tx_ref, accessToken);
-        setPlacing(false);
-        return;
-      }
-
-      // Card / Opay / any non-bank-transfer → open Flutterwave INLINE popup.
+      // Card / Bank transfer / Opay → open Flutterwave INLINE popup.
       // No redirect. Modal opens over the checkout page.
       const paymentOptions =
         method === "opay"
           ? "opay"
-          : method === "card"
-            ? "card"
-            : "card,banktransfer,opay,ussd";
+          : method === "bank_transfer"
+            ? "banktransfer"
+            : method === "card"
+              ? "card"
+              : "card,banktransfer,opay,ussd";
+
+      // Customer name override: "luxesparkles-{username}" so it shows on the
+      // Flutterwave dashboard / statement narration as the sender reference.
+      const usernameSlug = (user?.email ?? shipForm.email)
+        .split("@")[0]
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "");
+      const flwCustomerName = `luxesparkles-${usernameSlug}`;
 
       await supabase
         .from("orders")
@@ -342,11 +308,11 @@ function Checkout() {
       const popupResult = await openFlutterwavePopup({
         amount: total,
         email: shipForm.email,
-        name: shipForm.name,
+        name: flwCustomerName,
         phone: shipForm.phone,
         tx_ref,
         paymentOptions,
-        meta: { order_id: order.id },
+        meta: { order_id: order.id, customer_name: flwCustomerName, shipping_name: shipForm.name },
         title: "Maison Luxe",
         description: `Order ${order.id.slice(0, 8)}`,
       });
@@ -409,26 +375,6 @@ function Checkout() {
     }
   };
 
-  const pollVirtualAccountPayment = async (orderId: string, tx_ref: string, accessToken: string) => {
-    const start = Date.now();
-    const TIMEOUT = 1000 * 60 * 30; // 30 min
-    while (Date.now() - start < TIMEOUT) {
-      await new Promise((r) => setTimeout(r, 8000));
-      try {
-        const verified = await verifyFlutterwave({ data: { tx_ref, accessToken } });
-        if (verified.success) {
-          await finalize(orderId, tx_ref, true);
-          setWaitingForBankPayment(false);
-          navigate({ to: "/orders/$id", params: { id: orderId } });
-          return;
-        }
-      } catch {
-        // ignore intermittent
-      }
-    }
-    setWaitingForBankPayment(false);
-    setErrors({ form: "Bank transfer not received in time. Order will not ship until payment is confirmed." });
-  };
 
   const steps = [
     { n: 1, label: "Shipping", icon: MapPin },
@@ -600,7 +546,7 @@ function Checkout() {
                   }}
                   icon={<Building2 className="h-5 w-5" />}
                   title="Bank Transfer"
-                  subtitle="Dedicated account"
+                  subtitle="Pay via bank transfer"
                 />
                 <MethodCard
                   active={method === "opay"}
@@ -648,22 +594,6 @@ function Checkout() {
                 </ReviewBlock>
               </div>
 
-              {waitingForBankPayment && virtualAccount && (
-                <div className="mt-6 border border-primary/40 bg-primary/5 p-6">
-                  <p className="text-[10px] uppercase tracking-[0.25em] text-primary">Transfer To This Dedicated Account</p>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                    <Detail label="Bank" value={virtualAccount.bank_name} />
-                    <Detail label="Account Number" value={virtualAccount.account_number} copyable />
-                    <Detail label="Amount" value={`₦${virtualAccount.amount.toLocaleString()}`} />
-                    <Detail label="Account Name" value={virtualAccount.account_name} />
-                    <Detail label="Expires" value={virtualAccount.expiry_date} />
-                  </div>
-                  <p className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    Waiting for payment… Your order will not ship until we confirm the transfer.
-                  </p>
-                </div>
-              )}
 
               {paymentSuccess && (
                 <div className="mt-6 border border-emerald-500/40 bg-emerald-500/10 p-6 text-center">
@@ -692,15 +622,13 @@ function Checkout() {
                   </button>
                   <button
                     type="submit"
-                    disabled={placing || waitingForBankPayment}
+                    disabled={placing}
                     className="flex items-center gap-2 bg-gold-gradient px-8 py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold hover:opacity-90 disabled:opacity-60"
                   >
-                    {(placing || waitingForBankPayment) && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {placing && <Loader2 className="h-4 w-4 animate-spin" />}
                     {placing
                       ? "Processing…"
-                      : waitingForBankPayment
-                        ? "Awaiting Transfer…"
-                        : `Pay ₦${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                      : `Pay ₦${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                   </button>
                 </div>
               )}
