@@ -384,26 +384,6 @@ function Checkout() {
     }
   };
 
-  const pollVirtualAccountPayment = async (orderId: string, tx_ref: string, accessToken: string) => {
-    const start = Date.now();
-    const TIMEOUT = 1000 * 60 * 30; // 30 min
-    while (Date.now() - start < TIMEOUT) {
-      await new Promise((r) => setTimeout(r, 8000));
-      try {
-        const verified = await verifyFlutterwave({ data: { tx_ref, accessToken } });
-        if (verified.success) {
-          await finalize(orderId, tx_ref, true);
-          setWaitingForBankPayment(false);
-          navigate({ to: "/orders/$id", params: { id: orderId } });
-          return;
-        }
-      } catch {
-        // ignore intermittent
-      }
-    }
-    setWaitingForBankPayment(false);
-    setErrors({ form: "Bank transfer not received in time. Order will not ship until payment is confirmed." });
-  };
 
   const steps = [
     { n: 1, label: "Shipping", icon: MapPin },
