@@ -1,5 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 import { imageFor } from "@/lib/product-images";
+import {
+  cacheProductList,
+  cacheViewedProduct,
+  findCachedProduct,
+  readCachedProductList,
+} from "@/lib/offline-cache";
 
 export type Review = {
   id: string;
