@@ -9,7 +9,6 @@ import { NIGERIA_STATE_NAMES, NIGERIA_STATES } from "@/lib/nigeria-states";
 import {
   verifyFlutterwave,
   chargeSavedCard,
-  createVirtualAccount,
 } from "@/lib/flutterwave.functions";
 import { openFlutterwavePopup } from "@/lib/flutterwave-popup";
 
