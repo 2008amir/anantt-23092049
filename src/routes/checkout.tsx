@@ -290,48 +290,24 @@ function Checkout() {
         return;
       }
 
-      if (method === "bank_transfer") {
-        // Generate a dedicated virtual bank account for this exact order
-        const va = await createVirtualAccount({
-          data: {
-            amount: total,
-            email: shipForm.email,
-            tx_ref,
-            name: shipForm.name,
-            accessToken,
-          },
-        });
-        await supabase
-          .from("orders")
-          .update({ payment_reference: tx_ref })
-          .eq("id", order.id);
-        // Override account name to luxesparkle-{username}
-        const usernameSlug = (user?.email ?? shipForm.email)
-          .split("@")[0]
-          .toLowerCase()
-          .replace(/[^a-z0-9]/g, "");
-        setVirtualAccount({
-          account_number: va.account_number,
-          bank_name: va.bank_name,
-          account_name: `luxesparkle-${usernameSlug}`,
-          expiry_date: va.expiry_date,
-          amount: va.amount,
-        });
-        setWaitingForBankPayment(true);
-        // Poll for payment completion
-        void pollVirtualAccountPayment(order.id, tx_ref, accessToken);
-        setPlacing(false);
-        return;
-      }
-
-      // Card / Opay / any non-bank-transfer → open Flutterwave INLINE popup.
+      // Card / Bank transfer / Opay → open Flutterwave INLINE popup.
       // No redirect. Modal opens over the checkout page.
       const paymentOptions =
         method === "opay"
           ? "opay"
-          : method === "card"
-            ? "card"
-            : "card,banktransfer,opay,ussd";
+          : method === "bank_transfer"
+            ? "banktransfer"
+            : method === "card"
+              ? "card"
+              : "card,banktransfer,opay,ussd";
+
+      // Customer name override: "luxesparkles-{username}" so it shows on the
+      // Flutterwave dashboard / statement narration as the sender reference.
+      const usernameSlug = (user?.email ?? shipForm.email)
+        .split("@")[0]
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "");
+      const flwCustomerName = `luxesparkles-${usernameSlug}`;
 
       await supabase
         .from("orders")
@@ -341,11 +317,11 @@ function Checkout() {
       const popupResult = await openFlutterwavePopup({
         amount: total,
         email: shipForm.email,
-        name: shipForm.name,
+        name: flwCustomerName,
         phone: shipForm.phone,
         tx_ref,
         paymentOptions,
-        meta: { order_id: order.id },
+        meta: { order_id: order.id, customer_name: flwCustomerName, shipping_name: shipForm.name },
         title: "Maison Luxe",
         description: `Order ${order.id.slice(0, 8)}`,
       });
