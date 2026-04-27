@@ -622,15 +622,13 @@ function Checkout() {
                   </button>
                   <button
                     type="submit"
-                    disabled={placing || waitingForBankPayment}
+                    disabled={placing}
                     className="flex items-center gap-2 bg-gold-gradient px-8 py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold hover:opacity-90 disabled:opacity-60"
                   >
-                    {(placing || waitingForBankPayment) && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {placing && <Loader2 className="h-4 w-4 animate-spin" />}
                     {placing
                       ? "Processing…"
-                      : waitingForBankPayment
-                        ? "Awaiting Transfer…"
-                        : `Pay ₦${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                      : `Pay ₦${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                   </button>
                 </div>
               )}
