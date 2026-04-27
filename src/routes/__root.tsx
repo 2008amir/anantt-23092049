@@ -8,6 +8,7 @@ import { Splash } from "@/components/Splash";
 import { CartBubble } from "@/components/CartBubble";
 import { Toaster } from "@/components/ui/sonner";
 import { useActivityHeartbeat } from "@/hooks/use-activity-heartbeat";
+import { PWA } from "@/components/PWA";
 
 
 function NotFoundComponent() {
