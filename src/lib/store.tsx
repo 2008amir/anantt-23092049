@@ -98,8 +98,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setWishlist(((wlRes.data ?? []) as { product_id: string }[]).map((r) => r.product_id));
   }, []);
 
-  // Auth bootstrap
+  // Auth bootstrap + offline queue auto-flush
   useEffect(() => {
+    setupQueueAutoFlush();
+    void flushQueue();
     let mounted = true;
     // First, set up the listener (do not await async in callback).
     const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
