@@ -546,7 +546,7 @@ function Checkout() {
                   }}
                   icon={<Building2 className="h-5 w-5" />}
                   title="Bank Transfer"
-                  subtitle="Dedicated account"
+                  subtitle="Pay via bank transfer"
                 />
                 <MethodCard
                   active={method === "opay"}
