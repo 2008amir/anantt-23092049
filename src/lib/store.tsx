@@ -10,6 +10,7 @@ import {
 import type { Session, User as AuthUser } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchProductsByIds, type Product } from "./products";
+import { enqueueMutation, flushQueue, setupQueueAutoFlush } from "./offline-cache";
 
 export type Profile = { id: string; email: string | null; display_name: string | null };
 
