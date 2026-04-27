@@ -30,13 +30,6 @@ type SavedCard = {
   is_default: boolean;
 };
 
-type VirtualAccount = {
-  account_number: string;
-  bank_name: string;
-  account_name: string;
-  expiry_date: string;
-  amount: number;
-};
 
 const CARD_BRAND_LOGOS: Record<string, string> = {
   visa: "https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg",
