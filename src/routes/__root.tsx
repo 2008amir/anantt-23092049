@@ -90,6 +90,7 @@ function RootComponent() {
         <ActivityTracker />
         <ReferralCapture />
         <CopyProtection />
+        <PWA />
         <Splash>
           <div className="flex flex-col bg-background" style={{ minHeight: "100dvh" }}>
             <Header />
