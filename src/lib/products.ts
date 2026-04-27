@@ -1,5 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 import { imageFor } from "@/lib/product-images";
+import {
+  cacheProductList,
+  cacheViewedProduct,
+  findCachedProduct,
+  readCachedProductList,
+} from "@/lib/offline-cache";
 
 export type Review = {
   id: string;
@@ -82,43 +88,65 @@ function rowToProduct(r: Row): Product {
 export async function fetchProducts(): Promise<Product[]> {
   // Public shop only sees active products that still have stock.
   // Finished products (stock = 0) only show in admin "Finished" tab.
-  const { data, error } = await supabase
-    .from("products")
-    .select("*")
-    .eq("is_active", true)
-    .gt("stock", 0)
-    .order("created_at", { ascending: true });
-  if (error) throw error;
-  return (data ?? []).map((r) => rowToProduct(r as unknown as Row));
+  try {
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .eq("is_active", true)
+      .gt("stock", 0)
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    const list = (data ?? []).map((r) => rowToProduct(r as unknown as Row));
+    cacheProductList(list);
+    return list;
+  } catch (err) {
+    const cached = readCachedProductList();
+    if (cached.length > 0) return cached;
+    throw err;
+  }
 }
 
 export async function fetchProduct(id: string): Promise<Product | null> {
-  const { data, error } = await supabase
-    .from("products")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
-  if (error) throw error;
-  return data ? rowToProduct(data as unknown as Row) : null;
+  try {
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw error;
+    const product = data ? rowToProduct(data as unknown as Row) : null;
+    if (product) cacheViewedProduct(product);
+    return product;
+  } catch (err) {
+    const cached = findCachedProduct(id);
+    if (cached) return cached;
+    throw err;
+  }
 }
 
 export async function fetchProductsByIds(ids: string[]): Promise<Product[]> {
   if (ids.length === 0) return [];
-  // Only return products that are still active and in-stock so removed/disabled
-  // admin products never appear in recommendations or related sections.
-  const { data, error } = await supabase
-    .from("products")
-    .select("*")
-    .in("id", ids)
-    .eq("is_active", true)
-    .gt("stock", 0);
-  if (error) throw error;
-  const map = new Map<string, Product>();
-  for (const r of data ?? []) {
-    const p = rowToProduct(r as unknown as Row);
-    map.set(p.id, p);
+  try {
+    // Only return products that are still active and in-stock so removed/disabled
+    // admin products never appear in recommendations or related sections.
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .in("id", ids)
+      .eq("is_active", true)
+      .gt("stock", 0);
+    if (error) throw error;
+    const map = new Map<string, Product>();
+    for (const r of data ?? []) {
+      const p = rowToProduct(r as unknown as Row);
+      map.set(p.id, p);
+    }
+    // preserve requested order, dropping any missing ids
+    return ids.map((id) => map.get(id)).filter(Boolean) as Product[];
+  } catch (err) {
+    const out = ids.map((id) => findCachedProduct(id)).filter(Boolean) as Product[];
+    if (out.length > 0) return out;
+    throw err;
   }
-  // preserve requested order, dropping any missing ids
-  return ids.map((id) => map.get(id)).filter(Boolean) as Product[];
 }
 

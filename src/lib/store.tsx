@@ -10,6 +10,7 @@ import {
 import type { Session, User as AuthUser } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchProductsByIds, type Product } from "./products";
+import { enqueueMutation, flushQueue, setupQueueAutoFlush } from "./offline-cache";
 
 export type Profile = { id: string; email: string | null; display_name: string | null };
 
@@ -97,8 +98,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setWishlist(((wlRes.data ?? []) as { product_id: string }[]).map((r) => r.product_id));
   }, []);
 
-  // Auth bootstrap
+  // Auth bootstrap + offline queue auto-flush
   useEffect(() => {
+    setupQueueAutoFlush();
+    void flushQueue();
     let mounted = true;
     // First, set up the listener (do not await async in callback).
     const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
@@ -147,12 +150,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return true;
   }, [user]);
 
+  const isOffline = () => typeof navigator !== "undefined" && !navigator.onLine;
+
   const addToCart = useCallback(
     async (productId: string, quantity = 1, variant: CartVariant = null) => {
       if (!requireAuth() || !user) return;
       const existing = cart.find((c) => c.product_id === productId);
       const nextQty = (existing?.quantity ?? 0) + quantity;
-      // The most recent variant selection wins when re-adding the same product.
       const nextVariant = variant ?? existing?.variant ?? null;
       // optimistic
       setCart((prev) => {
@@ -163,6 +167,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           );
         return [...prev, { product_id: productId, quantity, variant: nextVariant }];
       });
+      if (isOffline()) {
+        enqueueMutation({
+          kind: "cart_upsert",
+          user_id: user.id,
+          product_id: productId,
+          quantity: nextQty,
+          variant: nextVariant,
+        });
+        return;
+      }
       const { error } = await supabase
         .from("cart_items")
         .upsert(
@@ -176,51 +190,78 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           { onConflict: "user_id,product_id" },
         );
       if (error) {
-        console.error(error);
-        await refresh();
+        // Network failure → queue for replay
+        enqueueMutation({
+          kind: "cart_upsert",
+          user_id: user.id,
+          product_id: productId,
+          quantity: nextQty,
+          variant: nextVariant,
+        });
       }
     },
-    [user, cart, requireAuth, refresh],
+    [user, cart, requireAuth],
   );
 
   const removeFromCart = useCallback(
     async (productId: string) => {
       if (!user) return;
       setCart((prev) => prev.filter((c) => c.product_id !== productId));
+      if (isOffline()) {
+        enqueueMutation({ kind: "cart_delete", user_id: user.id, product_id: productId });
+        return;
+      }
       const { error } = await supabase
         .from("cart_items")
         .delete()
         .eq("user_id", user.id)
         .eq("product_id", productId);
       if (error) {
-        console.error(error);
-        await refresh();
+        enqueueMutation({ kind: "cart_delete", user_id: user.id, product_id: productId });
       }
     },
-    [user, refresh],
+    [user],
   );
 
   const updateCartQty = useCallback(
     async (productId: string, quantity: number) => {
       if (!user) return;
       if (quantity <= 0) return removeFromCart(productId);
+      const row = cart.find((c) => c.product_id === productId);
+      const variant = row?.variant ?? null;
       setCart((prev) => prev.map((c) => (c.product_id === productId ? { ...c, quantity } : c)));
+      if (isOffline()) {
+        enqueueMutation({
+          kind: "cart_upsert",
+          user_id: user.id,
+          product_id: productId,
+          quantity,
+          variant,
+        });
+        return;
+      }
       const { error } = await supabase
         .from("cart_items")
         .update({ quantity, updated_at: new Date().toISOString() })
         .eq("user_id", user.id)
         .eq("product_id", productId);
       if (error) {
-        console.error(error);
-        await refresh();
+        enqueueMutation({
+          kind: "cart_upsert",
+          user_id: user.id,
+          product_id: productId,
+          quantity,
+          variant,
+        });
       }
     },
-    [user, removeFromCart, refresh],
+    [user, cart, removeFromCart],
   );
 
   const clearCart = useCallback(async () => {
     if (!user) return;
     setCart([]);
+    if (isOffline()) return;
     const { error } = await supabase.from("cart_items").delete().eq("user_id", user.id);
     if (error) console.error(error);
   }, [user]);
@@ -230,6 +271,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (!requireAuth() || !user) return;
       const liked = wishlist.includes(productId);
       setWishlist((prev) => (liked ? prev.filter((id) => id !== productId) : [...prev, productId]));
+      if (isOffline()) {
+        enqueueMutation({
+          kind: liked ? "wishlist_delete" : "wishlist_add",
+          user_id: user.id,
+          product_id: productId,
+        });
+        return;
+      }
       if (liked) {
         const { error } = await supabase
           .from("wishlist")
@@ -237,20 +286,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           .eq("user_id", user.id)
           .eq("product_id", productId);
         if (error) {
-          console.error(error);
-          await refresh();
+          enqueueMutation({ kind: "wishlist_delete", user_id: user.id, product_id: productId });
         }
       } else {
         const { error } = await supabase
           .from("wishlist")
           .insert({ user_id: user.id, product_id: productId });
         if (error) {
-          console.error(error);
-          await refresh();
+          enqueueMutation({ kind: "wishlist_add", user_id: user.id, product_id: productId });
         }
       }
     },
-    [user, wishlist, requireAuth, refresh],
+    [user, wishlist, requireAuth],
   );
 
   const signIn = useCallback(async (email: string, password: string) => {

@@ -8,6 +8,7 @@ import { Splash } from "@/components/Splash";
 import { CartBubble } from "@/components/CartBubble";
 import { Toaster } from "@/components/ui/sonner";
 import { useActivityHeartbeat } from "@/hooks/use-activity-heartbeat";
+import { PWA } from "@/components/PWA";
 
 
 function NotFoundComponent() {
@@ -89,6 +90,7 @@ function RootComponent() {
         <ActivityTracker />
         <ReferralCapture />
         <CopyProtection />
+        <PWA />
         <Splash>
           <div className="flex flex-col bg-background" style={{ minHeight: "100dvh" }}>
             <Header />
