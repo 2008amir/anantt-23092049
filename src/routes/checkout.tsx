@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Building2, Check, CreditCard, Loader2, MapPin, Package, Smartphone, Copy, Truck } from "lucide-react";
+import { Check, CreditCard, Loader2, MapPin, Package, Truck } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore, useProducts } from "@/lib/store";
