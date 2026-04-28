@@ -201,9 +201,10 @@ function Checkout() {
     }
   };
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent, overrideMethod?: PayMethod) => {
     e.preventDefault();
     if (!user) return;
+    const activeMethod: PayMethod = overrideMethod ?? method;
     setErrors({});
     setPlacing(true);
     let createdOrderId: string | null = null;
