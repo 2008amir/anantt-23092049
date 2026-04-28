@@ -476,7 +476,7 @@ function Checkout() {
                   onClick={() => validateShipping() && setStep(2)}
                   className="bg-gold-gradient px-8 py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground transition-smooth hover:opacity-90"
                 >
-                  Continue to Payment
+                  Continue to Review
                 </button>
               </div>
             </div>
