@@ -284,14 +284,9 @@ function Checkout() {
 
       // Card / Bank transfer / Opay → open Flutterwave INLINE popup.
       // No redirect. Modal opens over the checkout page.
-      const paymentOptions =
-        activeMethod === "opay"
-          ? "opay"
-          : activeMethod === "bank_transfer"
-            ? "banktransfer"
-            : activeMethod === "card"
-              ? "card"
-              : "card,banktransfer,opay,ussd";
+      // Show all payment options inside the Flutterwave modal so the user
+      // picks card / bank transfer / USSD / Opay there.
+      const paymentOptions = "card,banktransfer,ussd,opay";
 
       // Customer name override: "luxesparkles-{username}" so it shows on the
       // Flutterwave dashboard / statement narration as the sender reference.
