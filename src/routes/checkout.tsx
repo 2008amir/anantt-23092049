@@ -379,9 +379,8 @@ function Checkout() {
 
   const steps = [
     { n: 1, label: "Shipping", icon: MapPin },
-    { n: 2, label: "Payment", icon: CreditCard },
-    { n: 3, label: "Review", icon: Package },
-  ];
+    { n: 2, label: "Review", icon: Package },
+  ] as const;
 
   return (
     <div className="container mx-auto px-6 py-16">
