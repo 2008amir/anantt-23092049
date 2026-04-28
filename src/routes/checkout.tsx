@@ -285,11 +285,11 @@ function Checkout() {
       // Card / Bank transfer / Opay → open Flutterwave INLINE popup.
       // No redirect. Modal opens over the checkout page.
       const paymentOptions =
-        method === "opay"
+        activeMethod === "opay"
           ? "opay"
-          : method === "bank_transfer"
+          : activeMethod === "bank_transfer"
             ? "banktransfer"
-            : method === "card"
+            : activeMethod === "card"
               ? "card"
               : "card,banktransfer,opay,ussd";
 
