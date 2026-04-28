@@ -260,7 +260,7 @@ function Checkout() {
       const tx_ref = `ml-${order.id}-${Date.now()}`;
 
       // 2. Branch by method
-      if (method === "saved_card" && selectedCardId) {
+      if (activeMethod === "saved_card" && selectedCardId) {
         const card = savedCards.find((c) => c.id === selectedCardId);
         if (!card) throw new Error("Saved card not found");
         const res = await chargeSavedCard({
