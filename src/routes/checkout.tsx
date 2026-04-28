@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Building2, Check, CreditCard, Loader2, MapPin, Package, Smartphone, Copy, Truck } from "lucide-react";
+import { Check, CreditCard, Loader2, MapPin, Package, Truck } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore, useProducts } from "@/lib/store";
@@ -284,14 +284,9 @@ function Checkout() {
 
       // Card / Bank transfer / Opay → open Flutterwave INLINE popup.
       // No redirect. Modal opens over the checkout page.
-      const paymentOptions =
-        activeMethod === "opay"
-          ? "opay"
-          : activeMethod === "bank_transfer"
-            ? "banktransfer"
-            : activeMethod === "card"
-              ? "card"
-              : "card,banktransfer,opay,ussd";
+      // Show all payment options inside the Flutterwave modal so the user
+      // picks card / bank transfer / USSD / Opay there.
+      const paymentOptions = "card,banktransfer,ussd,opay";
 
       // Customer name override: "luxesparkles-{username}" so it shows on the
       // Flutterwave dashboard / statement narration as the sender reference.
@@ -379,9 +374,8 @@ function Checkout() {
 
   const steps = [
     { n: 1, label: "Shipping", icon: MapPin },
-    { n: 2, label: "Payment", icon: CreditCard },
-    { n: 3, label: "Review", icon: Package },
-  ];
+    { n: 2, label: "Review", icon: Package },
+  ] as const;
 
   return (
     <div className="container mx-auto px-6 py-16">
@@ -477,7 +471,7 @@ function Checkout() {
                   onClick={() => validateShipping() && setStep(2)}
                   className="bg-gold-gradient px-8 py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground transition-smooth hover:opacity-90"
                 >
-                  Continue to Payment
+                  Continue to Review
                 </button>
               </div>
             </div>
@@ -485,12 +479,42 @@ function Checkout() {
 
           {step === 2 && (
             <div>
-              <h2 className="font-serif text-2xl">Payment Method</h2>
+              <h2 className="font-serif text-2xl">Review & Place Order</h2>
+              <div className="mt-6 grid gap-6 sm:grid-cols-2">
+                <ReviewBlock title="Shipping To">
+                  <p>{shipForm.name}</p>
+                  <p>{shipForm.address}</p>
+                  <p>
+                    {shipForm.lga}, {shipForm.state}
+                  </p>
+                  <p>{shipForm.country}</p>
+                </ReviewBlock>
+                <ReviewBlock title="Amount to Pay">
+                  <p className="font-serif text-2xl text-gold-gradient">
+                    ₦{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                </ReviewBlock>
+              </div>
 
               {savedCards.length > 0 && (
                 <div className="mt-6">
-                  <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Saved Cards</p>
+                  <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Pay with a saved card (optional)</p>
                   <div className="mt-2 space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMethod("card");
+                        setSelectedCardId(null);
+                      }}
+                      className={`flex w-full items-center justify-between border px-4 py-3 text-left transition-smooth ${
+                        method !== "saved_card" ? "border-primary bg-primary/5" : "border-border hover:border-primary/60"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2 text-sm text-foreground">
+                        <CreditCard className="h-4 w-4" />
+                        Choose payment method on Flutterwave
+                      </span>
+                    </button>
                     {savedCards.map((c) => {
                       const active = method === "saved_card" && selectedCardId === c.id;
                       const logo = brandLogo(c.brand);
@@ -526,78 +550,9 @@ function Checkout() {
                 </div>
               )}
 
-              <p className="mt-6 text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Other methods</p>
-              <div className="mt-2 grid gap-3 sm:grid-cols-3">
-                <MethodCard
-                  active={method === "card"}
-                  onClick={() => {
-                    setMethod("card");
-                    setSelectedCardId(null);
-                  }}
-                  icon={<CreditCard className="h-5 w-5" />}
-                  title="New Card"
-                  subtitle="Visa · Mastercard · Verve"
-                  logos={[CARD_BRAND_LOGOS.visa, CARD_BRAND_LOGOS.mastercard, CARD_BRAND_LOGOS.verve]}
-                />
-                <MethodCard
-                  active={method === "bank_transfer"}
-                  onClick={() => {
-                    setMethod("bank_transfer");
-                    setSelectedCardId(null);
-                    if (placing) return;
-                    // Open Flutterwave bank transfer modal immediately
-                    handleSubmit({ preventDefault: () => {} } as FormEvent, "bank_transfer");
-                  }}
-                  icon={<Building2 className="h-5 w-5" />}
-                  title="Bank Transfer"
-                  subtitle="Pay via bank transfer"
-                />
-                <MethodCard
-                  active={method === "opay"}
-                  onClick={() => {
-                    setMethod("opay");
-                    setSelectedCardId(null);
-                  }}
-                  icon={<Smartphone className="h-5 w-5" />}
-                  title="Opay"
-                  subtitle="Pay via Opay link"
-                />
-              </div>
-
               <p className="mt-6 text-[11px] text-muted-foreground">
-                Your order will not ship until payment is confirmed.
+                Tap “Make Payment” to open Flutterwave and choose card, bank transfer, USSD or Opay. Your order will not ship until payment is confirmed.
               </p>
-
-              <div className="mt-8 flex justify-between">
-                <button type="button" onClick={() => setStep(1)} className="border border-border px-8 py-4 text-xs uppercase tracking-[0.25em] text-foreground hover:border-primary">
-                  Back
-                </button>
-                <button type="button" onClick={() => setStep(3)} className="bg-gold-gradient px-8 py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground hover:opacity-90">
-                  Review Order
-                </button>
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div>
-              <h2 className="font-serif text-2xl">Review & Place Order</h2>
-              <div className="mt-6 grid gap-6 sm:grid-cols-2">
-                <ReviewBlock title="Shipping To">
-                  <p>{shipForm.name}</p>
-                  <p>{shipForm.address}</p>
-                  <p>
-                    {shipForm.lga}, {shipForm.state}
-                  </p>
-                  <p>{shipForm.country}</p>
-                </ReviewBlock>
-                <ReviewBlock title="Amount to Pay">
-                  <p className="font-serif text-2xl text-gold-gradient">
-                    ₦{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </p>
-                </ReviewBlock>
-              </div>
-
 
               {paymentSuccess && (
                 <div className="mt-6 border border-emerald-500/40 bg-emerald-500/10 p-6 text-center">
@@ -621,7 +576,7 @@ function Checkout() {
               {errors.form && <p className="mt-4 text-xs text-destructive">{errors.form}</p>}
               {!paymentSuccess && (
                 <div className="mt-8 flex justify-between">
-                  <button type="button" onClick={() => setStep(2)} className="border border-border px-8 py-4 text-xs uppercase tracking-[0.25em] text-foreground hover:border-primary">
+                  <button type="button" onClick={() => setStep(1)} className="border border-border px-8 py-4 text-xs uppercase tracking-[0.25em] text-foreground hover:border-primary">
                     Back
                   </button>
                   <button
@@ -632,7 +587,7 @@ function Checkout() {
                     {placing && <Loader2 className="h-4 w-4 animate-spin" />}
                     {placing
                       ? "Processing…"
-                      : `Pay ₦${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                      : `Make Payment — ₦${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                   </button>
                 </div>
               )}
@@ -676,61 +631,6 @@ function Checkout() {
   );
 }
 
-function MethodCard({
-  active,
-  onClick,
-  icon,
-  title,
-  subtitle,
-  logos,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  title: string;
-  subtitle: string;
-  logos?: string[];
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex flex-col gap-2 border p-4 text-left transition-smooth ${
-        active ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground hover:text-foreground hover:border-primary/60"
-      }`}
-    >
-      <span className="flex items-center gap-2">
-        {icon}
-        <span className="text-xs uppercase tracking-[0.2em]">{title}</span>
-      </span>
-      <span className="text-[10px] text-muted-foreground">{subtitle}</span>
-      {logos && (
-        <span className="mt-1 flex items-center gap-1.5">
-          {logos.map((l) => (
-            <img key={l} src={l} alt="" className="h-4 w-7 object-contain" />
-          ))}
-        </span>
-      )}
-    </button>
-  );
-}
-
-function Detail({ label, value, copyable }: { label: string; value: string; copyable?: boolean }) {
-  const copy = () => navigator.clipboard.writeText(value);
-  return (
-    <div>
-      <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
-      <div className="mt-1 flex items-center gap-2">
-        <p className="text-sm font-medium text-foreground">{value}</p>
-        {copyable && (
-          <button type="button" onClick={copy} aria-label="Copy" className="text-muted-foreground hover:text-primary">
-            <Copy className="h-3.5 w-3.5" />
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
 
 function Field({
   label,
