@@ -375,7 +375,10 @@ function Checkout() {
   const steps = [
     { n: 1, label: "Shipping", icon: MapPin },
     { n: 2, label: "Review", icon: Package },
+    { n: 3, label: "Payment", icon: BadgeCheck },
   ] as const;
+
+  const paymentVerified = !!paymentSuccess;
 
   return (
     <div className="container mx-auto px-6 py-16">
@@ -386,8 +389,9 @@ function Checkout() {
 
       <div className="mx-auto mb-12 flex max-w-2xl items-center justify-between">
         {steps.map((s, i) => {
-          const done = step > s.n;
-          const current = step === s.n;
+          // Shipping/Review use the wizard step. Payment is "done" only when verified.
+          const done = s.n === 3 ? paymentVerified : step > s.n;
+          const current = s.n === 3 ? (step === 2 && !paymentVerified) : step === s.n;
           return (
             <div key={s.n} className="flex flex-1 items-center">
               <div className="flex flex-col items-center">
@@ -408,7 +412,13 @@ function Checkout() {
                   {s.label}
                 </span>
               </div>
-              {i < steps.length - 1 && <div className={`mx-2 h-px flex-1 ${step > s.n ? "bg-primary" : "bg-border"}`} />}
+              {i < steps.length - 1 && (
+                <div
+                  className={`mx-2 h-px flex-1 ${
+                    (s.n === 2 ? paymentVerified : step > s.n) ? "bg-primary" : "bg-border"
+                  }`}
+                />
+              )}
             </div>
           );
         })}
