@@ -543,6 +543,10 @@ function Checkout() {
                   onClick={() => {
                     setMethod("bank_transfer");
                     setSelectedCardId(null);
+                    // Open Flutterwave bank transfer modal immediately
+                    requestAnimationFrame(() => {
+                      handleSubmit({ preventDefault: () => {} } as FormEvent);
+                    });
                   }}
                   icon={<Building2 className="h-5 w-5" />}
                   title="Bank Transfer"
