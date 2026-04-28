@@ -631,61 +631,6 @@ function Checkout() {
   );
 }
 
-function MethodCard({
-  active,
-  onClick,
-  icon,
-  title,
-  subtitle,
-  logos,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  title: string;
-  subtitle: string;
-  logos?: string[];
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex flex-col gap-2 border p-4 text-left transition-smooth ${
-        active ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground hover:text-foreground hover:border-primary/60"
-      }`}
-    >
-      <span className="flex items-center gap-2">
-        {icon}
-        <span className="text-xs uppercase tracking-[0.2em]">{title}</span>
-      </span>
-      <span className="text-[10px] text-muted-foreground">{subtitle}</span>
-      {logos && (
-        <span className="mt-1 flex items-center gap-1.5">
-          {logos.map((l) => (
-            <img key={l} src={l} alt="" className="h-4 w-7 object-contain" />
-          ))}
-        </span>
-      )}
-    </button>
-  );
-}
-
-function Detail({ label, value, copyable }: { label: string; value: string; copyable?: boolean }) {
-  const copy = () => navigator.clipboard.writeText(value);
-  return (
-    <div>
-      <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
-      <div className="mt-1 flex items-center gap-2">
-        <p className="text-sm font-medium text-foreground">{value}</p>
-        {copyable && (
-          <button type="button" onClick={copy} aria-label="Copy" className="text-muted-foreground hover:text-primary">
-            <Copy className="h-3.5 w-3.5" />
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
 
 function Field({
   label,
