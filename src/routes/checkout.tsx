@@ -484,12 +484,42 @@ function Checkout() {
 
           {step === 2 && (
             <div>
-              <h2 className="font-serif text-2xl">Payment Method</h2>
+              <h2 className="font-serif text-2xl">Review & Place Order</h2>
+              <div className="mt-6 grid gap-6 sm:grid-cols-2">
+                <ReviewBlock title="Shipping To">
+                  <p>{shipForm.name}</p>
+                  <p>{shipForm.address}</p>
+                  <p>
+                    {shipForm.lga}, {shipForm.state}
+                  </p>
+                  <p>{shipForm.country}</p>
+                </ReviewBlock>
+                <ReviewBlock title="Amount to Pay">
+                  <p className="font-serif text-2xl text-gold-gradient">
+                    ₦{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                </ReviewBlock>
+              </div>
 
               {savedCards.length > 0 && (
                 <div className="mt-6">
-                  <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Saved Cards</p>
+                  <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Pay with a saved card (optional)</p>
                   <div className="mt-2 space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMethod("card");
+                        setSelectedCardId(null);
+                      }}
+                      className={`flex w-full items-center justify-between border px-4 py-3 text-left transition-smooth ${
+                        method !== "saved_card" ? "border-primary bg-primary/5" : "border-border hover:border-primary/60"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2 text-sm text-foreground">
+                        <CreditCard className="h-4 w-4" />
+                        Choose payment method on Flutterwave
+                      </span>
+                    </button>
                     {savedCards.map((c) => {
                       const active = method === "saved_card" && selectedCardId === c.id;
                       const logo = brandLogo(c.brand);
@@ -525,78 +555,9 @@ function Checkout() {
                 </div>
               )}
 
-              <p className="mt-6 text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Other methods</p>
-              <div className="mt-2 grid gap-3 sm:grid-cols-3">
-                <MethodCard
-                  active={method === "card"}
-                  onClick={() => {
-                    setMethod("card");
-                    setSelectedCardId(null);
-                  }}
-                  icon={<CreditCard className="h-5 w-5" />}
-                  title="New Card"
-                  subtitle="Visa · Mastercard · Verve"
-                  logos={[CARD_BRAND_LOGOS.visa, CARD_BRAND_LOGOS.mastercard, CARD_BRAND_LOGOS.verve]}
-                />
-                <MethodCard
-                  active={method === "bank_transfer"}
-                  onClick={() => {
-                    setMethod("bank_transfer");
-                    setSelectedCardId(null);
-                    if (placing) return;
-                    // Open Flutterwave bank transfer modal immediately
-                    handleSubmit({ preventDefault: () => {} } as FormEvent, "bank_transfer");
-                  }}
-                  icon={<Building2 className="h-5 w-5" />}
-                  title="Bank Transfer"
-                  subtitle="Pay via bank transfer"
-                />
-                <MethodCard
-                  active={method === "opay"}
-                  onClick={() => {
-                    setMethod("opay");
-                    setSelectedCardId(null);
-                  }}
-                  icon={<Smartphone className="h-5 w-5" />}
-                  title="Opay"
-                  subtitle="Pay via Opay link"
-                />
-              </div>
-
               <p className="mt-6 text-[11px] text-muted-foreground">
-                Your order will not ship until payment is confirmed.
+                Tap “Make Payment” to open Flutterwave and choose card, bank transfer, USSD or Opay. Your order will not ship until payment is confirmed.
               </p>
-
-              <div className="mt-8 flex justify-between">
-                <button type="button" onClick={() => setStep(1)} className="border border-border px-8 py-4 text-xs uppercase tracking-[0.25em] text-foreground hover:border-primary">
-                  Back
-                </button>
-                <button type="button" onClick={() => setStep(3)} className="bg-gold-gradient px-8 py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground hover:opacity-90">
-                  Review Order
-                </button>
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div>
-              <h2 className="font-serif text-2xl">Review & Place Order</h2>
-              <div className="mt-6 grid gap-6 sm:grid-cols-2">
-                <ReviewBlock title="Shipping To">
-                  <p>{shipForm.name}</p>
-                  <p>{shipForm.address}</p>
-                  <p>
-                    {shipForm.lga}, {shipForm.state}
-                  </p>
-                  <p>{shipForm.country}</p>
-                </ReviewBlock>
-                <ReviewBlock title="Amount to Pay">
-                  <p className="font-serif text-2xl text-gold-gradient">
-                    ₦{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </p>
-                </ReviewBlock>
-              </div>
-
 
               {paymentSuccess && (
                 <div className="mt-6 border border-emerald-500/40 bg-emerald-500/10 p-6 text-center">
@@ -620,7 +581,7 @@ function Checkout() {
               {errors.form && <p className="mt-4 text-xs text-destructive">{errors.form}</p>}
               {!paymentSuccess && (
                 <div className="mt-8 flex justify-between">
-                  <button type="button" onClick={() => setStep(2)} className="border border-border px-8 py-4 text-xs uppercase tracking-[0.25em] text-foreground hover:border-primary">
+                  <button type="button" onClick={() => setStep(1)} className="border border-border px-8 py-4 text-xs uppercase tracking-[0.25em] text-foreground hover:border-primary">
                     Back
                   </button>
                   <button
@@ -631,7 +592,7 @@ function Checkout() {
                     {placing && <Loader2 className="h-4 w-4 animate-spin" />}
                     {placing
                       ? "Processing…"
-                      : `Pay ₦${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                      : `Make Payment — ₦${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                   </button>
                 </div>
               )}
