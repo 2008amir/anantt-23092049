@@ -201,9 +201,10 @@ function Checkout() {
     }
   };
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent, overrideMethod?: PayMethod) => {
     e.preventDefault();
     if (!user) return;
+    const activeMethod: PayMethod = overrideMethod ?? method;
     setErrors({});
     setPlacing(true);
     let createdOrderId: string | null = null;
@@ -259,7 +260,7 @@ function Checkout() {
       const tx_ref = `ml-${order.id}-${Date.now()}`;
 
       // 2. Branch by method
-      if (method === "saved_card" && selectedCardId) {
+      if (activeMethod === "saved_card" && selectedCardId) {
         const card = savedCards.find((c) => c.id === selectedCardId);
         if (!card) throw new Error("Saved card not found");
         const res = await chargeSavedCard({
@@ -284,11 +285,11 @@ function Checkout() {
       // Card / Bank transfer / Opay → open Flutterwave INLINE popup.
       // No redirect. Modal opens over the checkout page.
       const paymentOptions =
-        method === "opay"
+        activeMethod === "opay"
           ? "opay"
-          : method === "bank_transfer"
+          : activeMethod === "bank_transfer"
             ? "banktransfer"
-            : method === "card"
+            : activeMethod === "card"
               ? "card"
               : "card,banktransfer,opay,ussd";
 
@@ -543,6 +544,9 @@ function Checkout() {
                   onClick={() => {
                     setMethod("bank_transfer");
                     setSelectedCardId(null);
+                    if (placing) return;
+                    // Open Flutterwave bank transfer modal immediately
+                    handleSubmit({ preventDefault: () => {} } as FormEvent, "bank_transfer");
                   }}
                   icon={<Building2 className="h-5 w-5" />}
                   title="Bank Transfer"
