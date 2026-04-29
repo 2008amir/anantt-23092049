@@ -301,8 +301,43 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
 
   const signIn = useCallback(async (email: string, password: string) => {
+    // 1. Validate password first (without leaving a session if device is new).
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
+
+    // 2. Check whether this device is already trusted for this account.
+    try {
+      const { collectDeviceSignals } = await import("./device-fingerprint");
+      const device = await collectDeviceSignals();
+      const { checkDeviceTrust, sendDeviceVerificationLink, markCurrentDeviceTrusted } =
+        await import("./device-trust.functions");
+
+      const result = await checkDeviceTrust({
+        data: { email, fingerprint: device.fingerprint },
+      });
+
+      if (result.trusted) {
+        // Refresh last_seen and ensure this browser stays recorded.
+        const { data: who } = await supabase.auth.getUser();
+        if (who.user?.id) {
+          await markCurrentDeviceTrusted({
+            data: { userId: who.user.id, fingerprint: device.fingerprint },
+          });
+        }
+        return;
+      }
+
+      // Untrusted device: sign out, email a verification link, surface error.
+      await supabase.auth.signOut();
+      await sendDeviceVerificationLink({ data: { email } });
+      throw new Error(
+        "New device detected. We've emailed you a verification link — open it on this device to finish signing in.",
+      );
+    } catch (err) {
+      // Re-throw our own message; swallow trust-check infra errors and allow login.
+      if (err instanceof Error && err.message.startsWith("New device detected")) throw err;
+      console.error("Device trust check failed (allowing sign-in):", err);
+    }
   }, []);
 
   const signUp = useCallback(
