@@ -1,16 +1,12 @@
 // Supabase Auth "Send Email" hook.
 // Receives auth email events (signup, recovery, etc.) and sends them
-// through Resend from luxesparkles@codebreakers.uk.
-//
-// Configure in Cloud → Auth → Hooks → "Send Email" hook with the URL:
-//   https://<project-ref>.supabase.co/functions/v1/auth-email-hook
-// and the secret stored as SEND_EMAIL_HOOK_SECRET (v1,whsec_...).
+// through Brevo (Sendinblue) from luxesparkles@codebreakers.uk.
 
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+const BREVO_API_KEY = Deno.env.get("BREVO_API_KEY");
 
-const FROM = "Maison Luxe <luxesparkles@codebreakers.uk>";
-const GATEWAY = "https://connector-gateway.lovable.dev/resend";
+const FROM_EMAIL = "luxesparkles@codebreakers.uk";
+const FROM_NAME = "Maison Luxe";
+const BREVO_URL = "https://api.brevo.com/v3/smtp/email";
 
 type EmailActionType =
   | "signup"
@@ -135,8 +131,8 @@ Deno.serve(async (req) => {
     return new Response("Method not allowed", { status: 405 });
   }
 
-  if (!RESEND_API_KEY || !LOVABLE_API_KEY) {
-    console.error("Missing RESEND_API_KEY or LOVABLE_API_KEY");
+  if (!BREVO_API_KEY) {
+    console.error("Missing BREVO_API_KEY");
     return new Response(JSON.stringify({ error: "server_misconfigured" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
@@ -170,36 +166,36 @@ Deno.serve(async (req) => {
   });
 
   try {
-    const res = await fetch(`${GATEWAY}/emails`, {
+    const res = await fetch(BREVO_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "X-Connection-Api-Key": RESEND_API_KEY,
+        "api-key": BREVO_API_KEY,
+        accept: "application/json",
       },
       body: JSON.stringify({
-        from: FROM,
-        to: [user.email],
+        sender: { name: FROM_NAME, email: FROM_EMAIL },
+        to: [{ email: user.email }],
         subject: subjectFor(email_data.email_action_type),
-        html,
+        htmlContent: html,
       }),
     });
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      console.error("Resend send failed:", res.status, data);
+      console.error("Brevo send failed:", res.status, data);
       return new Response(JSON.stringify({ error: "send_failed", details: data }), {
         status: 502,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    return new Response(JSON.stringify({ ok: true, id: data.id }), {
+    return new Response(JSON.stringify({ ok: true, id: data.messageId }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("Resend request error:", err);
+    console.error("Brevo request error:", err);
     return new Response(JSON.stringify({ error: "send_error" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
