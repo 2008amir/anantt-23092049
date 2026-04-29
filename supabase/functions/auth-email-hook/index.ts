@@ -1,16 +1,12 @@
 // Supabase Auth "Send Email" hook.
 // Receives auth email events (signup, recovery, etc.) and sends them
-// through Resend from luxesparkles@codebreakers.uk.
-//
-// Configure in Cloud → Auth → Hooks → "Send Email" hook with the URL:
-//   https://<project-ref>.supabase.co/functions/v1/auth-email-hook
-// and the secret stored as SEND_EMAIL_HOOK_SECRET (v1,whsec_...).
+// through Brevo (Sendinblue) from luxesparkles@codebreakers.uk.
 
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+const BREVO_API_KEY = Deno.env.get("BREVO_API_KEY");
 
-const FROM = "Maison Luxe <luxesparkles@codebreakers.uk>";
-const GATEWAY = "https://connector-gateway.lovable.dev/resend";
+const FROM_EMAIL = "luxesparkles@codebreakers.uk";
+const FROM_NAME = "Maison Luxe";
+const BREVO_URL = "https://api.brevo.com/v3/smtp/email";
 
 type EmailActionType =
   | "signup"
