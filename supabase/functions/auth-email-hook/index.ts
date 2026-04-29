@@ -35,21 +35,21 @@ interface HookPayload {
 function subjectFor(type: EmailActionType): string {
   switch (type) {
     case "signup":
-      return "Verify your email — Maison Luxe";
+      return "Verify your email — Luxe Sparkles";
     case "recovery":
-      return "Reset your password — Maison Luxe";
+      return "Reset your password — Luxe Sparkles";
     case "magiclink":
-      return "Your sign-in link — Maison Luxe";
+      return "Your sign-in link — Luxe Sparkles";
     case "invite":
-      return "You're invited — Maison Luxe";
+      return "You're invited — Luxe Sparkles";
     case "email_change":
     case "email_change_current":
     case "email_change_new":
-      return "Confirm your new email — Maison Luxe";
+      return "Confirm your new email — Luxe Sparkles";
     case "reauthentication":
-      return "Confirm it's you — Maison Luxe";
+      return "Confirm it's you — Luxe Sparkles";
     default:
-      return "Maison Luxe";
+      return "Luxe Sparkles";
   }
 }
 
