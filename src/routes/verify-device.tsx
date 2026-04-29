@@ -1,11 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { markCurrentDeviceTrusted } from "@/lib/device-trust.functions";
+import { consumeVerificationToken, markCurrentDeviceTrusted } from "@/lib/device-trust.functions";
 import { Spinner } from "@/components/PasswordField";
 
 export const Route = createFileRoute("/verify-device")({
-  head: () => ({ meta: [{ title: "Verify Device — Maison Luxe" }] }),
+  head: () => ({ meta: [{ title: "Verify Device — Luxe Sparkles" }] }),
   component: VerifyDevice,
 });
 
@@ -18,7 +18,31 @@ function VerifyDevice() {
     let cancelled = false;
     (async () => {
       try {
-        // Wait briefly for Supabase to consume the magic-link hash and create a session.
+        const url = new URL(window.location.href);
+        const token = url.searchParams.get("t");
+        const alreadyHasHash = window.location.hash.includes("access_token");
+
+        // Phase 1: token in URL — exchange via our DB, then bounce to Supabase action link
+        if (token && !alreadyHasHash) {
+          const res = await consumeVerificationToken({ data: { token } });
+          if (!res.ok) {
+            setStatus("error");
+            setMessage(
+              res.reason === "expired"
+                ? "This verification link has expired. Please request a new one."
+                : res.reason === "used"
+                ? "This verification link has already been used."
+                : "Verification link is invalid.",
+            );
+            return;
+          }
+          // Redirect to Supabase's verify endpoint — it will set the session and
+          // come back to /verify-device (without ?t=) with the auth hash.
+          window.location.replace(res.actionLink);
+          return;
+        }
+
+        // Phase 2: returning from Supabase with a session hash. Wait for it.
         let session = (await supabase.auth.getSession()).data.session;
         for (let i = 0; i < 20 && !session; i++) {
           await new Promise((r) => setTimeout(r, 150));
