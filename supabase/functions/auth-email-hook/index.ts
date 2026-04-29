@@ -5,7 +5,7 @@
 const BREVO_API_KEY = Deno.env.get("BREVO_API_KEY");
 
 const FROM_EMAIL = "luxesparkles@codebreakers.uk";
-const FROM_NAME = "Maison Luxe";
+const FROM_NAME = "Luxe Sparkles";
 const BREVO_URL = "https://api.brevo.com/v3/smtp/email";
 
 type EmailActionType =
