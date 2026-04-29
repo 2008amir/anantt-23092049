@@ -131,8 +131,8 @@ Deno.serve(async (req) => {
     return new Response("Method not allowed", { status: 405 });
   }
 
-  if (!RESEND_API_KEY || !LOVABLE_API_KEY) {
-    console.error("Missing RESEND_API_KEY or LOVABLE_API_KEY");
+  if (!BREVO_API_KEY) {
+    console.error("Missing BREVO_API_KEY");
     return new Response(JSON.stringify({ error: "server_misconfigured" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
