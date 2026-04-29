@@ -166,36 +166,36 @@ Deno.serve(async (req) => {
   });
 
   try {
-    const res = await fetch(`${GATEWAY}/emails`, {
+    const res = await fetch(BREVO_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "X-Connection-Api-Key": RESEND_API_KEY,
+        "api-key": BREVO_API_KEY,
+        accept: "application/json",
       },
       body: JSON.stringify({
-        from: FROM,
-        to: [user.email],
+        sender: { name: FROM_NAME, email: FROM_EMAIL },
+        to: [{ email: user.email }],
         subject: subjectFor(email_data.email_action_type),
-        html,
+        htmlContent: html,
       }),
     });
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      console.error("Resend send failed:", res.status, data);
+      console.error("Brevo send failed:", res.status, data);
       return new Response(JSON.stringify({ error: "send_failed", details: data }), {
         status: 502,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    return new Response(JSON.stringify({ ok: true, id: data.id }), {
+    return new Response(JSON.stringify({ ok: true, id: data.messageId }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("Resend request error:", err);
+    console.error("Brevo request error:", err);
     return new Response(JSON.stringify({ error: "send_error" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
