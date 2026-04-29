@@ -761,6 +761,42 @@ export type Database = {
         }
         Relationships: []
       }
+      trusted_devices: {
+        Row: {
+          created_at: string
+          device_cookie_id: string
+          fingerprint: string | null
+          id: string
+          ip: string | null
+          label: string | null
+          last_seen_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_cookie_id: string
+          fingerprint?: string | null
+          id?: string
+          ip?: string | null
+          label?: string | null
+          last_seen_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_cookie_id?: string
+          fingerprint?: string | null
+          id?: string
+          ip?: string | null
+          label?: string | null
+          last_seen_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_activity_days: {
         Row: {
           activity_date: string
