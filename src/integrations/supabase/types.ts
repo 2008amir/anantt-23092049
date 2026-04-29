@@ -181,6 +181,42 @@ export type Database = {
         }
         Relationships: []
       }
+      email_verification_links: {
+        Row: {
+          action_link: string
+          consumed: boolean
+          consumed_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          purpose: string
+          token_hash: string
+        }
+        Insert: {
+          action_link: string
+          consumed?: boolean
+          consumed_at?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          purpose?: string
+          token_hash: string
+        }
+        Update: {
+          action_link?: string
+          consumed?: boolean
+          consumed_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          purpose?: string
+          token_hash?: string
+        }
+        Relationships: []
+      }
       lga_delivery_prices: {
         Row: {
           id: string
