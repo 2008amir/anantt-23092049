@@ -5,7 +5,7 @@
 const BREVO_API_KEY = Deno.env.get("BREVO_API_KEY");
 
 const FROM_EMAIL = "luxesparkles@codebreakers.uk";
-const FROM_NAME = "Maison Luxe";
+const FROM_NAME = "Luxe Sparkles";
 const BREVO_URL = "https://api.brevo.com/v3/smtp/email";
 
 type EmailActionType =
@@ -35,21 +35,21 @@ interface HookPayload {
 function subjectFor(type: EmailActionType): string {
   switch (type) {
     case "signup":
-      return "Verify your email — Maison Luxe";
+      return "Verify your email — Luxe Sparkles";
     case "recovery":
-      return "Reset your password — Maison Luxe";
+      return "Reset your password — Luxe Sparkles";
     case "magiclink":
-      return "Your sign-in link — Maison Luxe";
+      return "Your sign-in link — Luxe Sparkles";
     case "invite":
-      return "You're invited — Maison Luxe";
+      return "You're invited — Luxe Sparkles";
     case "email_change":
     case "email_change_current":
     case "email_change_new":
-      return "Confirm your new email — Maison Luxe";
+      return "Confirm your new email — Luxe Sparkles";
     case "reauthentication":
-      return "Confirm it's you — Maison Luxe";
+      return "Confirm it's you — Luxe Sparkles";
     default:
-      return "Maison Luxe";
+      return "Luxe Sparkles";
   }
 }
 
@@ -62,7 +62,7 @@ function headlineFor(type: EmailActionType): string {
     case "magiclink":
       return "Your sign-in link";
     case "invite":
-      return "You're invited to Maison Luxe";
+      return "You're invited to Luxe Sparkles";
     case "email_change":
     case "email_change_current":
     case "email_change_new":
@@ -70,7 +70,7 @@ function headlineFor(type: EmailActionType): string {
     case "reauthentication":
       return "Confirm it's really you";
     default:
-      return "Maison Luxe";
+      return "Luxe Sparkles";
   }
 }
 
@@ -80,47 +80,63 @@ function buildHtml(opts: {
   token: string;
 }): string {
   const headline = headlineFor(opts.type);
-  const intro =
+  const action =
     opts.type === "signup"
-      ? "Welcome to Maison Luxe. Please confirm your email address to activate your account."
+      ? "activate your account"
       : opts.type === "recovery"
-        ? "We received a request to reset the password on your Maison Luxe account."
+        ? "reset your password"
         : opts.type === "magiclink"
-          ? "Use the secure link below to sign in to Maison Luxe."
-          : "Please confirm this action on your Maison Luxe account.";
+          ? "sign in"
+          : "confirm this action";
+
+  const intro = `Thank you for using Luxe Sparkles! To ${action}, please verify your email address by clicking the button below.`;
 
   return `<!doctype html>
 <html>
-  <body style="margin:0;padding:0;background:#f6f4ef;font-family:Georgia,serif;color:#1a1a1a;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f6f4ef;padding:40px 16px;">
-      <tr>
-        <td align="center">
-          <table role="presentation" width="560" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #e7e2d6;">
-            <tr>
-              <td style="padding:32px 40px;border-bottom:1px solid #e7e2d6;text-align:center;">
-                <div style="font-size:11px;letter-spacing:0.3em;text-transform:uppercase;color:#b08a3e;">Maison Luxe</div>
-                <h1 style="margin:12px 0 0 0;font-size:28px;font-weight:400;color:#1a1a1a;">${headline}</h1>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:32px 40px;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#333;">
-                <p style="margin:0 0 24px 0;">${intro}</p>
-                <p style="text-align:center;margin:0 0 24px 0;">
-                  <a href="${opts.confirmUrl}" style="display:inline-block;background:#b08a3e;color:#ffffff;text-decoration:none;padding:14px 32px;font-size:12px;letter-spacing:0.25em;text-transform:uppercase;">Confirm</a>
-                </p>
-                <p style="margin:0 0 8px 0;font-size:13px;color:#666;">Or use this code:</p>
-                <p style="margin:0 0 24px 0;font-family:'Courier New',monospace;font-size:20px;letter-spacing:4px;color:#1a1a1a;">${opts.token}</p>
-                <p style="margin:0;font-size:12px;color:#888;">If you didn't request this, you can safely ignore this email.</p>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:20px 40px;border-top:1px solid #e7e2d6;text-align:center;font-family:Helvetica,Arial,sans-serif;font-size:11px;color:#888;">
-                © Maison Luxe · supports@codebreakers.uk
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
+  <body style="margin:0;padding:0;background:#f3f3f3;font-family:Helvetica,Arial,sans-serif;color:#1a1a1a;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f3f3f3;padding:32px 12px;">
+      <tr><td align="center">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background:#ffffff;max-width:600px;width:100%;">
+          <tr>
+            <td style="padding:0;">
+              <div style="background:linear-gradient(180deg,#fff8ec 0%,#fdf1d8 100%);padding:36px 20px 28px 20px;text-align:center;">
+                <div style="font-size:18px;color:#c9a14a;letter-spacing:2px;">✦  ✧</div>
+                <div style="font-family:Georgia,'Times New Roman',serif;font-size:40px;color:#1a1a1a;margin-top:6px;">Luxe Sparkles</div>
+                <div style="font-size:14px;color:#c9a14a;margin-top:2px;">✧</div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px 40px 8px 40px;text-align:center;">
+              <h1 style="margin:0;font-size:24px;color:#1a1a1a;">${headline === "Verify your email" ? "Verify Your Email Address" : headline}</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:18px 40px 0 40px;font-size:15px;line-height:1.55;color:#1a1a1a;">
+              <p style="margin:0 0 14px 0;">Hello,</p>
+              <p style="margin:0 0 24px 0;">${intro}</p>
+              <p style="text-align:center;margin:0 0 26px 0;">
+                <a href="${opts.confirmUrl}" style="display:inline-block;background:#c9a14a;color:#ffffff;text-decoration:none;padding:16px 64px;font-size:16px;font-weight:600;border-radius:6px;">Verify My Email</a>
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 40px 24px 40px;">
+              <div style="background:#efefef;padding:18px 20px;text-align:center;font-size:13px;color:#333;border-radius:4px;">
+                <strong>Note:</strong> This link will expire in 60 minutes.<br/>
+                Please use it promptly.<br/>
+                <span style="font-family:'Courier New',monospace;font-size:14px;letter-spacing:2px;color:#1a1a1a;">${opts.token}</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:18px 40px 28px 40px;text-align:center;font-size:13px;color:#333;border-top:1px solid #eee;">
+              If you did not request this, please <u>ignore this email</u>.
+              <div style="margin-top:14px;color:#888;font-size:12px;">© ${new Date().getFullYear()} Luxe Sparkles. All rights reserved.</div>
+            </td>
+          </tr>
+        </table>
+      </td></tr>
     </table>
   </body>
 </html>`;
