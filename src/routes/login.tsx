@@ -147,6 +147,7 @@ function Login() {
     setMode(mode === "signin" ? "signup" : "signin");
     setStep(1);
     setError("");
+    setSuccess("");
   };
 
   return (
