@@ -413,6 +413,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           // ignore
         }
       }
+
+      // Send our branded Brevo verification email (Supabase default email is disabled)
+      try {
+        const { sendDeviceVerificationLink } = await import("./device-trust.functions");
+        await sendDeviceVerificationLink({ data: { email } });
+      } catch (e) {
+        console.error("verification email send failed", e);
+      }
     },
     [],
   );
