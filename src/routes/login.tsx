@@ -126,6 +126,11 @@ function Login() {
         country,
         referralCode: referralCode.trim() || undefined,
       });
+      setSuccess(
+        "Account created! We've sent a verification link to " +
+          email +
+          ". Please open it to confirm your email before signing in.",
+      );
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Authentication failed";
       if (msg.toLowerCase().includes("already registered") || msg.toLowerCase().includes("user already")) {
