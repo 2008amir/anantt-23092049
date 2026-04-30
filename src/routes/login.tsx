@@ -195,9 +195,11 @@ function Login() {
             {error && <p className="text-xs text-destructive">{error}</p>}
             <button
               type="submit"
-              className="w-full bg-gold-gradient py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold transition-smooth hover:opacity-90"
+              disabled={busy}
+              className="flex w-full items-center justify-center gap-2 bg-gold-gradient py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold transition-smooth hover:opacity-90 disabled:opacity-60"
             >
-              Continue →
+              {busy && <Spinner />}
+              {busy ? "Checking…" : "Continue →"}
             </button>
           </form>
         )}
