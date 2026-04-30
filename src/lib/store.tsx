@@ -421,6 +421,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       } catch (e) {
         console.error("verification email send failed", e);
       }
+
+      // Do NOT auto-login — user must confirm via the email link first.
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        // ignore
+      }
     },
     [],
   );

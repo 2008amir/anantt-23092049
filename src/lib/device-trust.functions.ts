@@ -132,6 +132,23 @@ async function sendBrevoEmail(opts: { to: string; subject: string; html: string 
 }
 
 /**
+ * Check whether an email is already registered.
+ */
+export const checkEmailExists = createServerFn({ method: "POST" })
+  .inputValidator((input) =>
+    z.object({ email: z.string().email().max(320) }).parse(input),
+  )
+  .handler(async ({ data }) => {
+    const email = data.email.toLowerCase();
+    const { data: row } = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .eq("email", email)
+      .maybeSingle();
+    return { exists: !!row?.id } as const;
+  });
+
+/**
  * Check whether the current request comes from a trusted device for this email.
  */
 export const checkDeviceTrust = createServerFn({ method: "POST" })

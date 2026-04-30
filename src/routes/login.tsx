@@ -59,6 +59,7 @@ function Login() {
 
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [success, setSuccess] = useState("");
 
   // Prefill referral code from ?ref=
   useEffect(() => {
@@ -88,14 +89,27 @@ function Login() {
     }
   };
 
-  const signupStep1 = (e: FormEvent) => {
+  const signupStep1 = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
     if (!firstName.trim()) return setError("First name is required");
     if (!lastName.trim()) return setError("Last name is required");
     if (!country) return setError("Please select a country");
     if (!/^\S+@\S+\.\S+$/.test(email)) return setError("Please enter a valid email");
-    setStep(2);
+    setBusy(true);
+    try {
+      const { checkEmailExists } = await import("@/lib/device-trust.functions");
+      const res = await checkEmailExists({ data: { email } });
+      if (res.exists) {
+        setError("Email already exists. Please sign in instead.");
+        return;
+      }
+      setStep(2);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not verify email");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const signupSubmit = async (e: FormEvent) => {
@@ -112,6 +126,11 @@ function Login() {
         country,
         referralCode: referralCode.trim() || undefined,
       });
+      setSuccess(
+        "Account created! We've sent a verification link to " +
+          email +
+          ". Please open it to confirm your email before signing in.",
+      );
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Authentication failed";
       if (msg.toLowerCase().includes("already registered") || msg.toLowerCase().includes("user already")) {
@@ -128,6 +147,7 @@ function Login() {
     setMode(mode === "signin" ? "signup" : "signin");
     setStep(1);
     setError("");
+    setSuccess("");
   };
 
   return (
@@ -175,14 +195,16 @@ function Login() {
             {error && <p className="text-xs text-destructive">{error}</p>}
             <button
               type="submit"
-              className="w-full bg-gold-gradient py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold transition-smooth hover:opacity-90"
+              disabled={busy}
+              className="flex w-full items-center justify-center gap-2 bg-gold-gradient py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold transition-smooth hover:opacity-90 disabled:opacity-60"
             >
-              Continue →
+              {busy && <Spinner />}
+              {busy ? "Checking…" : "Continue →"}
             </button>
           </form>
         )}
 
-        {mode === "signup" && step === 2 && (
+        {mode === "signup" && step === 2 && !success && (
           <form onSubmit={signupSubmit} className="mt-8 space-y-4">
             <PasswordField label="Create Password" value={password} onChange={setPassword} autoComplete="new-password" />
             <PasswordRequirements password={password} />
@@ -194,7 +216,7 @@ function Login() {
               className="flex w-full items-center justify-center gap-2 bg-gold-gradient py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold transition-smooth hover:opacity-90 disabled:opacity-60"
             >
               {busy && <Spinner />}
-              {busy ? "Creating account…" : "Create Account"}
+              {busy ? "Creating account…" : "Complete"}
             </button>
             <button
               type="button"
@@ -204,6 +226,27 @@ function Login() {
               ← Back
             </button>
           </form>
+        )}
+
+        {mode === "signup" && success && (
+          <div className="mt-8 space-y-4 text-center">
+            <div className="border border-primary/40 bg-primary/5 p-6 text-sm text-foreground">
+              {success}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setSuccess("");
+                setMode("signin");
+                setStep(1);
+                setPassword("");
+                setConfirmPassword("");
+              }}
+              className="w-full bg-gold-gradient py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold transition-smooth hover:opacity-90"
+            >
+              Back to Sign In
+            </button>
+          </div>
         )}
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
