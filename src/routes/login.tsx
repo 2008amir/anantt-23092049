@@ -201,7 +201,7 @@ function Login() {
           </form>
         )}
 
-        {mode === "signup" && step === 2 && (
+        {mode === "signup" && step === 2 && !success && (
           <form onSubmit={signupSubmit} className="mt-8 space-y-4">
             <PasswordField label="Create Password" value={password} onChange={setPassword} autoComplete="new-password" />
             <PasswordRequirements password={password} />
@@ -213,7 +213,7 @@ function Login() {
               className="flex w-full items-center justify-center gap-2 bg-gold-gradient py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold transition-smooth hover:opacity-90 disabled:opacity-60"
             >
               {busy && <Spinner />}
-              {busy ? "Creating account…" : "Create Account"}
+              {busy ? "Creating account…" : "Complete"}
             </button>
             <button
               type="button"
@@ -223,6 +223,27 @@ function Login() {
               ← Back
             </button>
           </form>
+        )}
+
+        {mode === "signup" && success && (
+          <div className="mt-8 space-y-4 text-center">
+            <div className="border border-primary/40 bg-primary/5 p-6 text-sm text-foreground">
+              {success}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setSuccess("");
+                setMode("signin");
+                setStep(1);
+                setPassword("");
+                setConfirmPassword("");
+              }}
+              className="w-full bg-gold-gradient py-4 text-xs uppercase tracking-[0.25em] text-primary-foreground shadow-gold transition-smooth hover:opacity-90"
+            >
+              Back to Sign In
+            </button>
+          </div>
         )}
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
