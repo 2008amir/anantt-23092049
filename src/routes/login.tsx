@@ -59,6 +59,7 @@ function Login() {
 
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [success, setSuccess] = useState("");
 
   // Prefill referral code from ?ref=
   useEffect(() => {
@@ -88,14 +89,27 @@ function Login() {
     }
   };
 
-  const signupStep1 = (e: FormEvent) => {
+  const signupStep1 = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
     if (!firstName.trim()) return setError("First name is required");
     if (!lastName.trim()) return setError("Last name is required");
     if (!country) return setError("Please select a country");
     if (!/^\S+@\S+\.\S+$/.test(email)) return setError("Please enter a valid email");
-    setStep(2);
+    setBusy(true);
+    try {
+      const { checkEmailExists } = await import("@/lib/device-trust.functions");
+      const res = await checkEmailExists({ data: { email } });
+      if (res.exists) {
+        setError("Email already exists. Please sign in instead.");
+        return;
+      }
+      setStep(2);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not verify email");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const signupSubmit = async (e: FormEvent) => {
