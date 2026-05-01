@@ -549,7 +549,7 @@ export const verifySignupCode = createServerFn({ method: "POST" })
     if (row.referral_code) meta.ref = row.referral_code;
     if (row.device_fp) meta.device_fp = row.device_fp;
 
-    const { error: createErr } = await supabaseAdmin.auth.admin.createUser({
+    const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
       email,
       password: row.password,
       email_confirm: true,
@@ -561,10 +561,40 @@ export const verifySignupCode = createServerFn({ method: "POST" })
       return { ok: false as const, reason: "server" as const };
     }
 
+    if (created.user?.id && row.device_fp) {
+      const cookieId = ensureDeviceCookie();
+      const ua = getRequestHeader("user-agent") ?? null;
+      const ip = getRequestIP({ xForwardedFor: true }) ?? null;
+      await supabaseAdmin.from("trusted_devices").upsert(
+        {
+          user_id: created.user.id,
+          device_cookie_id: cookieId,
+          fingerprint: row.device_fp,
+          ip,
+          user_agent: ua,
+          label: deviceLabel(ua),
+          last_seen_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id,device_cookie_id" },
+      );
+    }
+
     await supabaseAdmin
       .from("signup_verifications")
       .update({ consumed: true })
       .eq("id", row.id);
 
-    return { ok: true as const };
+    const origin = getRequestHeader("origin") || `https://${getRequestHeader("host") ?? ""}`;
+    const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+      options: { redirectTo: `${origin}/account` },
+    });
+
+    if (linkErr || !linkData?.properties?.action_link) {
+      console.error("post-signup login link failed", linkErr);
+      return { ok: true as const, actionLink: null };
+    }
+
+    return { ok: true as const, actionLink: linkData.properties.action_link };
   });
