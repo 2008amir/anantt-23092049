@@ -119,25 +119,37 @@ function Login() {
     if (password !== confirmPassword) return setError("Passwords do not match");
     setBusy(true);
     try {
-      await signUp(email, password, {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        displayName: `${firstName.trim()} ${lastName.trim()}`.trim(),
-        country,
-        referralCode: referralCode.trim() || undefined,
+      const { collectDeviceSignals } = await import("@/lib/device-fingerprint");
+      const device = await collectDeviceSignals();
+      const { startSignupVerification } = await import("@/lib/device-trust.functions");
+      const res = await startSignupVerification({
+        data: {
+          email,
+          password,
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          displayName: `${firstName.trim()} ${lastName.trim()}`.trim(),
+          country,
+          referralCode: referralCode.trim() || undefined,
+          deviceFp: device.fingerprint,
+        },
       });
-      setSuccess(
-        "Account created! We've sent a verification link to " +
-          email +
-          ". Please open it to confirm your email before signing in.",
-      );
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Authentication failed";
-      if (msg.toLowerCase().includes("already registered") || msg.toLowerCase().includes("user already")) {
-        setError("An account with that email already exists. Try signing in.");
-      } else {
-        setError(msg);
+      if (!res.ok) {
+        if (res.reason === "exists") {
+          setError("An account with that email already exists. Try signing in.");
+        } else if (res.reason === "email") {
+          setError("Could not send verification email. Please try again.");
+        } else {
+          setError("Something went wrong. Please try again.");
+        }
+        return;
       }
+      void navigate({
+        to: "/verify-signup",
+        search: { email },
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not start verification");
     } finally {
       setBusy(false);
     }
