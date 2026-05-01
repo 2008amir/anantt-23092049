@@ -338,3 +338,233 @@ export const markCurrentDeviceTrusted = createServerFn({ method: "POST" })
 
     return { ok: true } as const;
   });
+
+// =====================================================================
+// Signup OTP (6-digit code) — defer creating the auth user until verified
+// =====================================================================
+
+const SIGNUP_CODE_TTL_MIN = 15;
+const RESEND_COOLDOWN_SEC = 60;
+
+function generateCode(): string {
+  // Cryptographically random 6-digit code
+  const buf = new Uint8Array(4);
+  crypto.getRandomValues(buf);
+  const n = (buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3]) >>> 0;
+  return (n % 1_000_000).toString().padStart(6, "0");
+}
+
+async function sendSignupCodeEmail(email: string, code: string) {
+  const html = buildEmailHtml({
+    headline: "Your Verification Code",
+    intro:
+      "Thank you for joining Luxe Sparkles! Please use the verification code below to confirm your email address and finish creating your account.",
+    code,
+    email,
+    expiresMin: SIGNUP_CODE_TTL_MIN,
+  });
+  await sendBrevoEmail({
+    to: email,
+    subject: "Your verification code — Luxe Sparkles",
+    html,
+  });
+}
+
+const signupPayloadSchema = z.object({
+  email: z.string().email().max(320),
+  password: z.string().min(8).max(200),
+  firstName: z.string().max(100).optional(),
+  lastName: z.string().max(100).optional(),
+  displayName: z.string().max(200).optional(),
+  country: z.string().max(100).optional(),
+  referralCode: z.string().max(64).optional(),
+  deviceFp: z.string().max(128).optional(),
+});
+
+/**
+ * Stores pending signup data and emails a 6-digit code. Does NOT create the auth user.
+ */
+export const startSignupVerification = createServerFn({ method: "POST" })
+  .inputValidator((input) => signupPayloadSchema.parse(input))
+  .handler(async ({ data }) => {
+    const email = data.email.toLowerCase();
+
+    // Block if already a real user
+    const { data: existing } = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .eq("email", email)
+      .maybeSingle();
+    if (existing?.id) {
+      return { ok: false as const, reason: "exists" as const };
+    }
+
+    // Invalidate previous pending rows for this email
+    await supabaseAdmin
+      .from("signup_verifications")
+      .update({ consumed: true })
+      .eq("email", email)
+      .eq("consumed", false);
+
+    const code = generateCode();
+    const codeHash = await sha256Hex(code);
+    const expiresAt = new Date(Date.now() + SIGNUP_CODE_TTL_MIN * 60_000).toISOString();
+
+    const { error: insErr } = await supabaseAdmin.from("signup_verifications").insert({
+      email,
+      password: data.password,
+      first_name: data.firstName ?? null,
+      last_name: data.lastName ?? null,
+      display_name: data.displayName ?? null,
+      country: data.country ?? null,
+      referral_code: data.referralCode ?? null,
+      device_fp: data.deviceFp ?? null,
+      code_hash: codeHash,
+      expires_at: expiresAt,
+      last_sent_at: new Date().toISOString(),
+    });
+    if (insErr) {
+      console.error("signup_verifications insert failed", insErr);
+      return { ok: false as const, reason: "server" as const };
+    }
+
+    try {
+      await sendSignupCodeEmail(email, code);
+    } catch (e) {
+      console.error("brevo send failed", e);
+      return { ok: false as const, reason: "email" as const };
+    }
+
+    return { ok: true as const };
+  });
+
+/**
+ * Resends a fresh 6-digit code if cooldown elapsed and there's a pending row.
+ */
+export const resendSignupCode = createServerFn({ method: "POST" })
+  .inputValidator((input) =>
+    z.object({ email: z.string().email().max(320) }).parse(input),
+  )
+  .handler(async ({ data }) => {
+    const email = data.email.toLowerCase();
+
+    const { data: row } = await supabaseAdmin
+      .from("signup_verifications")
+      .select("id, last_sent_at, consumed")
+      .eq("email", email)
+      .eq("consumed", false)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!row) {
+      return { ok: false as const, reason: "no_pending" as const };
+    }
+
+    const elapsed = (Date.now() - new Date(row.last_sent_at).getTime()) / 1000;
+    if (elapsed < RESEND_COOLDOWN_SEC) {
+      return {
+        ok: false as const,
+        reason: "cooldown" as const,
+        retryIn: Math.ceil(RESEND_COOLDOWN_SEC - elapsed),
+      };
+    }
+
+    const code = generateCode();
+    const codeHash = await sha256Hex(code);
+    const expiresAt = new Date(Date.now() + SIGNUP_CODE_TTL_MIN * 60_000).toISOString();
+
+    await supabaseAdmin
+      .from("signup_verifications")
+      .update({
+        code_hash: codeHash,
+        attempts: 0,
+        last_sent_at: new Date().toISOString(),
+        expires_at: expiresAt,
+      })
+      .eq("id", row.id);
+
+    try {
+      await sendSignupCodeEmail(email, code);
+    } catch (e) {
+      console.error("brevo resend failed", e);
+      return { ok: false as const, reason: "email" as const };
+    }
+    return { ok: true as const, retryIn: RESEND_COOLDOWN_SEC };
+  });
+
+/**
+ * Validates the 6-digit code; if correct, creates the actual Supabase auth user
+ * (already email-confirmed) using the stored signup data.
+ */
+export const verifySignupCode = createServerFn({ method: "POST" })
+  .inputValidator((input) =>
+    z
+      .object({
+        email: z.string().email().max(320),
+        code: z.string().regex(/^\d{6}$/),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const email = data.email.toLowerCase();
+    const codeHash = await sha256Hex(data.code);
+
+    const { data: row } = await supabaseAdmin
+      .from("signup_verifications")
+      .select(
+        "id, code_hash, attempts, consumed, expires_at, password, first_name, last_name, display_name, country, referral_code, device_fp",
+      )
+      .eq("email", email)
+      .eq("consumed", false)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!row) return { ok: false as const, reason: "no_pending" as const };
+    if (new Date(row.expires_at).getTime() < Date.now()) {
+      return { ok: false as const, reason: "expired" as const };
+    }
+    if (row.attempts >= 5) {
+      return { ok: false as const, reason: "too_many" as const };
+    }
+    if (row.code_hash !== codeHash) {
+      await supabaseAdmin
+        .from("signup_verifications")
+        .update({ attempts: row.attempts + 1 })
+        .eq("id", row.id);
+      return {
+        ok: false as const,
+        reason: "wrong" as const,
+        attemptsLeft: Math.max(0, 5 - (row.attempts + 1)),
+      };
+    }
+
+    // Code correct — create the real user (already confirmed) and consume row.
+    const meta: Record<string, string> = {};
+    if (row.display_name) meta.display_name = row.display_name;
+    if (row.first_name) meta.first_name = row.first_name;
+    if (row.last_name) meta.last_name = row.last_name;
+    if (row.country) meta.country = row.country;
+    if (row.referral_code) meta.ref = row.referral_code;
+    if (row.device_fp) meta.device_fp = row.device_fp;
+
+    const { error: createErr } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password: row.password,
+      email_confirm: true,
+      user_metadata: meta,
+    });
+
+    if (createErr) {
+      console.error("createUser failed", createErr);
+      return { ok: false as const, reason: "server" as const };
+    }
+
+    await supabaseAdmin
+      .from("signup_verifications")
+      .update({ consumed: true })
+      .eq("id", row.id);
+
+    return { ok: true as const };
+  });
