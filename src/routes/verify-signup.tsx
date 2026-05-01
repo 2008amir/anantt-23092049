@@ -77,7 +77,11 @@ function VerifySignup() {
         return;
       }
       setDone(true);
-      setInfo("Email verified! Your account has been created. Redirecting to sign in…");
+      setInfo("Email verified! Your account has been created. Redirecting…");
+      if (res.actionLink) {
+        window.location.replace(res.actionLink);
+        return;
+      }
       setTimeout(() => {
         void navigate({ to: "/login" });
       }, 1800);
