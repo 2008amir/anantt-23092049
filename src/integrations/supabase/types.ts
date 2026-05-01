@@ -797,6 +797,60 @@ export type Database = {
         }
         Relationships: []
       }
+      signup_verifications: {
+        Row: {
+          attempts: number
+          code_hash: string
+          consumed: boolean
+          country: string | null
+          created_at: string
+          device_fp: string | null
+          display_name: string | null
+          email: string
+          expires_at: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          last_sent_at: string
+          password: string
+          referral_code: string | null
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          consumed?: boolean
+          country?: string | null
+          created_at?: string
+          device_fp?: string | null
+          display_name?: string | null
+          email: string
+          expires_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          last_sent_at?: string
+          password: string
+          referral_code?: string | null
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          consumed?: boolean
+          country?: string | null
+          created_at?: string
+          device_fp?: string | null
+          display_name?: string | null
+          email?: string
+          expires_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          last_sent_at?: string
+          password?: string
+          referral_code?: string | null
+        }
+        Relationships: []
+      }
       trusted_devices: {
         Row: {
           created_at: string

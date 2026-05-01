@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WishlistRouteImport } from './routes/wishlist'
+import { Route as VerifySignupRouteImport } from './routes/verify-signup'
 import { Route as VerifyDeviceRouteImport } from './routes/verify-device'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as SearchRouteImport } from './routes/search'
@@ -57,6 +58,11 @@ import { Route as AccountClaimIdRouteImport } from './routes/account.claim.$id'
 const WishlistRoute = WishlistRouteImport.update({
   id: '/wishlist',
   path: '/wishlist',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifySignupRoute = VerifySignupRouteImport.update({
+  id: '/verify-signup',
+  path: '/verify-signup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const VerifyDeviceRoute = VerifyDeviceRouteImport.update({
@@ -287,6 +293,7 @@ export interface FileRoutesByFullPath {
   '/search': typeof SearchRoute
   '/shop': typeof ShopRoute
   '/verify-device': typeof VerifyDeviceRoute
+  '/verify-signup': typeof VerifySignupRoute
   '/wishlist': typeof WishlistRoute
   '/account/addresses': typeof AccountAddressesRoute
   '/account/earn': typeof AccountEarnRoute
@@ -331,6 +338,7 @@ export interface FileRoutesByTo {
   '/search': typeof SearchRoute
   '/shop': typeof ShopRoute
   '/verify-device': typeof VerifyDeviceRoute
+  '/verify-signup': typeof VerifySignupRoute
   '/wishlist': typeof WishlistRoute
   '/account/addresses': typeof AccountAddressesRoute
   '/account/earn': typeof AccountEarnRoute
@@ -378,6 +386,7 @@ export interface FileRoutesById {
   '/search': typeof SearchRoute
   '/shop': typeof ShopRoute
   '/verify-device': typeof VerifyDeviceRoute
+  '/verify-signup': typeof VerifySignupRoute
   '/wishlist': typeof WishlistRoute
   '/account/addresses': typeof AccountAddressesRoute
   '/account/earn': typeof AccountEarnRoute
@@ -426,6 +435,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/shop'
     | '/verify-device'
+    | '/verify-signup'
     | '/wishlist'
     | '/account/addresses'
     | '/account/earn'
@@ -470,6 +480,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/shop'
     | '/verify-device'
+    | '/verify-signup'
     | '/wishlist'
     | '/account/addresses'
     | '/account/earn'
@@ -516,6 +527,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/shop'
     | '/verify-device'
+    | '/verify-signup'
     | '/wishlist'
     | '/account/addresses'
     | '/account/earn'
@@ -563,6 +575,7 @@ export interface RootRouteChildren {
   SearchRoute: typeof SearchRoute
   ShopRoute: typeof ShopRoute
   VerifyDeviceRoute: typeof VerifyDeviceRoute
+  VerifySignupRoute: typeof VerifySignupRoute
   WishlistRoute: typeof WishlistRoute
   OrdersIdRoute: typeof OrdersIdRoute
   ProductIdRoute: typeof ProductIdRoute
@@ -580,6 +593,13 @@ declare module '@tanstack/react-router' {
       path: '/wishlist'
       fullPath: '/wishlist'
       preLoaderRoute: typeof WishlistRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verify-signup': {
+      id: '/verify-signup'
+      path: '/verify-signup'
+      fullPath: '/verify-signup'
+      preLoaderRoute: typeof VerifySignupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/verify-device': {
@@ -966,6 +986,7 @@ const rootRouteChildren: RootRouteChildren = {
   SearchRoute: SearchRoute,
   ShopRoute: ShopRoute,
   VerifyDeviceRoute: VerifyDeviceRoute,
+  VerifySignupRoute: VerifySignupRoute,
   WishlistRoute: WishlistRoute,
   OrdersIdRoute: OrdersIdRoute,
   ProductIdRoute: ProductIdRoute,
