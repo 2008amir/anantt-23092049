@@ -1,4 +1,4 @@
-import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { Outlet, Link, createRootRoute, HeadContent, Scripts, useRouterState } from "@tanstack/react-router";
 import appCss from "../styles.css?url";
 import { StoreProvider } from "@/lib/store";
 import { ThemeProvider } from "@/lib/theme";
@@ -84,24 +84,33 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  const { location } = useRouterState();
+  const isStandaloneRoute = location.pathname === "/verify-signup";
+
   return (
     <ThemeProvider>
       <StoreProvider>
-        <ActivityTracker />
-        <ReferralCapture />
-        <CopyProtection />
-        <PWA />
-        <Splash>
-          <div className="flex flex-col bg-background" style={{ minHeight: "100dvh" }}>
-            <Header />
-            <main className="flex-1">
-              <Outlet />
-            </main>
-            <CartBubble />
-            <Footer />
-            <Toaster position="top-center" richColors closeButton />
-          </div>
-        </Splash>
+        {isStandaloneRoute ? (
+          <Outlet />
+        ) : (
+          <>
+            <ActivityTracker />
+            <ReferralCapture />
+            <CopyProtection />
+            <PWA />
+            <Splash>
+              <div className="flex flex-col bg-background" style={{ minHeight: "100dvh" }}>
+                <Header />
+                <main className="flex-1">
+                  <Outlet />
+                </main>
+                <CartBubble />
+                <Footer />
+                <Toaster position="top-center" richColors closeButton />
+              </div>
+            </Splash>
+          </>
+        )}
       </StoreProvider>
     </ThemeProvider>
   );
