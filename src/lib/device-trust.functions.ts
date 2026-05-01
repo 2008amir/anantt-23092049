@@ -584,5 +584,17 @@ export const verifySignupCode = createServerFn({ method: "POST" })
       .update({ consumed: true })
       .eq("id", row.id);
 
-    return { ok: true as const };
+    const origin = getRequestHeader("origin") || `https://${getRequestHeader("host") ?? ""}`;
+    const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+      options: { redirectTo: `${origin}/account` },
+    });
+
+    if (linkErr || !linkData?.properties?.action_link) {
+      console.error("post-signup login link failed", linkErr);
+      return { ok: true as const, actionLink: null };
+    }
+
+    return { ok: true as const, actionLink: linkData.properties.action_link };
   });
