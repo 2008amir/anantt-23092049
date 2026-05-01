@@ -549,7 +549,7 @@ export const verifySignupCode = createServerFn({ method: "POST" })
     if (row.referral_code) meta.ref = row.referral_code;
     if (row.device_fp) meta.device_fp = row.device_fp;
 
-    const { error: createErr } = await supabaseAdmin.auth.admin.createUser({
+    const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
       email,
       password: row.password,
       email_confirm: true,
@@ -559,6 +559,24 @@ export const verifySignupCode = createServerFn({ method: "POST" })
     if (createErr) {
       console.error("createUser failed", createErr);
       return { ok: false as const, reason: "server" as const };
+    }
+
+    if (created.user?.id && row.device_fp) {
+      const cookieId = ensureDeviceCookie();
+      const ua = getRequestHeader("user-agent") ?? null;
+      const ip = getRequestIP({ xForwardedFor: true }) ?? null;
+      await supabaseAdmin.from("trusted_devices").upsert(
+        {
+          user_id: created.user.id,
+          device_cookie_id: cookieId,
+          fingerprint: row.device_fp,
+          ip,
+          user_agent: ua,
+          label: deviceLabel(ua),
+          last_seen_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id,device_cookie_id" },
+      );
     }
 
     await supabaseAdmin
