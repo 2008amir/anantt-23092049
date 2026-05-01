@@ -253,14 +253,7 @@ export const sendDeviceVerificationLink = createServerFn({ method: "POST" })
     }
 
     const confirmUrl = `${origin}/verify-device?t=${encodeURIComponent(token)}`;
-    const html = buildEmailHtml({
-      headline: "Verify Your Email Address",
-      intro:
-        "Thank you for using Luxe Sparkles! To verify a new sign-in, please confirm your email address by clicking the button below.",
-      confirmUrl,
-      email,
-      expiresMin,
-    });
+    const html = `<!doctype html><html><body style="margin:0;padding:0;background:#f3f3f3;font-family:Helvetica,Arial,sans-serif;color:#1a1a1a;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f3f3;padding:32px 12px;"><tr><td align="center"><table width="600" cellpadding="0" cellspacing="0" style="background:#fff;max-width:600px;width:100%;"><tr><td><div style="background:linear-gradient(180deg,#fff8ec,#fdf1d8);padding:36px 20px;text-align:center;"><div style="font-family:Georgia,serif;font-size:40px;">Luxe Sparkles</div></div></td></tr><tr><td style="padding:32px 40px;text-align:center;"><h1 style="margin:0 0 16px;font-size:22px;">Verify a new device</h1><p style="font-size:14px;line-height:1.5;">Click the button below to confirm this sign-in for ${email}.</p><p style="margin:24px 0;"><a href="${confirmUrl}" style="display:inline-block;background:#c9a14a;color:#fff;text-decoration:none;padding:14px 48px;font-weight:600;border-radius:6px;">Verify My Device</a></p><p style="font-size:12px;color:#666;">This link expires in ${expiresMin} minutes.</p></td></tr></table></td></tr></table></body></html>`;
 
     try {
       await sendBrevoEmail({
