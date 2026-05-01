@@ -55,7 +55,14 @@ async function sha256Hex(input: string): Promise<string> {
     .join("");
 }
 
-function buildEmailHtml(opts: { headline: string; intro: string; confirmUrl: string; email: string; expiresMin: number }) {
+function buildEmailHtml(opts: { headline: string; intro: string; code: string; email: string; expiresMin: number }) {
+  const codeBoxes = opts.code
+    .split("")
+    .map(
+      (d) =>
+        `<span style="display:inline-block;min-width:42px;padding:14px 0;margin:0 4px;background:#fff;border:1px solid #e5d6a8;border-radius:6px;font-family:Georgia,'Times New Roman',serif;font-size:28px;font-weight:700;color:#1a1a1a;letter-spacing:2px;">${d}</span>`,
+    )
+    .join("");
   return `<!doctype html>
 <html>
   <body style="margin:0;padding:0;background:#f3f3f3;font-family:Helvetica,Arial,sans-serif;color:#1a1a1a;">
@@ -80,16 +87,16 @@ function buildEmailHtml(opts: { headline: string; intro: string; confirmUrl: str
             <td style="padding:18px 40px 0 40px;font-size:15px;line-height:1.55;color:#1a1a1a;">
               <p style="margin:0 0 14px 0;">Hello,</p>
               <p style="margin:0 0 24px 0;">${opts.intro}</p>
-              <p style="text-align:center;margin:0 0 26px 0;">
-                <a href="${opts.confirmUrl}" style="display:inline-block;background:#c9a14a;color:#ffffff;text-decoration:none;padding:16px 64px;font-size:16px;font-weight:600;border-radius:6px;">Verify My Email</a>
+              <p style="text-align:center;margin:0 0 26px 0;white-space:nowrap;">
+                ${codeBoxes}
               </p>
             </td>
           </tr>
           <tr>
             <td style="padding:0 40px 24px 40px;">
               <div style="background:#efefef;padding:18px 20px;text-align:center;font-size:13px;color:#333;border-radius:4px;">
-                This verification link is for your email address: ${opts.email}<br/>
-                <strong>Note:</strong> This link will expire in ${opts.expiresMin} minutes.<br/>
+                This verification code is for your email address: ${opts.email}<br/>
+                <strong>Note:</strong> This code will expire in ${opts.expiresMin} minutes.<br/>
                 Please use it promptly.
               </div>
             </td>
