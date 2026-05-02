@@ -88,6 +88,7 @@ export type Database = {
           email: string
           expires_at: string
           id: string
+          last_sent_at: string
           purpose: string
           used: boolean
         }
@@ -98,6 +99,7 @@ export type Database = {
           email: string
           expires_at: string
           id?: string
+          last_sent_at?: string
           purpose: string
           used?: boolean
         }
@@ -108,6 +110,7 @@ export type Database = {
           email?: string
           expires_at?: string
           id?: string
+          last_sent_at?: string
           purpose?: string
           used?: boolean
         }
