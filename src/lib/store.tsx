@@ -428,15 +428,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // Send our branded Brevo verification email (Supabase default email is disabled)
-      try {
-        const { sendDeviceVerificationLink } = await import("./device-trust.functions");
-        await sendDeviceVerificationLink({ data: { email } });
-      } catch (e) {
-        console.error("verification email send failed", e);
-      }
-
-      // Do NOT auto-login — user must confirm via the email link first.
+      // Do NOT auto-login — user must confirm via the OTP flow first.
       try {
         await supabase.auth.signOut();
       } catch {
