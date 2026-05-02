@@ -301,14 +301,47 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
 
   const signIn = useCallback(async (email: string, password: string) => {
+    // Collect device fingerprint first so we can check trust.
+    const { collectDeviceSignals } = await import("./device-fingerprint");
+    const device = await collectDeviceSignals();
+
+    // Check whether this device is already trusted for this email.
+    let trusted = true;
+    let userExists = true;
+    try {
+      const { checkDeviceTrust } = await import("./device-trust.functions");
+      const res = await checkDeviceTrust({
+        data: { email, fingerprint: device.fingerprint },
+      });
+      trusted = res.trusted;
+      userExists = res.userExists;
+    } catch (err) {
+      // If the trust check fails, fail-open: allow normal sign-in.
+      console.error("device trust check failed (allowing sign-in)", err);
+    }
+
+    if (userExists && !trusted) {
+      // Validate the password without keeping a session, then trigger OTP.
+      const { error: pwErr } = await supabase.auth.signInWithPassword({ email, password });
+      if (pwErr) throw pwErr;
+      // Drop the session — they must complete device verification first.
+      try { await supabase.auth.signOut(); } catch { /* ignore */ }
+
+      const { startDeviceVerification } = await import("./device-trust.functions");
+      const send = await startDeviceVerification({ data: { email } });
+      if (!send.ok) {
+        throw new Error("Could not send verification code. Please try again.");
+      }
+      if (typeof window !== "undefined") {
+        window.location.href = `/verify-device?email=${encodeURIComponent(email)}`;
+      }
+      return;
+    }
+
+    // Trusted device — sign in normally and refresh device trust record.
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-
-    // Keep the successful session active. Device recording is best-effort only
-    // and must never sign a valid user back out.
     try {
-      const { collectDeviceSignals } = await import("./device-fingerprint");
-      const device = await collectDeviceSignals();
       const { markCurrentDeviceTrusted } = await import("./device-trust.functions");
       const { data: who } = await supabase.auth.getUser();
       if (who.user?.id) {
