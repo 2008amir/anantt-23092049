@@ -1,0 +1,2 @@
+ALTER TABLE public.auth_email_codes DROP CONSTRAINT IF EXISTS auth_email_codes_purpose_check;
+ALTER TABLE public.auth_email_codes ADD CONSTRAINT auth_email_codes_purpose_check CHECK (purpose IN ('signin', 'signup', 'reset', 'device_verify', 'order_confirm'));
