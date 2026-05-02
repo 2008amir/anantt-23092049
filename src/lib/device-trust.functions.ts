@@ -206,102 +206,215 @@ export const checkDeviceTrust = createServerFn({ method: "POST" })
   });
 
 /**
- * Generate a Supabase magic link, store it in our DB under a custom token,
- * and email the user a branded link via Brevo. The link points back to our
- * /verify-device page with our token; that page exchanges the token for the
- * real Supabase action URL and consumes it.
+ * Sends a 6-digit OTP for verifying a new device on an existing account.
+ * Email subject/body uses the "Welcome back, verify it's you" framing.
  */
-export const sendDeviceVerificationLink = createServerFn({ method: "POST" })
+const DEVICE_CODE_TTL_MIN = 15;
+const DEVICE_RESEND_COOLDOWN_SEC = 60;
+const DEVICE_PURPOSE = "device_verify";
+
+async function sendDeviceCodeEmail(email: string, code: string) {
+  const html = buildEmailHtml({
+    headline: "Welcome back — verify it's you",
+    intro:
+      "We noticed a sign-in to your Luxe Sparkles account from a new device. Please use the verification code below to confirm it's really you.",
+    code,
+    email,
+    expiresMin: DEVICE_CODE_TTL_MIN,
+  });
+  await sendBrevoEmail({
+    to: email,
+    subject: "Welcome back — verify it's you — Luxe Sparkles",
+    html,
+  });
+}
+
+export const startDeviceVerification = createServerFn({ method: "POST" })
   .inputValidator((input) =>
     z.object({ email: z.string().email().max(320) }).parse(input),
   )
   .handler(async ({ data }) => {
     const email = data.email.toLowerCase();
-    const origin = getRequestHeader("origin") || `https://${getRequestHeader("host") ?? ""}`;
-    const redirectTo = `${origin}/verify-device`;
 
-    // Generate Supabase magic link (we DO NOT email it via the auth hook)
-    const { data: linkData, error } = await supabaseAdmin.auth.admin.generateLink({
-      type: "magiclink",
+    // Invalidate previous pending codes for this email/purpose
+    await supabaseAdmin
+      .from("auth_email_codes")
+      .update({ used: true })
+      .eq("email", email)
+      .eq("purpose", DEVICE_PURPOSE)
+      .eq("used", false);
+
+    const code = generateCode();
+    const codeHash = await sha256Hex(code);
+    const expiresAt = new Date(Date.now() + DEVICE_CODE_TTL_MIN * 60_000).toISOString();
+
+    const { error: insErr } = await supabaseAdmin.from("auth_email_codes").insert({
       email,
-      options: { redirectTo },
-    });
-
-    if (error || !linkData?.properties?.action_link) {
-      console.error("generateLink failed", error);
-      // Avoid leaking existence
-      return { ok: true } as const;
-    }
-
-    // Create our own opaque token; store hash in DB tied to the action link
-    const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
-    const tokenHash = await sha256Hex(token);
-
-    const expiresMin = 30;
-    const expiresAt = new Date(Date.now() + expiresMin * 60_000).toISOString();
-
-    const { error: insErr } = await supabaseAdmin.from("email_verification_links").insert({
-      email,
-      token_hash: tokenHash,
-      action_link: linkData.properties.action_link,
-      purpose: "verify",
+      code_hash: codeHash,
+      purpose: DEVICE_PURPOSE,
       expires_at: expiresAt,
+      last_sent_at: new Date().toISOString(),
     });
     if (insErr) {
-      console.error("verification insert failed", insErr);
-      return { ok: true } as const;
+      console.error("auth_email_codes insert failed", insErr);
+      return { ok: false as const, reason: "server" as const };
     }
-
-    const confirmUrl = `${origin}/verify-device?t=${encodeURIComponent(token)}`;
-    const html = `<!doctype html><html><body style="margin:0;padding:0;background:#f3f3f3;font-family:Helvetica,Arial,sans-serif;color:#1a1a1a;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f3f3;padding:32px 12px;"><tr><td align="center"><table width="600" cellpadding="0" cellspacing="0" style="background:#fff;max-width:600px;width:100%;"><tr><td><div style="background:linear-gradient(180deg,#fff8ec,#fdf1d8);padding:36px 20px;text-align:center;"><div style="font-family:Georgia,serif;font-size:40px;">Luxe Sparkles</div></div></td></tr><tr><td style="padding:32px 40px;text-align:center;"><h1 style="margin:0 0 16px;font-size:22px;">Verify a new device</h1><p style="font-size:14px;line-height:1.5;">Click the button below to confirm this sign-in for ${email}.</p><p style="margin:24px 0;"><a href="${confirmUrl}" style="display:inline-block;background:#c9a14a;color:#fff;text-decoration:none;padding:14px 48px;font-weight:600;border-radius:6px;">Verify My Device</a></p><p style="font-size:12px;color:#666;">This link expires in ${expiresMin} minutes.</p></td></tr></table></td></tr></table></body></html>`;
 
     try {
-      await sendBrevoEmail({
-        to: email,
-        subject: "Verify your email — Luxe Sparkles",
-        html,
-      });
+      await sendDeviceCodeEmail(email, code);
     } catch (e) {
-      console.error("brevo send failed", e);
+      console.error("brevo device code send failed", e);
+      return { ok: false as const, reason: "email" as const };
+    }
+    return { ok: true as const };
+  });
+
+export const resendDeviceCode = createServerFn({ method: "POST" })
+  .inputValidator((input) =>
+    z.object({ email: z.string().email().max(320) }).parse(input),
+  )
+  .handler(async ({ data }) => {
+    const email = data.email.toLowerCase();
+
+    const { data: row } = await supabaseAdmin
+      .from("auth_email_codes")
+      .select("id, last_sent_at, used")
+      .eq("email", email)
+      .eq("purpose", DEVICE_PURPOSE)
+      .eq("used", false)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!row) {
+      return { ok: false as const, reason: "no_pending" as const };
     }
 
-    return { ok: true } as const;
+    const elapsed = (Date.now() - new Date(row.last_sent_at).getTime()) / 1000;
+    if (elapsed < DEVICE_RESEND_COOLDOWN_SEC) {
+      return {
+        ok: false as const,
+        reason: "cooldown" as const,
+        retryIn: Math.ceil(DEVICE_RESEND_COOLDOWN_SEC - elapsed),
+      };
+    }
+
+    const code = generateCode();
+    const codeHash = await sha256Hex(code);
+    const expiresAt = new Date(Date.now() + DEVICE_CODE_TTL_MIN * 60_000).toISOString();
+
+    await supabaseAdmin
+      .from("auth_email_codes")
+      .update({
+        code_hash: codeHash,
+        attempts: 0,
+        last_sent_at: new Date().toISOString(),
+        expires_at: expiresAt,
+      })
+      .eq("id", row.id);
+
+    try {
+      await sendDeviceCodeEmail(email, code);
+    } catch (e) {
+      console.error("brevo device code resend failed", e);
+      return { ok: false as const, reason: "email" as const };
+    }
+    return { ok: true as const, retryIn: DEVICE_RESEND_COOLDOWN_SEC };
   });
 
 /**
- * Validate a token from the email link against our DB. If valid and not
- * consumed, mark consumed and return the underlying Supabase action_link
- * so the page can redirect there to establish a real session.
+ * Verifies the device OTP. On success: marks current device trusted and
+ * returns a Supabase magic link so the page can establish a session.
  */
-export const consumeVerificationToken = createServerFn({ method: "POST" })
+export const verifyDeviceCode = createServerFn({ method: "POST" })
   .inputValidator((input) =>
-    z.object({ token: z.string().min(16).max(256) }).parse(input),
+    z
+      .object({
+        email: z.string().email().max(320),
+        code: z.string().regex(/^\d{6}$/),
+        fingerprint: z.string().min(8).max(128).optional(),
+      })
+      .parse(input),
   )
   .handler(async ({ data }) => {
-    const tokenHash = await sha256Hex(data.token);
+    const email = data.email.toLowerCase();
+    const codeHash = await sha256Hex(data.code);
 
-    const { data: row, error } = await supabaseAdmin
-      .from("email_verification_links")
-      .select("id, action_link, consumed, expires_at")
-      .eq("token_hash", tokenHash)
+    const { data: row } = await supabaseAdmin
+      .from("auth_email_codes")
+      .select("id, code_hash, attempts, used, expires_at")
+      .eq("email", email)
+      .eq("purpose", DEVICE_PURPOSE)
+      .eq("used", false)
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
 
-    if (error || !row) {
-      return { ok: false, reason: "invalid" as const };
-    }
-    if (row.consumed) {
-      return { ok: false, reason: "used" as const };
-    }
+    if (!row) return { ok: false as const, reason: "no_pending" as const };
     if (new Date(row.expires_at).getTime() < Date.now()) {
-      return { ok: false, reason: "expired" as const };
+      return { ok: false as const, reason: "expired" as const };
     }
+    if (row.attempts >= 5) {
+      return { ok: false as const, reason: "too_many" as const };
+    }
+    if (row.code_hash !== codeHash) {
+      await supabaseAdmin
+        .from("auth_email_codes")
+        .update({ attempts: row.attempts + 1 })
+        .eq("id", row.id);
+      return {
+        ok: false as const,
+        reason: "wrong" as const,
+        attemptsLeft: Math.max(0, 5 - (row.attempts + 1)),
+      };
+    }
+
+    // Code correct — find user, mark device trusted, generate magic link.
+    const { data: userRow } = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (!userRow?.id) {
+      return { ok: false as const, reason: "no_pending" as const };
+    }
+
+    const cookieId = ensureDeviceCookie();
+    const ua = getRequestHeader("user-agent") ?? null;
+    const ip = getRequestIP({ xForwardedFor: true }) ?? null;
+
+    await supabaseAdmin.from("trusted_devices").upsert(
+      {
+        user_id: userRow.id,
+        device_cookie_id: cookieId,
+        fingerprint: data.fingerprint ?? null,
+        ip,
+        user_agent: ua,
+        label: deviceLabel(ua),
+        last_seen_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,device_cookie_id" },
+    );
 
     await supabaseAdmin
-      .from("email_verification_links")
-      .update({ consumed: true, consumed_at: new Date().toISOString() })
+      .from("auth_email_codes")
+      .update({ used: true })
       .eq("id", row.id);
 
-    return { ok: true as const, actionLink: row.action_link };
+    const origin = getRequestHeader("origin") || `https://${getRequestHeader("host") ?? ""}`;
+    const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+      options: { redirectTo: `${origin}/account` },
+    });
+
+    if (linkErr || !linkData?.properties?.action_link) {
+      console.error("device verify magic link failed", linkErr);
+      return { ok: true as const, actionLink: null };
+    }
+
+    return { ok: true as const, actionLink: linkData.properties.action_link };
   });
 
 /**
