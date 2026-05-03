@@ -72,6 +72,28 @@ export const Route = createFileRoute("/api/public/flutterwave-webhook")({
           return new Response("DB error", { status: 500 });
         }
 
+        if (success) {
+          try {
+            const { sendOrderConfirmationEmail } = await import(
+              "@/lib/order-email.functions"
+            );
+            const targetId =
+              orderId ??
+              (
+                await admin
+                  .from("orders")
+                  .select("id")
+                  .eq("payment_reference", tx_ref!)
+                  .maybeSingle()
+              ).data?.id;
+            if (targetId) {
+              await sendOrderConfirmationEmail({ data: { orderId: targetId } });
+            }
+          } catch (e) {
+            console.error("webhook order confirmation email failed", e);
+          }
+        }
+
         return new Response("ok");
       },
     },
