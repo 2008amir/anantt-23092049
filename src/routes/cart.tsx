@@ -6,7 +6,7 @@ import { Recommend } from "@/components/Recommend";
 import { effectivePrice, hasDiscount, formatNaira } from "@/lib/price";
 
 export const Route = createFileRoute("/cart")({
-  head: () => ({ meta: [{ title: "Cart — Maison Luxe" }] }),
+  head: () => ({ meta: [{ title: "Cart — Luxe Sparkles" }] }),
   component: CartPage,
 });
 

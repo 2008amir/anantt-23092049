@@ -19,7 +19,7 @@ type Order = {
 };
 
 export const Route = createFileRoute("/orders/$id")({
-  head: ({ params }) => ({ meta: [{ title: `Order ${params.id} — Maison Luxe` }] }),
+  head: ({ params }) => ({ meta: [{ title: `Order ${params.id} — Luxe Sparkles` }] }),
   component: OrderDetail,
 });
 

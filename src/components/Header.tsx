@@ -57,7 +57,7 @@ export function Header() {
           className="flex w-full items-center gap-2 rounded-full border border-border bg-card px-4 py-2 shadow-luxury text-left"
         >
           <Search className="h-4 w-4 text-muted-foreground" />
-          <span className="flex-1 text-sm text-muted-foreground">Search Maison Luxe</span>
+          <span className="flex-1 text-sm text-muted-foreground">Search Luxe Sparkles</span>
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gold-gradient text-primary-foreground">
             <Search className="h-4 w-4" />
           </span>

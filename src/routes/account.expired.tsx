@@ -10,7 +10,7 @@ import {
 } from "@/lib/rewards";
 
 export const Route = createFileRoute("/account/expired")({
-  head: () => ({ meta: [{ title: "Expired Rewards — Maison Luxe" }] }),
+  head: () => ({ meta: [{ title: "Expired Rewards — Luxe Sparkles" }] }),
   component: ExpiredPage,
 });
 

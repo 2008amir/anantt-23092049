@@ -17,7 +17,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 export const Route = createFileRoute("/deliverer")({
   head: () => ({
     meta: [
-      { title: "Deliverer Dashboard — Maison Luxe" },
+      { title: "Deliverer Dashboard — Luxe Sparkles" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),

@@ -38,14 +38,14 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Maison Luxe — A Curated Atelier of Considered Objects" },
+      { title: "Luxe Sparkles — A Curated Atelier of Considered Objects" },
       {
         name: "description",
         content:
           "Discover a meticulously curated collection of luxury timepieces, leather goods, fragrance, and home objects from the world's finest houses.",
       },
-      { property: "og:title", content: "Maison Luxe — A Curated Atelier of Considered Objects" },
-      { name: "twitter:title", content: "Maison Luxe — A Curated Atelier of Considered Objects" },
+      { property: "og:title", content: "Luxe Sparkles — A Curated Atelier of Considered Objects" },
+      { name: "twitter:title", content: "Luxe Sparkles — A Curated Atelier of Considered Objects" },
       { name: "description", content: "A luxury general merchandise marketplace with product browsing, search, cart, checkout, and order management." },
       { property: "og:description", content: "A luxury general merchandise marketplace with product browsing, search, cart, checkout, and order management." },
       { name: "twitter:description", content: "A luxury general merchandise marketplace with product browsing, search, cart, checkout, and order management." },

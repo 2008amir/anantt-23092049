@@ -9,7 +9,7 @@ import type { Product } from "@/lib/products";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/account/claim/$id")({
-  head: () => ({ meta: [{ title: "Claim reward — Maison Luxe" }] }),
+  head: () => ({ meta: [{ title: "Claim reward — Luxe Sparkles" }] }),
   component: ClaimPage,
 });
 

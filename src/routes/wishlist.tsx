@@ -5,7 +5,7 @@ import { useStore, useProductsByIds } from "@/lib/store";
 import { Recommend } from "@/components/Recommend";
 
 export const Route = createFileRoute("/wishlist")({
-  head: () => ({ meta: [{ title: "Wishlist — Maison Luxe" }] }),
+  head: () => ({ meta: [{ title: "Wishlist — Luxe Sparkles" }] }),
   component: WishlistPage,
 });
 
