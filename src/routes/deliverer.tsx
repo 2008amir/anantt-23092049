@@ -302,6 +302,9 @@ function OrderDetail({
   const [items, setItems] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [askPlace, setAskPlace] = useState(false);
+  const [place, setPlace] = useState("");
+  const [placeError, setPlaceError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -321,14 +324,39 @@ function OrderDetail({
     })();
   }, [orderId]);
 
-  const markDelivered = async () => {
+  const confirmDelivered = async () => {
+    setPlaceError(null);
+    const trimmed = place.trim();
+    if (trimmed.length < 3) {
+      setPlaceError("Please enter the delivery place address.");
+      return;
+    }
     setBusy(true);
     const { error } = await supabase
       .from("orders")
-      .update({ delivery_stage: "delivered", status: "Delivered" })
+      .update({
+        delivery_stage: "delivered",
+        status: "Delivered",
+        delivery_place: trimmed,
+      })
       .eq("id", orderId);
+    if (error) {
+      setBusy(false);
+      setPlaceError(error.message);
+      return;
+    }
+    // Fire-and-await the delivered email (doesn't block UI on failure)
+    try {
+      const { sendOrderDeliveredEmail } = await import(
+        "@/lib/order-delivered-email.functions"
+      );
+      await sendOrderDeliveredEmail({ data: { orderId } });
+    } catch (e) {
+      console.error("delivered email trigger failed", e);
+    }
     setBusy(false);
-    if (!error) onDelivered();
+    setAskPlace(false);
+    onDelivered();
   };
 
   if (loading) {
