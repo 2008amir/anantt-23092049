@@ -112,7 +112,7 @@ export const chargeSavedCard = createServerFn({ method: "POST" })
         amount: data.amount,
         email: data.email,
         tx_ref: data.tx_ref,
-        narration: "Maison Luxe order",
+        narration: "Luxe Sparkles order",
         meta: { ...(data.meta ?? {}), user_id: userId },
       }),
     });
@@ -156,7 +156,7 @@ export const createVirtualAccount = createServerFn({ method: "POST" })
         amount: data.amount,
         tx_ref: data.tx_ref,
         is_permanent: false,
-        narration: data.name ?? "Maison Luxe Order",
+        narration: data.name ?? "Luxe Sparkles Order",
         currency: "NGN",
       }),
     });
@@ -164,7 +164,7 @@ export const createVirtualAccount = createServerFn({ method: "POST" })
     return {
       account_number: res.data?.account_number as string,
       bank_name: res.data?.bank_name as string,
-      account_name: (res.data?.account_name ?? data.name ?? "Maison Luxe") as string,
+      account_name: (res.data?.account_name ?? data.name ?? "Luxe Sparkles") as string,
       expiry_date: res.data?.expiry_date as string,
       amount: res.data?.amount ?? data.amount,
       order_ref: res.data?.order_ref as string,

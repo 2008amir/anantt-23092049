@@ -77,9 +77,9 @@ function getCanvasFingerprint(): string {
     ctx.fillStyle = "#f60";
     ctx.fillRect(125, 1, 62, 20);
     ctx.fillStyle = "#069";
-    ctx.fillText("Maison Luxe \u2728 device", 2, 15);
+    ctx.fillText("Luxe Sparkles \u2728 device", 2, 15);
     ctx.fillStyle = "rgba(102,204,0,0.7)";
-    ctx.fillText("Maison Luxe \u2728 device", 4, 17);
+    ctx.fillText("Luxe Sparkles \u2728 device", 4, 17);
     ctx.strokeStyle = "rgb(200,50,80)";
     ctx.beginPath();
     ctx.arc(50, 30, 20, 0, Math.PI * 2, true);

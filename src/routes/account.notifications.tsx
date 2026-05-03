@@ -56,7 +56,7 @@ function Notifications() {
     <div>
       <h2 className="font-serif text-3xl">Notifications</h2>
       <p className="mt-2 text-sm text-muted-foreground">
-        Posts and order updates from Maison Luxe.
+        Posts and order updates from Luxe Sparkles.
       </p>
 
       <div className="mt-8">

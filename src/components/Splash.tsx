@@ -37,12 +37,12 @@ export function Splash({ children }: { children: ReactNode }) {
     <section className="fixed inset-0 z-50 overflow-hidden bg-background">
       <img
         src={hero}
-        alt="Maison Luxe"
+        alt="Luxe Sparkles"
         className="absolute inset-0 h-full w-full object-cover opacity-50"
       />
       <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/40 to-background" />
       <div className="relative flex h-full flex-col items-center justify-center px-6 text-center">
-        <p className="text-[10px] uppercase tracking-[0.5em] text-primary">Maison Luxe</p>
+        <p className="text-[10px] uppercase tracking-[0.5em] text-primary">Luxe Sparkles</p>
         <h1 className="mt-6 font-serif text-5xl leading-[1.05] text-foreground md:text-7xl">
           Objects of <em className="text-gold-gradient">enduring</em> craft.
         </h1>

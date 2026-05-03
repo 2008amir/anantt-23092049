@@ -26,7 +26,7 @@ import {
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/account/reward/$id")({
-  head: () => ({ meta: [{ title: "Reward Task — Maison Luxe" }] }),
+  head: () => ({ meta: [{ title: "Reward Task — Luxe Sparkles" }] }),
   component: RewardDetailPage,
 });
 
@@ -107,7 +107,7 @@ function RewardDetailPage() {
     if (typeof navigator !== "undefined" && "share" in navigator) {
       try {
         await navigator.share({
-          title: "Join me on Maison Luxe",
+          title: "Join me on Luxe Sparkles",
           text: title,
           url: link,
         });

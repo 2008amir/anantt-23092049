@@ -12,7 +12,7 @@ import { effectivePrice, hasDiscount, savings, formatNaira } from "@/lib/price";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Maison Luxe — A Curated Atelier of Considered Objects" },
+      { title: "Luxe Sparkles — A Curated Atelier of Considered Objects" },
       { name: "description", content: "Browse curated luxury timepieces, leather goods, fragrance, and home objects." },
     ],
   }),

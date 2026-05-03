@@ -17,7 +17,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 export const Route = createFileRoute("/deliverer")({
   head: () => ({
     meta: [
-      { title: "Deliverer Dashboard — Maison Luxe" },
+      { title: "Deliverer Dashboard — Luxe Sparkles" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
@@ -302,6 +302,9 @@ function OrderDetail({
   const [items, setItems] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [askPlace, setAskPlace] = useState(false);
+  const [place, setPlace] = useState("");
+  const [placeError, setPlaceError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -321,14 +324,39 @@ function OrderDetail({
     })();
   }, [orderId]);
 
-  const markDelivered = async () => {
+  const confirmDelivered = async () => {
+    setPlaceError(null);
+    const trimmed = place.trim();
+    if (trimmed.length < 3) {
+      setPlaceError("Please enter the delivery place address.");
+      return;
+    }
     setBusy(true);
     const { error } = await supabase
       .from("orders")
-      .update({ delivery_stage: "delivered", status: "Delivered" })
+      .update({
+        delivery_stage: "delivered",
+        status: "Delivered",
+        delivery_place: trimmed,
+      })
       .eq("id", orderId);
+    if (error) {
+      setBusy(false);
+      setPlaceError(error.message);
+      return;
+    }
+    // Fire-and-await the delivered email (doesn't block UI on failure)
+    try {
+      const { sendOrderDeliveredEmail } = await import(
+        "@/lib/order-delivered-email.functions"
+      );
+      await sendOrderDeliveredEmail({ data: { orderId } });
+    } catch (e) {
+      console.error("delivered email trigger failed", e);
+    }
     setBusy(false);
-    if (!error) onDelivered();
+    setAskPlace(false);
+    onDelivered();
   };
 
   if (loading) {
@@ -461,12 +489,18 @@ function OrderDetail({
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border/60 bg-background/95 p-4 backdrop-blur-xl">
           <div className="container mx-auto">
             <button
-              onClick={() => void markDelivered()}
+              onClick={() => {
+                setPlace(
+                  [a.address_line, a.city, a.state].filter(Boolean).join(", "),
+                );
+                setPlaceError(null);
+                setAskPlace(true);
+              }}
               disabled={busy}
               className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-gold-gradient px-6 py-3 text-sm uppercase tracking-wider text-primary-foreground hover:opacity-90 disabled:opacity-60"
             >
               <CheckCircle2 className="h-4 w-4" />
-              {busy ? "Updating…" : "Delivered"}
+              Delivered
             </button>
           </div>
         </div>
@@ -474,6 +508,60 @@ function OrderDetail({
       {isDelivered && (
         <div className="mt-4 inline-flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-600">
           <CheckCircle2 className="h-4 w-4" /> This order has been delivered.
+        </div>
+      )}
+
+      {/* Delivery place modal */}
+      {askPlace && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center">
+          <div className="w-full max-w-md rounded-lg border border-border/60 bg-card p-6 shadow-2xl">
+            <div className="mb-4 flex items-start gap-3">
+              <div className="rounded-full bg-primary/10 p-2 text-primary">
+                <MapPin className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-serif text-lg">Delivery place</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Where exactly did you hand the order to the customer? This
+                  address will be shown to them in the delivery confirmation
+                  email.
+                </p>
+              </div>
+            </div>
+            <label className="mb-1 block text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+              Delivery place address
+            </label>
+            <textarea
+              value={place}
+              onChange={(e) => setPlace(e.target.value)}
+              rows={3}
+              placeholder="e.g. 12 Marina Road, opposite First Bank, Victoria Island, Lagos"
+              className="w-full resize-none rounded-md border border-border/60 bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+              autoFocus
+            />
+            {placeError && (
+              <p className="mt-2 text-xs text-destructive">{placeError}</p>
+            )}
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                onClick={() => {
+                  if (busy) return;
+                  setAskPlace(false);
+                }}
+                className="rounded-md border border-border px-4 py-2 text-xs uppercase tracking-wider hover:bg-muted"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => void confirmDelivered()}
+                disabled={busy}
+                className="inline-flex items-center gap-2 rounded-md bg-gold-gradient px-5 py-2 text-xs uppercase tracking-wider text-primary-foreground hover:opacity-90 disabled:opacity-60"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                {busy ? "Saving…" : "Done"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [
-      { title: "Admin Panel — Maison Luxe" },
+      { title: "Admin Panel — Luxe Sparkles" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
@@ -75,7 +75,7 @@ function AdminLayout() {
         <div className="px-6 py-6">
           <p className="font-serif text-xl text-gold-gradient">Admin</p>
           <p className="mt-1 text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-            Maison Luxe
+            Luxe Sparkles
           </p>
         </div>
         <nav className="space-y-1 px-3">

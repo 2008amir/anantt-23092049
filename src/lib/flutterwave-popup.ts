@@ -62,7 +62,7 @@ export async function openFlutterwavePopup(opts: {
       customer: { email: opts.email, name: opts.name, phone_number: opts.phone },
       meta: opts.meta,
       customizations: {
-        title: opts.title ?? "Maison Luxe",
+        title: opts.title ?? "Luxe Sparkles",
         description: opts.description ?? "Order payment",
       },
       callback: (data) => {

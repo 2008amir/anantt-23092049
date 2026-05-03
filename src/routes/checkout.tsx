@@ -13,7 +13,7 @@ import {
 import { openFlutterwavePopup } from "@/lib/flutterwave-popup";
 
 export const Route = createFileRoute("/checkout")({
-  head: () => ({ meta: [{ title: "Checkout — Maison Luxe" }] }),
+  head: () => ({ meta: [{ title: "Checkout — Luxe Sparkles" }] }),
   component: Checkout,
 });
 
@@ -309,7 +309,7 @@ function Checkout() {
         tx_ref,
         paymentOptions,
         meta: { order_id: order.id, customer_name: flwCustomerName, shipping_name: shipForm.name },
-        title: "Maison Luxe",
+        title: "Luxe Sparkles",
         description: `Order ${order.id.slice(0, 8)}`,
       });
 
@@ -577,7 +577,7 @@ function Checkout() {
                   </div>
                   <p className="mt-3 font-serif text-xl text-foreground">Payment Successful</p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Your order has been confirmed. Thank you for shopping with Maison Luxe.
+                    Your order has been confirmed. Thank you for shopping with Luxe Sparkles.
                   </p>
                   <button
                     type="button"

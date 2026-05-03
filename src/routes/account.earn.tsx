@@ -5,7 +5,7 @@ import { useStore } from "@/lib/store";
 import { fetchActiveTasks, fetchEnrollments, type Enrollment, type RewardTask } from "@/lib/rewards";
 
 export const Route = createFileRoute("/account/earn")({
-  head: () => ({ meta: [{ title: "Earn & Free — Maison Luxe" }] }),
+  head: () => ({ meta: [{ title: "Earn & Free — Luxe Sparkles" }] }),
   component: EarnFreePage,
 });
 

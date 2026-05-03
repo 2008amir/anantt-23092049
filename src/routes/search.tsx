@@ -27,7 +27,7 @@ export const Route = createFileRoute("/search")({
   }),
   head: () => ({
     meta: [
-      { title: "Search — Maison Luxe" },
+      { title: "Search — Luxe Sparkles" },
       { name: "description", content: "Search the atelier by text or image with AI." },
     ],
   }),
@@ -294,7 +294,7 @@ function SearchPage() {
               setQuery(e.target.value);
               if (mode !== "idle") setMode("idle");
             }}
-            placeholder="Search Maison Luxe…"
+            placeholder="Search Luxe Sparkles…"
             className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
           />
           <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>

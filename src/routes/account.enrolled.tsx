@@ -14,7 +14,7 @@ import {
 } from "@/lib/rewards";
 
 export const Route = createFileRoute("/account/enrolled")({
-  head: () => ({ meta: [{ title: "Enrolled Rewards — Maison Luxe" }] }),
+  head: () => ({ meta: [{ title: "Enrolled Rewards — Luxe Sparkles" }] }),
   component: EnrolledPage,
 });
 

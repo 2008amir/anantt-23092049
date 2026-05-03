@@ -6,7 +6,7 @@ import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/account/messages")({
-  head: () => ({ meta: [{ title: "Messages — Maison Luxe" }] }),
+  head: () => ({ meta: [{ title: "Messages — Luxe Sparkles" }] }),
   component: MessagesPage,
 });
 

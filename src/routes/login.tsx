@@ -11,7 +11,7 @@ import {
 } from "@/components/PasswordField";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Sign In — Maison Luxe" }] }),
+  head: () => ({ meta: [{ title: "Sign In — Luxe Sparkles" }] }),
   component: Login,
 });
 

@@ -19,7 +19,7 @@ import { useStore } from "@/lib/store";
 import { pingUserActivity } from "@/hooks/use-activity-heartbeat";
 
 export const Route = createFileRoute("/account")({
-  head: () => ({ meta: [{ title: "Account — Maison Luxe" }] }),
+  head: () => ({ meta: [{ title: "Account — Luxe Sparkles" }] }),
   component: AccountLayout,
 });
 

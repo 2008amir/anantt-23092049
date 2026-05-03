@@ -14,7 +14,7 @@ type OrderRow = {
 };
 
 export const Route = createFileRoute("/orders/")({
-  head: () => ({ meta: [{ title: "Orders — Maison Luxe" }] }),
+  head: () => ({ meta: [{ title: "Orders — Luxe Sparkles" }] }),
   component: OrdersPage,
 });
 
