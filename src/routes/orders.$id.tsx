@@ -72,6 +72,12 @@ function OrderDetail() {
           .eq("id", id);
         try { sessionStorage.removeItem(`pending_order_${id}`); } catch { /* noop */ }
         window.history.replaceState({}, "", window.location.pathname);
+        try {
+          const { sendOrderConfirmationEmail } = await import("@/lib/order-email.functions");
+          await sendOrderConfirmationEmail({ data: { orderId: id } });
+        } catch (e) {
+          console.error("order confirmation email failed", e);
+        }
       } else if (result.status === "failed" || result.status === "cancelled") {
         await supabase
           .from("orders")

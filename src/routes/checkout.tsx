@@ -368,6 +368,12 @@ function Checkout() {
       } catch {
         // ignore
       }
+      try {
+        const { sendOrderConfirmationEmail } = await import("@/lib/order-email.functions");
+        await sendOrderConfirmationEmail({ data: { orderId } });
+      } catch (e) {
+        console.error("order confirmation email failed", e);
+      }
     }
   };
 
