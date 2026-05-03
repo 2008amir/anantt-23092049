@@ -359,6 +359,7 @@ export type Database = {
         Row: {
           created_at: string
           deliverer_id: string | null
+          delivery_place: string | null
           delivery_stage: string
           id: string
           payment_method: string | null
@@ -375,6 +376,7 @@ export type Database = {
         Insert: {
           created_at?: string
           deliverer_id?: string | null
+          delivery_place?: string | null
           delivery_stage?: string
           id?: string
           payment_method?: string | null
@@ -391,6 +393,7 @@ export type Database = {
         Update: {
           created_at?: string
           deliverer_id?: string | null
+          delivery_place?: string | null
           delivery_stage?: string
           id?: string
           payment_method?: string | null
