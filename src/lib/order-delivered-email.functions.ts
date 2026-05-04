@@ -169,6 +169,16 @@ function buildEmailHtml(opts: {
           </tr>
 
           <tr>
+            <td style="padding:24px 40px 0 40px;text-align:center;">
+              <a href="https://luxesparkles.codebreakers.uk/orders/${escapeHtml(opts.orderId)}"
+                 style="display:inline-block;background:linear-gradient(135deg,#c9a14a,#e5c879);color:#fff;padding:14px 36px;text-decoration:none;font-family:Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;letter-spacing:2px;text-transform:uppercase;border-radius:4px;">
+                Track Your Order
+              </a>
+              <p style="margin:10px 0 0 0;font-size:12px;color:#888;">View order status, address, and pickup point.</p>
+            </td>
+          </tr>
+
+          <tr>
             <td style="padding:24px 40px 28px 40px;text-align:center;font-size:13px;color:#666;border-top:1px solid #eee;margin-top:24px;">
               Need help with your delivery? Just reply to this email and we'll take care of it.
               <div style="margin-top:14px;color:#888;font-size:12px;">© ${new Date().getFullYear()} Luxe Sparkles. All rights reserved.</div>
