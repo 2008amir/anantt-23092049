@@ -185,6 +185,40 @@ function Login() {
               {busy && <Spinner />}
               {busy ? "Signing in…" : "Sign In"}
             </button>
+            <div className="text-right">
+              <Link to="/forgot-password" className="text-xs text-primary underline">
+                Forgot password?
+              </Link>
+            </div>
+            <div className="relative my-4 text-center">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
+              <span className="relative bg-card/50 px-3 text-[10px] uppercase tracking-[0.25em] text-muted-foreground">or</span>
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const { lovable } = await import("@/integrations/lovable");
+                  const result = await lovable.auth.signInWithOAuth("google", {
+                    redirect_uri: window.location.origin,
+                  });
+                  if (result.error) {
+                    setError("Could not start Google sign-in.");
+                  }
+                } catch {
+                  setError("Google sign-in unavailable.");
+                }
+              }}
+              className="flex w-full items-center justify-center gap-2 border border-border bg-background py-3 text-xs uppercase tracking-[0.25em] text-foreground transition-smooth hover:border-primary hover:text-primary"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="#4285F4" d="M23 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.2c-.3 1.5-1.1 2.7-2.3 3.6v3h3.7c2.2-2 3.4-4.9 3.4-8.8z"/>
+                <path fill="#34A853" d="M12 24c3.1 0 5.7-1 7.6-2.8l-3.7-3c-1 .7-2.4 1.1-3.9 1.1-3 0-5.6-2-6.5-4.8H1.6v3C3.5 21.6 7.4 24 12 24z"/>
+                <path fill="#FBBC05" d="M5.5 14.5c-.2-.7-.4-1.4-.4-2.5s.2-1.8.4-2.5v-3H1.6C.6 8.4 0 10.1 0 12s.6 3.6 1.6 5.5l3.9-3z"/>
+                <path fill="#EA4335" d="M12 4.8c1.7 0 3.2.6 4.4 1.7l3.3-3.3C17.7 1.2 15.1 0 12 0 7.4 0 3.5 2.4 1.6 6.5l3.9 3C6.4 6.8 9 4.8 12 4.8z"/>
+              </svg>
+              Continue with Google
+            </button>
           </form>
         )}
 
