@@ -320,12 +320,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       console.error("device trust check failed (allowing sign-in)", err);
     }
 
+    // Server-side validated login (captcha + rate-limit + 404 log).
+    const { getRecaptchaToken } = await import("./recaptcha");
+    const recaptchaToken = (await getRecaptchaToken("login")) ?? undefined;
+    const { serverSignIn } = await import("./server-auth.functions");
+
     if (userExists && !trusted) {
-      // Validate the password without keeping a session, then trigger OTP.
-      const { error: pwErr } = await supabase.auth.signInWithPassword({ email, password });
-      if (pwErr) throw pwErr;
-      // Drop the session — they must complete device verification first.
-      try { await supabase.auth.signOut(); } catch { /* ignore */ }
+      // Validate the password server-side WITHOUT establishing a session,
+      // then trigger the device verification OTP. The serverSignIn returns
+      // tokens but we discard them and require OTP first.
+      const auth = await serverSignIn({ data: { email, password, recaptchaToken } });
+      if (!auth.ok) {
+        if (auth.reason === "rate_limited") throw new Error("Too many attempts. Please try again later.");
+        if (auth.reason === "captcha") throw new Error("Security check failed. Please try again.");
+        throw new Error("Invalid email or password.");
+      }
 
       const { startDeviceVerification } = await import("./device-trust.functions");
       const send = await startDeviceVerification({ data: { email } });
@@ -338,15 +347,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Trusted device — sign in normally and refresh device trust record.
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    // Trusted device — server-validated sign-in, then set the session locally.
+    const auth = await serverSignIn({ data: { email, password, recaptchaToken } });
+    if (!auth.ok) {
+      if (auth.reason === "rate_limited") throw new Error("Too many attempts. Please try again later.");
+      if (auth.reason === "captcha") throw new Error("Security check failed. Please try again.");
+      throw new Error("Invalid email or password.");
+    }
+    const { error } = await supabase.auth.setSession({
+      access_token: auth.access_token!,
+      refresh_token: auth.refresh_token!,
+    });
     if (error) throw error;
+
     try {
       const { markCurrentDeviceTrusted } = await import("./device-trust.functions");
-      const { data: who } = await supabase.auth.getUser();
-      if (who.user?.id) {
+      if (auth.user_id) {
         await markCurrentDeviceTrusted({
-          data: { userId: who.user.id, fingerprint: device.fingerprint },
+          data: { userId: auth.user_id, fingerprint: device.fingerprint },
         });
       }
     } catch (err) {
