@@ -85,8 +85,13 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { location } = useRouterState();
-  const isStandaloneRoute =
-    location.pathname === "/verify-signup" || location.pathname === "/verify-device";
+  const standalonePaths = new Set([
+    "/verify-signup",
+    "/verify-device",
+    "/forgot-password",
+    "/reset-password",
+  ]);
+  const isStandaloneRoute = standalonePaths.has(location.pathname);
 
   return (
     <ThemeProvider>
