@@ -79,13 +79,16 @@ function Login() {
     setError("");
     if (!/^\S+@\S+\.\S+$/.test(email)) return setError("Please enter a valid email");
     if (!password) return setError("Please enter your password");
+    if (!captchaToken) return setError("Please verify you are not a robot");
     setBusy(true);
     try {
-      await signIn(email, password);
+      await signIn(email, password, captchaToken);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Authentication failed";
       if (msg.toLowerCase().includes("invalid login")) setError("Invalid email or password.");
       else setError(msg);
+      resetRecaptchaWidgets();
+      setCaptchaToken(null);
     } finally {
       setBusy(false);
     }
@@ -98,6 +101,7 @@ function Login() {
     if (!lastName.trim()) return setError("Last name is required");
     if (!country) return setError("Please select a country");
     if (!/^\S+@\S+\.\S+$/.test(email)) return setError("Please enter a valid email");
+    if (!captchaToken) return setError("Please verify you are not a robot");
     setBusy(true);
     try {
       const { checkEmailExists } = await import("@/lib/device-trust.functions");
@@ -107,6 +111,8 @@ function Login() {
         return;
       }
       setStep(2);
+      setCaptchaToken(null);
+      resetRecaptchaWidgets();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not verify email");
     } finally {
