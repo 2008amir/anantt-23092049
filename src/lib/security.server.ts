@@ -7,10 +7,10 @@ export async function verifyRecaptcha(
   action: string,
   remoteIp?: string | null,
 ): Promise<{ ok: boolean; score?: number; reason?: string }> {
-  const secret = process.env.RECAPTCHA_SECRET_KEY;
+  const secret = process.env.RECAPTCHA_V2_SECRET_KEY ?? process.env.RECAPTCHA_SECRET_KEY;
   // If secret is not configured, fail-open in dev only — but ALWAYS log it.
   if (!secret) {
-    console.warn("[security] RECAPTCHA_SECRET_KEY not configured — skipping verification");
+    console.warn("[security] RECAPTCHA_V2_SECRET_KEY not configured — skipping verification");
     return { ok: true, reason: "no_secret" };
   }
   if (!token) return { ok: false, reason: "missing_token" };
@@ -34,12 +34,8 @@ export async function verifyRecaptcha(
     if (!json.success) {
       return { ok: false, reason: (json["error-codes"] || []).join(",") || "failed" };
     }
-    if (json.action && json.action !== action) {
-      return { ok: false, reason: "action_mismatch" };
-    }
-    if (typeof json.score === "number" && json.score < 0.3) {
-      return { ok: false, score: json.score, reason: "low_score" };
-    }
+    // v2 checkbox doesn't return action/score — success is enough.
+    void action;
     return { ok: true, score: json.score };
   } catch (e) {
     console.error("[security] recaptcha verify error", e);

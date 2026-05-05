@@ -9,6 +9,7 @@ import {
   isPasswordValid,
   Spinner,
 } from "@/components/PasswordField";
+import { RecaptchaCheckbox, resetRecaptchaWidgets } from "@/lib/recaptcha";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Sign In — Luxe Sparkles" }] }),
@@ -60,6 +61,7 @@ function Login() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState("");
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   // Prefill referral code from ?ref=
   useEffect(() => {
@@ -77,13 +79,16 @@ function Login() {
     setError("");
     if (!/^\S+@\S+\.\S+$/.test(email)) return setError("Please enter a valid email");
     if (!password) return setError("Please enter your password");
+    if (!captchaToken) return setError("Please verify you are not a robot");
     setBusy(true);
     try {
-      await signIn(email, password);
+      await signIn(email, password, captchaToken);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Authentication failed";
       if (msg.toLowerCase().includes("invalid login")) setError("Invalid email or password.");
       else setError(msg);
+      resetRecaptchaWidgets();
+      setCaptchaToken(null);
     } finally {
       setBusy(false);
     }
@@ -96,6 +101,7 @@ function Login() {
     if (!lastName.trim()) return setError("Last name is required");
     if (!country) return setError("Please select a country");
     if (!/^\S+@\S+\.\S+$/.test(email)) return setError("Please enter a valid email");
+    if (!captchaToken) return setError("Please verify you are not a robot");
     setBusy(true);
     try {
       const { checkEmailExists } = await import("@/lib/device-trust.functions");
@@ -105,6 +111,8 @@ function Login() {
         return;
       }
       setStep(2);
+      setCaptchaToken(null);
+      resetRecaptchaWidgets();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not verify email");
     } finally {
@@ -176,6 +184,7 @@ function Login() {
           <form onSubmit={signinSubmit} className="mt-8 space-y-4">
             <Input label="Email" type="email" value={email} onChange={setEmail} />
             <PasswordField label="Password" value={password} onChange={setPassword} autoComplete="current-password" />
+            <RecaptchaCheckbox onChange={setCaptchaToken} />
             {error && <p className="text-xs text-destructive">{error}</p>}
             <button
               type="submit"
@@ -238,6 +247,7 @@ function Login() {
             </label>
             <Input label="Email" type="email" value={email} onChange={setEmail} />
             <Input label="Referral Code (optional)" value={referralCode} onChange={setReferralCode} />
+            <RecaptchaCheckbox onChange={setCaptchaToken} />
             {error && <p className="text-xs text-destructive">{error}</p>}
             <button
               type="submit"

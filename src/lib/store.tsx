@@ -60,7 +60,7 @@ type StoreState = {
   updateCartQty: (productId: string, quantity: number) => Promise<void>;
   clearCart: () => Promise<void>;
   toggleWishlist: (productId: string) => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string, recaptchaToken?: string) => Promise<void>;
   signUp: (
     email: string,
     password: string,
@@ -300,7 +300,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [user, wishlist, requireAuth],
   );
 
-  const signIn = useCallback(async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string, recaptchaToken?: string) => {
     // Collect device fingerprint first so we can check trust.
     const { collectDeviceSignals } = await import("./device-fingerprint");
     const device = await collectDeviceSignals();
@@ -321,8 +321,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
 
     // Server-side validated login (captcha + rate-limit + 404 log).
-    const { getRecaptchaToken } = await import("./recaptcha");
-    const recaptchaToken = (await getRecaptchaToken("login")) ?? undefined;
     const { serverSignIn } = await import("./server-auth.functions");
 
     if (userExists && !trusted) {
