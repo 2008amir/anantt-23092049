@@ -9,6 +9,7 @@ import {
   isPasswordValid,
   Spinner,
 } from "@/components/PasswordField";
+import { RecaptchaCheckbox, resetRecaptchaWidgets } from "@/lib/recaptcha";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Sign In — Luxe Sparkles" }] }),
@@ -60,6 +61,7 @@ function Login() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState("");
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   // Prefill referral code from ?ref=
   useEffect(() => {
