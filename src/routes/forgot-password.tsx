@@ -142,6 +142,7 @@ function ForgotPassword() {
                 className="mt-2 w-full border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-smooth focus:border-primary"
               />
             </label>
+            <RecaptchaCheckbox onChange={setCaptchaToken} />
             {error && <p className="text-xs text-destructive">{error}</p>}
             {info && <p className="text-xs text-emerald-600 dark:text-emerald-400">{info}</p>}
             <button
