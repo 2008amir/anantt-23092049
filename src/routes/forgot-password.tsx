@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Spinner } from "@/components/PasswordField";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { RecaptchaCheckbox, resetRecaptchaWidgets } from "@/lib/recaptcha";
 
 export const Route = createFileRoute("/forgot-password")({
   head: () => ({ meta: [{ title: "Forgot Password — Luxe Sparkles" }] }),
@@ -19,6 +20,7 @@ function ForgotPassword() {
   const [info, setInfo] = useState("");
   const [code, setCode] = useState("");
   const [secondsLeft, setSecondsLeft] = useState(0);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const submittedRef = useRef(false);
 
   useEffect(() => {
@@ -38,16 +40,17 @@ function ForgotPassword() {
     setError("");
     setInfo("");
     if (!/^\S+@\S+\.\S+$/.test(email)) return setError("Please enter a valid email");
+    if (!captchaToken) return setError("Please verify you are not a robot");
     setBusy(true);
     try {
-      const { getRecaptchaToken } = await import("@/lib/recaptcha");
-      const token = await getRecaptchaToken("forgot_password");
       const { startPasswordReset } = await import("@/lib/forgot-password.functions");
-      const res = await startPasswordReset({ data: { email, recaptchaToken: token ?? undefined } });
+      const res = await startPasswordReset({ data: { email, recaptchaToken: captchaToken } });
       if (!res.ok) {
         if (res.reason === "rate_limited") setError("Too many attempts. Please try again later.");
         else if (res.reason === "captcha") setError("Security check failed. Please try again.");
         else setError("Could not send reset code. Please try again.");
+        resetRecaptchaWidgets();
+        setCaptchaToken(null);
         return;
       }
       setStep(2);
