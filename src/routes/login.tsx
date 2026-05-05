@@ -184,6 +184,7 @@ function Login() {
           <form onSubmit={signinSubmit} className="mt-8 space-y-4">
             <Input label="Email" type="email" value={email} onChange={setEmail} />
             <PasswordField label="Password" value={password} onChange={setPassword} autoComplete="current-password" />
+            <RecaptchaCheckbox onChange={setCaptchaToken} />
             {error && <p className="text-xs text-destructive">{error}</p>}
             <button
               type="submit"
@@ -246,6 +247,7 @@ function Login() {
             </label>
             <Input label="Email" type="email" value={email} onChange={setEmail} />
             <Input label="Referral Code (optional)" value={referralCode} onChange={setReferralCode} />
+            <RecaptchaCheckbox onChange={setCaptchaToken} />
             {error && <p className="text-xs text-destructive">{error}</p>}
             <button
               type="submit"
