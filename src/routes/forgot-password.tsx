@@ -46,7 +46,8 @@ function ForgotPassword() {
       const { startPasswordReset } = await import("@/lib/forgot-password.functions");
       const res = await startPasswordReset({ data: { email, recaptchaToken: captchaToken } });
       if (!res.ok) {
-        if (res.reason === "rate_limited") setError("Too many attempts. Please try again later.");
+        if (res.reason === "no_user") setError("User does not exist.");
+        else if (res.reason === "rate_limited") setError("Too many attempts. Please try again later.");
         else if (res.reason === "captcha") setError("Security check failed. Please try again.");
         else setError("Could not send reset code. Please try again.");
         resetRecaptchaWidgets();
@@ -55,7 +56,6 @@ function ForgotPassword() {
       }
       setStep(2);
       setSecondsLeft(RESEND_SECONDS);
-      setInfo("If an account exists for that email, a verification code was sent.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not start reset");
     } finally {

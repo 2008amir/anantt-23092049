@@ -118,12 +118,9 @@ export const startPasswordReset = createServerFn({ method: "POST" })
       .eq("email", email)
       .maybeSingle();
 
-    // Don't leak existence — but only send if it actually exists.
     if (!row?.id) {
       await logFailedAttempt({ email, ip, userAgent: ua, reason: "no_such_user", path: "/forgot-password" });
-      // Wait a moment to mask timing differences
-      await new Promise((r) => setTimeout(r, 250));
-      return { ok: true as const };
+      return { ok: false as const, reason: "no_user" as const };
     }
 
     // Invalidate prior pending codes

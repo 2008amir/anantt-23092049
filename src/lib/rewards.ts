@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export const REFERRAL_DOMAIN = "https://anantt.lovable.app";
+export const REFERRAL_DOMAIN = "https://luxesparkles.codebreakers.uk";
 export const REFERRAL_STORAGE_KEY = "ml_ref_code";
 
 export type RewardTask = {
