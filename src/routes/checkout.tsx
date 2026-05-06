@@ -49,8 +49,12 @@ function brandLogo(brand: string) {
 
 function Checkout() {
   const navigate = useNavigate();
-  const { user, clearCart } = useStore();
+  const { user, loading: authLoading, clearCart } = useStore();
   const { products } = useProducts();
+
+  useEffect(() => {
+    if (!authLoading && !user) void navigate({ to: "/login" });
+  }, [authLoading, user, navigate]);
 
   // Items for this checkout. Sourced from `checkout_snapshot` (placed by /cart
   // when the user proceeded). The DB cart stays empty and is NOT restored.
