@@ -26,10 +26,15 @@ export const Route = createFileRoute("/orders/$id")({
 function OrderDetail() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useStore();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!authLoading && !user) void navigate({ to: "/login" });
+  }, [authLoading, user, navigate]);
 
   const loadOrder = useCallback(async () => {
     const { data } = await supabase
