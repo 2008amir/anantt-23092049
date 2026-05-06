@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { CreditCard, Loader2, Plus, Trash2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/lib/store";
+import { useIsAdmin } from "@/hooks/use-admin";
 import { initFlutterwave, verifyFlutterwave } from "@/lib/flutterwave.functions";
 import { openFlutterwavePopup } from "@/lib/flutterwave-popup";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -40,6 +41,7 @@ type SavedCard = {
 function SettingsPanel() {
   const { user, profile, signOut, refresh } = useStore();
   const navigate = useNavigate();
+  const { isAdmin } = useIsAdmin();
   const [name, setName] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
   const [cards, setCards] = useState<SavedCard[]>([]);
@@ -270,6 +272,15 @@ function SettingsPanel() {
           >
             {savingProfile ? "Saving…" : "Save Changes"}
           </button>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/admin" })}
+              className="border border-primary/40 px-8 py-3 text-xs uppercase tracking-[0.25em] text-primary hover:bg-primary/10"
+            >
+              Switch to Admin Panel
+            </button>
+          )}
           <button
             type="button"
             onClick={async () => {

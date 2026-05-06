@@ -116,6 +116,13 @@ function AdminProfilePage() {
         </div>
         <button
           type="button"
+          onClick={() => navigate({ to: "/account" })}
+          className="mt-5 mr-2 inline-flex items-center gap-2 rounded-md border border-primary/40 px-4 py-2 text-sm text-primary transition-smooth hover:bg-primary/10"
+        >
+          Switch to User Panel
+        </button>
+        <button
+          type="button"
           onClick={async () => {
             await signOut();
             navigate({ to: "/" });
