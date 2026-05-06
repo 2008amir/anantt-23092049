@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Check, Truck, Package, Loader2, X, RefreshCw } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useStore } from "@/lib/store";
 import { Recommend } from "@/components/Recommend";
 import { verifyFlutterwave } from "@/lib/flutterwave.functions";
 
