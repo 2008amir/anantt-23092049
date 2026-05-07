@@ -362,7 +362,7 @@ function Checkout() {
       .update({
         payment_reference: tx_ref,
         payment_status: success ? "paid" : "failed",
-        status: success ? "Processing" : "Payment Failed",
+        status: success ? "Paid" : "Payment Failed",
       })
       .eq("id", orderId);
     if (success) {
@@ -371,12 +371,6 @@ function Checkout() {
         sessionStorage.removeItem("checkout_snapshot");
       } catch {
         // ignore
-      }
-      try {
-        const { sendOrderConfirmationEmail } = await import("@/lib/order-email.functions");
-        await sendOrderConfirmationEmail({ data: { orderId } });
-      } catch (e) {
-        console.error("order confirmation email failed", e);
       }
     }
   };

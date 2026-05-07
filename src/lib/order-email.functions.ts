@@ -191,7 +191,7 @@ async function sendBrevoOrderEmail(opts: { to: string; subject: string; html: st
 }
 
 /**
- * Sends a "your order is confirmed" email after a successful payment.
+ * Sends a "your order is confirmed" email when shipping starts processing.
  * Idempotent: marks the order so we never send twice.
  */
 export const sendOrderConfirmationEmail = createServerFn({ method: "POST" })
