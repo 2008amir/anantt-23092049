@@ -55,7 +55,7 @@ export const Route = createFileRoute("/api/public/flutterwave-webhook")({
 
         const success = status === "successful" || status === "succeeded";
         const update = success
-          ? { payment_status: "paid", status: "Processing" }
+          ? { payment_status: "paid", status: "Paid" }
           : status === "failed" || status === "cancelled"
             ? { payment_status: "failed", status: "Payment Failed" }
             : null;
@@ -70,28 +70,6 @@ export const Route = createFileRoute("/api/public/flutterwave-webhook")({
         if (error) {
           console.error("Webhook update failed:", error);
           return new Response("DB error", { status: 500 });
-        }
-
-        if (success) {
-          try {
-            const { sendOrderConfirmationEmail } = await import(
-              "@/lib/order-email.functions"
-            );
-            const targetId =
-              orderId ??
-              (
-                await admin
-                  .from("orders")
-                  .select("id")
-                  .eq("payment_reference", tx_ref!)
-                  .maybeSingle()
-              ).data?.id;
-            if (targetId) {
-              await sendOrderConfirmationEmail({ data: { orderId: targetId } });
-            }
-          } catch (e) {
-            console.error("webhook order confirmation email failed", e);
-          }
         }
 
         return new Response("ok");

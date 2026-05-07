@@ -80,13 +80,30 @@ function OrdersPage() {
   const delivered = orders.filter((o) => o.delivery_stage === "delivered");
 
   const assign = async (orderId: string, delivererId: string) => {
+    const { data: existing } = await supabase
+      .from("orders")
+      .select("status")
+      .eq("id", orderId)
+      .maybeSingle();
+    const wasProcessing = existing?.status === "Processing";
+
     const { error } = await supabase
       .from("orders")
-      .update({ deliverer_id: delivererId, delivery_stage: "assigned", status: "Assigned" })
+      .update({ deliverer_id: delivererId, delivery_stage: "assigned", status: "Processing" })
       .eq("id", orderId);
     if (error) {
       toast.error("Could not assign deliverer", { description: error.message });
       return;
+    }
+    // Keep confirmation email tied to the shipping kickoff transition only,
+    // not payment verification or non-shipping flows.
+    if (!wasProcessing) {
+      try {
+        const { sendOrderConfirmationEmail } = await import("@/lib/order-email.functions");
+        await sendOrderConfirmationEmail({ data: { orderId } });
+      } catch (e) {
+        console.error("order confirmation email failed", e);
+      }
     }
     const d = deliverers.find((x) => x.id === delivererId);
     toast.success(`Assigned to ${d?.name ?? "deliverer"}`, {
