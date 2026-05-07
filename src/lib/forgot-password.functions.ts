@@ -102,12 +102,24 @@ export const startPasswordReset = createServerFn({ method: "POST" })
     // Captcha check first to avoid abuse-driven email floods
     const captcha = await verifyRecaptcha(data.recaptchaToken ?? null, "forgot_password", ip);
     if (!captcha.ok) {
-      await logFailedAttempt({ email, ip, userAgent: ua, reason: `captcha:${captcha.reason}`, path: "/forgot-password" });
+      await logFailedAttempt({
+        email,
+        ip,
+        userAgent: ua,
+        reason: `captcha:${captcha.reason}`,
+        path: "/forgot-password",
+      });
       return { ok: false as const, reason: "captcha" as const };
     }
 
     if (await isRateLimited({ email, ip })) {
-      await logFailedAttempt({ email, ip, userAgent: ua, reason: "rate_limited", path: "/forgot-password" });
+      await logFailedAttempt({
+        email,
+        ip,
+        userAgent: ua,
+        reason: "rate_limited",
+        path: "/forgot-password",
+      });
       return { ok: false as const, reason: "rate_limited" as const };
     }
 
@@ -119,7 +131,13 @@ export const startPasswordReset = createServerFn({ method: "POST" })
       .maybeSingle();
 
     if (!row?.id) {
-      await logFailedAttempt({ email, ip, userAgent: ua, reason: "no_such_user", path: "/forgot-password" });
+      await logFailedAttempt({
+        email,
+        ip,
+        userAgent: ua,
+        reason: "no_such_user",
+        path: "/forgot-password",
+      });
       return { ok: false as const, reason: "no_user" as const };
     }
 
@@ -169,7 +187,11 @@ export const resendPasswordResetCode = createServerFn({ method: "POST" })
 
     const elapsed = (Date.now() - new Date(row.last_sent_at).getTime()) / 1000;
     if (elapsed < RESEND_SEC) {
-      return { ok: false as const, reason: "cooldown" as const, retryIn: Math.ceil(RESEND_SEC - elapsed) };
+      return {
+        ok: false as const,
+        reason: "cooldown" as const,
+        retryIn: Math.ceil(RESEND_SEC - elapsed),
+      };
     }
 
     const code = generateCode();
@@ -223,7 +245,13 @@ export const verifyPasswordResetCode = createServerFn({ method: "POST" })
       .maybeSingle();
 
     if (!row) {
-      await logFailedAttempt({ email, ip, userAgent: ua, reason: "reset_no_pending", path: "/forgot-password" });
+      await logFailedAttempt({
+        email,
+        ip,
+        userAgent: ua,
+        reason: "reset_no_pending",
+        path: "/forgot-password",
+      });
       return { ok: false as const, reason: "no_pending" as const };
     }
     if (new Date(row.expires_at).getTime() < Date.now()) {
@@ -237,7 +265,13 @@ export const verifyPasswordResetCode = createServerFn({ method: "POST" })
         .from("auth_email_codes")
         .update({ attempts: row.attempts + 1 })
         .eq("id", row.id);
-      await logFailedAttempt({ email, ip, userAgent: ua, reason: "reset_wrong_code", path: "/forgot-password" });
+      await logFailedAttempt({
+        email,
+        ip,
+        userAgent: ua,
+        reason: "reset_wrong_code",
+        path: "/forgot-password",
+      });
       return {
         ok: false as const,
         reason: "wrong" as const,
@@ -266,14 +300,14 @@ export const verifyPasswordResetCode = createServerFn({ method: "POST" })
   });
 
 /**
- * Step 3: with a valid ticket, set the new password via admin API.
+ * Validate OTP and set the new password in one request.
  */
 export const finishPasswordReset = createServerFn({ method: "POST" })
   .inputValidator((input) =>
     z
       .object({
         email: z.string().email().max(320),
-        ticket: z.string().min(10).max(200),
+        code: z.string().regex(/^\d{6}$/),
         newPassword: z.string().min(8).max(200),
       })
       .parse(input),
@@ -282,24 +316,51 @@ export const finishPasswordReset = createServerFn({ method: "POST" })
     const ip = getRequestIP({ xForwardedFor: true }) ?? null;
     const ua = getRequestHeader("user-agent") ?? null;
     const email = data.email.toLowerCase();
-    const ticketHash = await sha256Hex(data.ticket);
+    const codeHash = await sha256Hex(data.code);
 
     const { data: row } = await supabaseAdmin
       .from("auth_email_codes")
-      .select("id, code_hash, used, expires_at")
+      .select("id, code_hash, attempts, expires_at")
       .eq("email", email)
-      .eq("purpose", "password_reset_ticket")
+      .eq("purpose", PURPOSE)
       .eq("used", false)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    if (!row || row.code_hash !== ticketHash) {
-      await logFailedAttempt({ email, ip, userAgent: ua, reason: "reset_bad_ticket", path: "/forgot-password" });
-      return { ok: false as const, reason: "invalid" as const };
+    if (!row) {
+      await logFailedAttempt({
+        email,
+        ip,
+        userAgent: ua,
+        reason: "reset_no_pending",
+        path: "/forgot-password",
+      });
+      return { ok: false as const, reason: "no_pending" as const };
     }
     if (new Date(row.expires_at).getTime() < Date.now()) {
       return { ok: false as const, reason: "expired" as const };
+    }
+    if (row.attempts >= 5) {
+      return { ok: false as const, reason: "too_many" as const };
+    }
+    if (row.code_hash !== codeHash) {
+      await supabaseAdmin
+        .from("auth_email_codes")
+        .update({ attempts: row.attempts + 1 })
+        .eq("id", row.id);
+      await logFailedAttempt({
+        email,
+        ip,
+        userAgent: ua,
+        reason: "reset_wrong_code",
+        path: "/forgot-password",
+      });
+      return {
+        ok: false as const,
+        reason: "wrong" as const,
+        attemptsLeft: Math.max(0, 5 - (row.attempts + 1)),
+      };
     }
 
     // Find the user by email and update their password
