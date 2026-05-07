@@ -80,16 +80,24 @@ function OrdersPage() {
   const delivered = orders.filter((o) => o.delivery_stage === "delivered");
 
   const assign = async (orderId: string, delivererId: string) => {
-    const { data: existing } = await supabase
+    const { data: existing, error: existingError } = await supabase
       .from("orders")
       .select("status")
       .eq("id", orderId)
       .maybeSingle();
+    if (existingError || !existing) {
+      toast.error("Could not assign deliverer", { description: existingError?.message ?? "Order not found" });
+      return;
+    }
     const wasProcessing = existing?.status === "Processing";
 
     const { error } = await supabase
       .from("orders")
-      .update({ deliverer_id: delivererId, delivery_stage: "assigned", status: "Processing" })
+      .update({
+        deliverer_id: delivererId,
+        delivery_stage: "assigned",
+        status: wasProcessing ? existing.status : "Processing",
+      })
       .eq("id", orderId);
     if (error) {
       toast.error("Could not assign deliverer", { description: error.message });
