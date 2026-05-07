@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Truck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/lib/store";
 import { useIsAdmin } from "@/hooks/use-admin";
+import { useIsDeliverer } from "@/hooks/use-deliverer";
 
 export const Route = createFileRoute("/account/")({
   component: ProfilePanel,
@@ -12,6 +13,7 @@ export const Route = createFileRoute("/account/")({
 function ProfilePanel() {
   const { user, profile, wishlist } = useStore();
   const { isAdmin } = useIsAdmin();
+  const { isDeliverer } = useIsDeliverer();
   const [orderCount, setOrderCount] = useState(0);
   const [lifetime, setLifetime] = useState(0);
 
@@ -47,6 +49,17 @@ function ProfilePanel() {
         >
           <ShieldCheck className="h-4 w-4" />
           Open Admin Panel
+        </Link>
+      )}
+
+      {isDeliverer && (
+        <Link
+          to="/deliverer"
+          title="Switch to Deliverer Panel"
+          className="mt-6 inline-flex items-center gap-2 rounded-md border border-border px-4 py-2 text-xs uppercase tracking-wider hover:bg-muted"
+        >
+          <Truck className="h-4 w-4" />
+          Switch to Deliverer Panel
         </Link>
       )}
 
