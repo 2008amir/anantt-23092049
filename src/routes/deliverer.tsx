@@ -9,6 +9,7 @@ import {
   Search as SearchIcon,
   ArrowLeft,
   CheckCircle2,
+  LayoutDashboard,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/lib/store";
@@ -198,6 +199,13 @@ function DelivererDashboard() {
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle variant="compact" />
+          <button
+            onClick={() => void navigate({ to: "/account" })}
+            title="Switch to User Panel"
+            className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-xs uppercase tracking-wider hover:bg-muted"
+          >
+            <LayoutDashboard className="h-3.5 w-3.5" /> User Panel
+          </button>
           <button
             onClick={() => void signOut().then(() => navigate({ to: "/" }))}
             className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-xs uppercase tracking-wider hover:bg-muted"
