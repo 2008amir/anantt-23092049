@@ -6,6 +6,7 @@ import {
   Spinner,
   isPasswordValid,
 } from "@/components/PasswordField";
+import { PASSWORD_RESET_CODE_REGEX } from "@/lib/password-reset.shared";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { RecaptchaCheckbox, resetRecaptchaWidgets } from "@/lib/recaptcha";
 
@@ -75,7 +76,8 @@ function ForgotPassword() {
     e.preventDefault();
     setError("");
     setInfo("");
-    if (!/^\d{6}$/.test(code)) return setError("Please enter the 6-digit verification code");
+    if (!PASSWORD_RESET_CODE_REGEX.test(code))
+      return setError("Please enter a valid 6-digit verification code");
     if (!isPasswordValid(password)) return setError("Password does not meet all requirements");
     if (password !== confirm) return setError("Passwords do not match");
     setBusy(true);
@@ -151,7 +153,11 @@ function ForgotPassword() {
               />
             </label>
             <RecaptchaCheckbox onChange={setCaptchaToken} />
-            {error && <p className="text-xs text-destructive">{error}</p>}
+            {error && (
+              <p className="text-xs text-destructive" role="alert">
+                {error}
+              </p>
+            )}
             {info && <p className="text-xs text-emerald-600 dark:text-emerald-400">{info}</p>}
             <button
               type="submit"
@@ -201,7 +207,11 @@ function ForgotPassword() {
                   autoComplete="new-password"
                   invalid={confirm.length > 0 && confirm !== password}
                 />
-                {error && <p className="text-sm text-destructive">{error}</p>}
+                {error && (
+                  <p className="text-sm text-destructive" role="alert">
+                    {error}
+                  </p>
+                )}
                 {info && <p className="text-sm text-emerald-600 dark:text-emerald-400">{info}</p>}
                 <button
                   type="submit"

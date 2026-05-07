@@ -2,6 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequestIP, getRequestHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import {
+  PASSWORD_RESET_CODE_REGEX,
+  PASSWORD_RESET_MAX_ATTEMPTS,
+} from "@/lib/password-reset.shared";
 import { verifyRecaptcha, logFailedAttempt, isRateLimited } from "./security.server";
 
 const TTL_MIN = 15;
@@ -224,7 +228,7 @@ export const verifyPasswordResetCode = createServerFn({ method: "POST" })
     z
       .object({
         email: z.string().email().max(320),
-        code: z.string().regex(/^\d{6}$/),
+        code: z.string().regex(PASSWORD_RESET_CODE_REGEX),
       })
       .parse(input),
   )
@@ -257,7 +261,7 @@ export const verifyPasswordResetCode = createServerFn({ method: "POST" })
     if (new Date(row.expires_at).getTime() < Date.now()) {
       return { ok: false as const, reason: "expired" as const };
     }
-    if (row.attempts >= 5) {
+    if (row.attempts >= PASSWORD_RESET_MAX_ATTEMPTS) {
       return { ok: false as const, reason: "too_many" as const };
     }
     if (row.code_hash !== codeHash) {
@@ -275,7 +279,7 @@ export const verifyPasswordResetCode = createServerFn({ method: "POST" })
       return {
         ok: false as const,
         reason: "wrong" as const,
-        attemptsLeft: Math.max(0, 5 - (row.attempts + 1)),
+        attemptsLeft: Math.max(0, PASSWORD_RESET_MAX_ATTEMPTS - (row.attempts + 1)),
       };
     }
 
@@ -300,14 +304,14 @@ export const verifyPasswordResetCode = createServerFn({ method: "POST" })
   });
 
 /**
- * Validate OTP and set the new password in one request.
+ * Validate reset code and set the new password in one request.
  */
 export const finishPasswordReset = createServerFn({ method: "POST" })
   .inputValidator((input) =>
     z
       .object({
         email: z.string().email().max(320),
-        code: z.string().regex(/^\d{6}$/),
+        code: z.string().regex(PASSWORD_RESET_CODE_REGEX),
         newPassword: z.string().min(8).max(200),
       })
       .parse(input),
@@ -341,7 +345,7 @@ export const finishPasswordReset = createServerFn({ method: "POST" })
     if (new Date(row.expires_at).getTime() < Date.now()) {
       return { ok: false as const, reason: "expired" as const };
     }
-    if (row.attempts >= 5) {
+    if (row.attempts >= PASSWORD_RESET_MAX_ATTEMPTS) {
       return { ok: false as const, reason: "too_many" as const };
     }
     if (row.code_hash !== codeHash) {
@@ -359,7 +363,7 @@ export const finishPasswordReset = createServerFn({ method: "POST" })
       return {
         ok: false as const,
         reason: "wrong" as const,
-        attemptsLeft: Math.max(0, 5 - (row.attempts + 1)),
+        attemptsLeft: Math.max(0, PASSWORD_RESET_MAX_ATTEMPTS - (row.attempts + 1)),
       };
     }
 
