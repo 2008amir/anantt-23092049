@@ -4,6 +4,7 @@ import { CreditCard, Loader2, Plus, Trash2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/lib/store";
 import { useIsAdmin } from "@/hooks/use-admin";
+import { useIsDeliverer } from "@/hooks/use-deliverer";
 import { initFlutterwave, verifyFlutterwave } from "@/lib/flutterwave.functions";
 import { openFlutterwavePopup } from "@/lib/flutterwave-popup";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -42,6 +43,7 @@ function SettingsPanel() {
   const { user, profile, signOut, refresh } = useStore();
   const navigate = useNavigate();
   const { isAdmin } = useIsAdmin();
+  const { isDeliverer } = useIsDeliverer();
   const [name, setName] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
   const [cards, setCards] = useState<SavedCard[]>([]);
@@ -279,6 +281,15 @@ function SettingsPanel() {
               className="border border-primary/40 px-8 py-3 text-xs uppercase tracking-[0.25em] text-primary hover:bg-primary/10"
             >
               Switch to Admin Panel
+            </button>
+          )}
+          {isDeliverer && (
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/deliverer" })}
+              className="border border-primary/40 px-8 py-3 text-xs uppercase tracking-[0.25em] text-primary hover:bg-primary/10"
+            >
+              Switch to Deliverer Panel
             </button>
           )}
           <button
