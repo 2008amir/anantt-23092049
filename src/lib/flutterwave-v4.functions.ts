@@ -6,6 +6,7 @@ import { getFlutterwaveAuthContext } from "./flutterwave-auth.server";
 // Production host: api.flutterwave.cloud (subject to change while in beta)
 const FLW4_HOST = "https://developersandbox-api.flutterwave.com";
 const FLW4_OAUTH = "https://idp.flutterwave.com/realms/flutterwave/protocol/openid-connect/token";
+const FLUTTERWAVE_ACCOUNT_NAME = "luxe sparkles";
 
 let cachedToken: { token: string; expiresAt: number } | null = null;
 
@@ -94,7 +95,7 @@ export const initOpayV4 = createServerFn({ method: "POST" })
     await getFlutterwaveAuthContext(data.accessToken);
 
     // 1. Create customer
-    const [first, ...rest] = (data.name ?? "Customer").trim().split(/\s+/);
+    const [first, ...rest] = FLUTTERWAVE_ACCOUNT_NAME.split(/\s+/);
     const last = rest.length > 0 ? rest.join(" ") : "User";
     const customerRes = await flw4Fetch("/customers", {
       method: "POST",
@@ -126,7 +127,11 @@ export const initOpayV4 = createServerFn({ method: "POST" })
         payment_method_id: paymentMethodId,
         amount: data.amount,
         reference: data.reference,
-        meta: data.meta ?? {},
+        meta: {
+          ...(data.meta ?? {}),
+          account_name: FLUTTERWAVE_ACCOUNT_NAME,
+          customer_name: FLUTTERWAVE_ACCOUNT_NAME,
+        },
       }),
     });
 

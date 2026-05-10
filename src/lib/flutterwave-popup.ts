@@ -1,4 +1,5 @@
 const FLUTTERWAVE_PUBLIC_KEY = "FLWPUBK-179082bdf3e13ed7270551d4d05dd4a5-X";
+const FLUTTERWAVE_ACCOUNT_NAME = "luxe sparkles";
 
 type FlwConfig = {
   public_key: string;
@@ -59,8 +60,8 @@ export async function openFlutterwavePopup(opts: {
       amount: opts.amount,
       currency: "NGN",
       payment_options: opts.paymentOptions ?? "card,banktransfer,opay,ussd",
-      customer: { email: opts.email, name: opts.name, phone_number: opts.phone },
-      meta: opts.meta,
+      customer: { email: opts.email, name: FLUTTERWAVE_ACCOUNT_NAME, phone_number: opts.phone },
+      meta: { ...(opts.meta ?? {}), account_name: FLUTTERWAVE_ACCOUNT_NAME, customer_name: FLUTTERWAVE_ACCOUNT_NAME },
       customizations: {
         title: opts.title ?? "Luxe Sparkles",
         description: opts.description ?? "Order payment",
