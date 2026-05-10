@@ -142,9 +142,10 @@ ${text}`;
 // ─── Text search ────────────────────────────────────────────────────
 export const textSearch = createServerFn({ method: "POST" })
   .inputValidator((input: { query: string }) => {
-    if (!input?.query || typeof input.query !== "string") throw new Error("query required");
-    if (input.query.length > 200) throw new Error("query too long");
-    return input;
+    const query = typeof input?.query === "string" ? input.query.trim() : "";
+    if (!query) throw new Error("query required");
+    if (query.length > 200) throw new Error("query too long");
+    return { query };
   })
   .handler(async ({ data }): Promise<{ ids: string[] }> => {
     const catalog = await loadCatalog();

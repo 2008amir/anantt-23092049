@@ -28,26 +28,27 @@ function Shop() {
   const { category, q } = Route.useSearch();
   const { categories: aiCategories, loading: catsLoading } = useCategories();
   const { products } = useProducts();
+  const normalizedQ = (q ?? "").trim();
 
   const [aiIds, setAiIds] = useState<string[] | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
   const localFiltered = useMemo<Product[]>(() => {
-    if (!q) return [];
-    const terms = q.toLowerCase().split(/\s+/).filter((t: string) => Boolean(t));
+    if (!normalizedQ) return [];
+    const terms = normalizedQ.toLowerCase().split(/\s+/).filter((t: string) => Boolean(t));
     return products.filter((p) => {
       const haystack = [p.name, p.brand, p.category, p.description, ...(p.details ?? [])]
         .join(" ").toLowerCase();
       return terms.every((t: string) => haystack.includes(t));
     });
-  }, [q, products]);
+  }, [normalizedQ, products]);
 
   useEffect(() => {
-    if (!q) { setAiIds(null); setAiError(null); return; }
+    if (!normalizedQ) { setAiIds(null); setAiError(null); return; }
     let cancelled = false;
     setAiLoading(true); setAiError(null);
-    textSearch({ data: { query: q } })
+    textSearch({ data: { query: normalizedQ } })
       .then((res: { ids: string[] }) => { if (!cancelled) setAiIds(res.ids); })
       .catch((e: unknown) => {
         if (cancelled) return;
@@ -57,10 +58,10 @@ function Shop() {
       })
       .finally(() => { if (!cancelled) setAiLoading(false); });
     return () => { cancelled = true; };
-  }, [q]);
+  }, [normalizedQ]);
 
   const searchResults = useMemo<Product[]>(() => {
-    if (!q) return [];
+    if (!normalizedQ) return [];
     const idSet = new Set<string>();
     const ordered: Product[] = [];
     if (aiIds) {
@@ -73,9 +74,9 @@ function Shop() {
       if (!idSet.has(p.id)) { idSet.add(p.id); ordered.push(p); }
     }
     return ordered;
-  }, [q, aiIds, localFiltered, products]);
+  }, [normalizedQ, aiIds, localFiltered, products]);
 
-  const isSearching = Boolean(q);
+  const isSearching = Boolean(normalizedQ);
   const activeCategory = !isSearching && category
     ? aiCategories.find((c) => c.name.toLowerCase() === category.toLowerCase())
     : null;
@@ -126,7 +127,7 @@ function Shop() {
             <>
               <div className="mb-4 flex items-center justify-between gap-3">
                 <h2 className="font-serif text-lg text-foreground">
-                  Results for <span className="text-primary">"{q}"</span>{" "}
+                  Results for <span className="text-primary">"{normalizedQ}"</span>{" "}
                   <span className="text-xs text-muted-foreground">({searchResults.length})</span>
                 </h2>
                 <Link to="/shop" search={{}} className="rounded-full border border-border px-3 py-1 text-[10px] uppercase tracking-[0.15em] text-muted-foreground hover:border-primary hover:text-primary">Clear</Link>
