@@ -179,15 +179,18 @@ function SearchPage() {
     } catch (e) {
       console.error("AI text search failed, falling back to local match", e);
     }
+    if (reqId !== textSearchReqRef.current) return;
     // Fallback: if AI returned nothing (or failed), do a simple local match
     // across the full catalog so users always see relevant pieces when any
     // exist for their query.
     if (items.length === 0) {
       try {
         const all = await fetchProducts();
+        if (reqId !== textSearchReqRef.current) return;
         items = localTextMatch(all, normalized).slice(0, 24);
       } catch (e) {
         console.error("local fallback failed", e);
+        if (reqId !== textSearchReqRef.current) return;
         setError(e instanceof Error ? e.message : "Search failed");
       }
     }
