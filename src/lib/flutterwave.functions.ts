@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getFlutterwaveAuthContext } from "./flutterwave-auth.server";
 
 export const FLUTTERWAVE_PUBLIC_KEY = "FLWPUBK-179082bdf3e13ed7270551d4d05dd4a5-X";
+const FLUTTERWAVE_ACCOUNT_NAME = "luxe sparkles";
 
 const FLW_BASE = "https://api.flutterwave.com/v3";
 
@@ -67,10 +68,15 @@ export const initFlutterwave = createServerFn({ method: "POST" })
         payment_options: data.paymentOptions ?? "card,banktransfer,opay,ussd",
         customer: {
           email: data.email,
-          name: data.name,
+          name: FLUTTERWAVE_ACCOUNT_NAME,
           phonenumber: data.phone,
         },
-        meta: { ...(data.meta ?? {}), user_id: userId },
+        meta: {
+          ...(data.meta ?? {}),
+          user_id: userId,
+          account_name: FLUTTERWAVE_ACCOUNT_NAME,
+          customer_name: FLUTTERWAVE_ACCOUNT_NAME,
+        },
       }),
     });
 
@@ -164,7 +170,7 @@ export const createVirtualAccount = createServerFn({ method: "POST" })
     return {
       account_number: res.data?.account_number as string,
       bank_name: res.data?.bank_name as string,
-      account_name: (res.data?.account_name ?? data.name ?? "Luxe Sparkles") as string,
+      account_name: FLUTTERWAVE_ACCOUNT_NAME,
       expiry_date: res.data?.expiry_date as string,
       amount: res.data?.amount ?? data.amount,
       order_ref: res.data?.order_ref as string,

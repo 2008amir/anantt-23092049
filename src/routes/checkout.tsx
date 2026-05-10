@@ -292,13 +292,7 @@ function Checkout() {
       // picks card / bank transfer / USSD / Opay there.
       const paymentOptions = "card,banktransfer,ussd,opay";
 
-      // Customer name override: "luxesparkles-{username}" so it shows on the
-      // Flutterwave dashboard / statement narration as the sender reference.
-      const usernameSlug = (user?.email ?? shipForm.email)
-        .split("@")[0]
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, "");
-      const flwCustomerName = `luxesparkles-${usernameSlug}`;
+      const flwCustomerName = "luxe sparkles";
 
       await supabase
         .from("orders")
