@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -84,6 +85,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartRow[]>([]);
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const referralAttachAttemptedForUser = useRef<string | null>(null);
 
   const user = session?.user ?? null;
 
@@ -96,6 +98,45 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setProfile((profileRes.data as Profile | null) ?? null);
     setCart((cartRes.data ?? []) as CartRow[]);
     setWishlist(((wlRes.data ?? []) as { product_id: string }[]).map((r) => r.product_id));
+  }, []);
+
+  const attachPendingReferralAfterOAuth = useCallback(async (uid: string) => {
+    if (typeof window === "undefined") return;
+    if (referralAttachAttemptedForUser.current === uid) return;
+    referralAttachAttemptedForUser.current = uid;
+
+    let refCode: string | null = null;
+    try {
+      refCode = localStorage.getItem("ml_ref_code");
+    } catch {
+      // ignore
+    }
+    const normalized = refCode?.trim().toUpperCase() || "";
+    if (!/^[A-Z0-9]{4,16}$/.test(normalized)) return;
+
+    try {
+      const { collectDeviceSignals } = await import("./device-fingerprint");
+      const device = await collectDeviceSignals();
+      const rpc = supabase.rpc as unknown as (
+        fn: string,
+        args?: Record<string, unknown>,
+      ) => Promise<{ error: { message: string } | null }>;
+      const { error } = await rpc("attach_referral_after_oauth_signup", {
+        code: normalized,
+        device_fp: device.fingerprint,
+        device_ip: device.ip,
+        device_user_agent: device.user_agent,
+        device_platform: device.platform,
+        device_hardware: device.hardware,
+      });
+      if (error) {
+        console.error("OAuth referral attach failed:", error.message);
+        return;
+      }
+      localStorage.removeItem("ml_ref_code");
+    } catch (err) {
+      console.error("OAuth referral attach failed:", err);
+    }
   }, []);
 
   // Auth bootstrap + offline queue auto-flush
@@ -111,8 +152,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         // defer to avoid deadlocks
         setTimeout(() => {
           void loadUserData(newSession.user.id);
+          void attachPendingReferralAfterOAuth(newSession.user.id);
         }, 0);
       } else {
+        referralAttachAttemptedForUser.current = null;
         setProfile(null);
         setCart([]);
         setWishlist([]);
@@ -127,7 +170,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         void loadUserData(existing.user.id).finally(() => {
           if (mounted) setLoading(false);
         });
+        void attachPendingReferralAfterOAuth(existing.user.id);
       } else {
+        referralAttachAttemptedForUser.current = null;
         setLoading(false);
       }
     });
@@ -136,7 +181,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       mounted = false;
       sub.subscription.unsubscribe();
     };
-  }, [loadUserData]);
+  }, [attachPendingReferralAfterOAuth, loadUserData]);
 
   const refresh = useCallback(async () => {
     if (user) await loadUserData(user.id);
