@@ -20,6 +20,7 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as DelivererRouteImport } from './routes/deliverer'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CartRouteImport } from './routes/cart'
+import { Route as CallbackRouteImport } from './routes/callback'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
@@ -29,6 +30,7 @@ import { Route as AccountIndexRouteImport } from './routes/account.index'
 import { Route as WebhookFlutterwaveRouteImport } from './routes/webhook.flutterwave'
 import { Route as ProductIdRouteImport } from './routes/product.$id'
 import { Route as OrdersIdRouteImport } from './routes/orders.$id'
+import { Route as OauthCallbackRouteImport } from './routes/oauth.callback'
 import { Route as AdminSearchRouteImport } from './routes/admin.search'
 import { Route as AdminRewardsRouteImport } from './routes/admin.rewards'
 import { Route as AdminProfileRouteImport } from './routes/admin.profile'
@@ -112,6 +114,11 @@ const CartRoute = CartRouteImport.update({
   path: '/cart',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CallbackRoute = CallbackRouteImport.update({
+  id: '/callback',
+  path: '/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -155,6 +162,11 @@ const ProductIdRoute = ProductIdRouteImport.update({
 const OrdersIdRoute = OrdersIdRouteImport.update({
   id: '/orders/$id',
   path: '/orders/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OauthCallbackRoute = OauthCallbackRouteImport.update({
+  id: '/oauth/callback',
+  path: '/oauth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminSearchRoute = AdminSearchRouteImport.update({
@@ -298,6 +310,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/account': typeof AccountRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
+  '/callback': typeof CallbackRoute
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
   '/deliverer': typeof DelivererRoute
@@ -328,6 +341,7 @@ export interface FileRoutesByFullPath {
   '/admin/profile': typeof AdminProfileRoute
   '/admin/rewards': typeof AdminRewardsRoute
   '/admin/search': typeof AdminSearchRoute
+  '/oauth/callback': typeof OauthCallbackRoute
   '/orders/$id': typeof OrdersIdRoute
   '/product/$id': typeof ProductIdRoute
   '/webhook/flutterwave': typeof WebhookFlutterwaveRoute
@@ -345,6 +359,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/callback': typeof CallbackRoute
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
   '/deliverer': typeof DelivererRoute
@@ -375,6 +390,7 @@ export interface FileRoutesByTo {
   '/admin/profile': typeof AdminProfileRoute
   '/admin/rewards': typeof AdminRewardsRoute
   '/admin/search': typeof AdminSearchRoute
+  '/oauth/callback': typeof OauthCallbackRoute
   '/orders/$id': typeof OrdersIdRoute
   '/product/$id': typeof ProductIdRoute
   '/webhook/flutterwave': typeof WebhookFlutterwaveRoute
@@ -395,6 +411,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/account': typeof AccountRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
+  '/callback': typeof CallbackRoute
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
   '/deliverer': typeof DelivererRoute
@@ -425,6 +442,7 @@ export interface FileRoutesById {
   '/admin/profile': typeof AdminProfileRoute
   '/admin/rewards': typeof AdminRewardsRoute
   '/admin/search': typeof AdminSearchRoute
+  '/oauth/callback': typeof OauthCallbackRoute
   '/orders/$id': typeof OrdersIdRoute
   '/product/$id': typeof ProductIdRoute
   '/webhook/flutterwave': typeof WebhookFlutterwaveRoute
@@ -446,6 +464,7 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/admin'
+    | '/callback'
     | '/cart'
     | '/checkout'
     | '/deliverer'
@@ -476,6 +495,7 @@ export interface FileRouteTypes {
     | '/admin/profile'
     | '/admin/rewards'
     | '/admin/search'
+    | '/oauth/callback'
     | '/orders/$id'
     | '/product/$id'
     | '/webhook/flutterwave'
@@ -493,6 +513,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/callback'
     | '/cart'
     | '/checkout'
     | '/deliverer'
@@ -523,6 +544,7 @@ export interface FileRouteTypes {
     | '/admin/profile'
     | '/admin/rewards'
     | '/admin/search'
+    | '/oauth/callback'
     | '/orders/$id'
     | '/product/$id'
     | '/webhook/flutterwave'
@@ -542,6 +564,7 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/admin'
+    | '/callback'
     | '/cart'
     | '/checkout'
     | '/deliverer'
@@ -572,6 +595,7 @@ export interface FileRouteTypes {
     | '/admin/profile'
     | '/admin/rewards'
     | '/admin/search'
+    | '/oauth/callback'
     | '/orders/$id'
     | '/product/$id'
     | '/webhook/flutterwave'
@@ -592,6 +616,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountRoute: typeof AccountRouteWithChildren
   AdminRoute: typeof AdminRouteWithChildren
+  CallbackRoute: typeof CallbackRoute
   CartRoute: typeof CartRoute
   CheckoutRoute: typeof CheckoutRoute
   DelivererRoute: typeof DelivererRoute
@@ -603,6 +628,7 @@ export interface RootRouteChildren {
   VerifyDeviceRoute: typeof VerifyDeviceRoute
   VerifySignupRoute: typeof VerifySignupRoute
   WishlistRoute: typeof WishlistRoute
+  OauthCallbackRoute: typeof OauthCallbackRoute
   OrdersIdRoute: typeof OrdersIdRoute
   ProductIdRoute: typeof ProductIdRoute
   WebhookFlutterwaveRoute: typeof WebhookFlutterwaveRoute
@@ -691,6 +717,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CartRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/callback': {
+      id: '/callback'
+      path: '/callback'
+      fullPath: '/callback'
+      preLoaderRoute: typeof CallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin': {
       id: '/admin'
       path: '/admin'
@@ -752,6 +785,13 @@ declare module '@tanstack/react-router' {
       path: '/orders/$id'
       fullPath: '/orders/$id'
       preLoaderRoute: typeof OrdersIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/oauth/callback': {
+      id: '/oauth/callback'
+      path: '/oauth/callback'
+      fullPath: '/oauth/callback'
+      preLoaderRoute: typeof OauthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/search': {
@@ -1019,6 +1059,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
+  CallbackRoute: CallbackRoute,
   CartRoute: CartRoute,
   CheckoutRoute: CheckoutRoute,
   DelivererRoute: DelivererRoute,
@@ -1030,6 +1071,7 @@ const rootRouteChildren: RootRouteChildren = {
   VerifyDeviceRoute: VerifyDeviceRoute,
   VerifySignupRoute: VerifySignupRoute,
   WishlistRoute: WishlistRoute,
+  OauthCallbackRoute: OauthCallbackRoute,
   OrdersIdRoute: OrdersIdRoute,
   ProductIdRoute: ProductIdRoute,
   WebhookFlutterwaveRoute: WebhookFlutterwaveRoute,

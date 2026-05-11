@@ -10,10 +10,13 @@ export async function verifyRecaptcha(
   const secret = process.env.RECAPTCHA_V2_SECRET_KEY ?? process.env.RECAPTCHA_SECRET_KEY;
   // If secret is not configured, fail-open in dev only — but ALWAYS log it.
   if (!secret) {
-    console.warn("[security] RECAPTCHA_V2_SECRET_KEY not configured — skipping verification");
+    console.warn("[security] RECAPTCHA secret not configured — skipping verification");
     return { ok: true, reason: "no_secret" };
   }
-  if (!token) return { ok: false, reason: "missing_token" };
+  if (!token) {
+    console.warn("[security] recaptcha missing token", { action, remoteIp: remoteIp ?? null });
+    return { ok: false, reason: "missing_token" };
+  }
 
   try {
     const body = new URLSearchParams();
@@ -32,6 +35,11 @@ export async function verifyRecaptcha(
       "error-codes"?: string[];
     };
     if (!json.success) {
+      console.warn("[security] recaptcha verification failed", {
+        action,
+        remoteIp: remoteIp ?? null,
+        errors: json["error-codes"] ?? [],
+      });
       return { ok: false, reason: (json["error-codes"] || []).join(",") || "failed" };
     }
     // v2 checkbox doesn't return action/score — success is enough.

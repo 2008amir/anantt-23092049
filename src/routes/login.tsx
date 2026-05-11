@@ -208,11 +208,13 @@ function Login() {
               onClick={async () => {
                 try {
                   const { lovable } = await import("@/integrations/lovable");
+                  const { getOAuthRedirectUri } = await import("@/lib/oauth-config.functions");
+                  const config = await getOAuthRedirectUri();
                   const result = await lovable.auth.signInWithOAuth("google", {
-                    redirect_uri: window.location.origin,
+                    redirect_uri: config.redirectUri || `${window.location.origin}/callback`,
                   });
                   if (result.error) {
-                    setError("Could not start Google sign-in.");
+                    setError(`Could not start Google sign-in. ${result.error.message}`);
                   }
                 } catch {
                   setError("Google sign-in unavailable.");
