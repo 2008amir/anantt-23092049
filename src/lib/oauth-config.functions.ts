@@ -5,3 +5,7 @@ export const getOAuthRedirectUri = createServerFn({ method: "GET" }).handler(asy
     redirectUri: process.env.GOOGLE_OAUTH_REDIRECT_URI ?? process.env.OAUTH_REDIRECT_URI ?? "",
   };
 });
+
+export const getGoogleClientId = createServerFn({ method: "GET" }).handler(async () => {
+  return { clientId: process.env.GOOGLE_CLIENT_ID ?? "" };
+});

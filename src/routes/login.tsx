@@ -10,7 +10,6 @@ import {
   Spinner,
 } from "@/components/PasswordField";
 import { RecaptchaCheckbox, resetRecaptchaWidgets } from "@/lib/recaptcha";
-
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Sign In — Luxe Sparkles" }] }),
   component: Login,
@@ -19,6 +18,41 @@ export const Route = createFileRoute("/login")({
 function Login() {
   const { user, signIn, signUp } = useStore();
   const navigate = useNavigate();
+
+  // Handle Google OAuth redirect back from /callback (id_token in URL hash)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hash = window.location.hash;
+    if (!hash.startsWith("#")) return;
+    const params = new URLSearchParams(hash.slice(1));
+    const idToken = params.get("id_token");
+    const provider = params.get("provider");
+    const returnedState = params.get("state");
+    if (!idToken || provider !== "google") return;
+    // Clear the hash so the token is not left in the browser address bar
+    history.replaceState(null, "", window.location.pathname + window.location.search);
+    // CSRF state verification
+    const storedState = sessionStorage.getItem("oauth_state");
+    sessionStorage.removeItem("oauth_state");
+    if (!storedState || storedState !== returnedState) {
+      setError("Google sign-in failed: invalid session state. Please try again.");
+      return;
+    }
+    setBusy(true);
+    supabase.auth
+      .signInWithIdToken({ provider: "google", token: idToken })
+      .then(({ error }) => {
+        if (error) {
+          setError(
+            error.message.includes("provider is not enabled")
+              ? "Google sign-in is not enabled. Please contact the site administrator."
+              : `Google sign-in failed: ${error.message}`,
+          );
+        }
+      })
+      .catch(() => setError("Google sign-in failed. Please try again."))
+      .finally(() => setBusy(false));
+  }, []);
 
   // Auto-route signed-in users to the right place (admin / deliverer / account)
   useEffect(() => {
@@ -207,17 +241,33 @@ function Login() {
               type="button"
               onClick={async () => {
                 try {
-                  const { lovable } = await import("@/integrations/lovable");
-                  const { getOAuthRedirectUri } = await import("@/lib/oauth-config.functions");
-                  const config = await getOAuthRedirectUri();
-                  const result = await lovable.auth.signInWithOAuth("google", {
-                    redirect_uri: config.redirectUri || `${window.location.origin}/callback`,
-                  });
-                  if (result.error) {
-                    setError(`Could not start Google sign-in. ${result.error.message}`);
+                  const { getGoogleClientId, getOAuthRedirectUri } = await import(
+                    "@/lib/oauth-config.functions"
+                  );
+                  const [{ clientId }, { redirectUri }] = await Promise.all([
+                    getGoogleClientId(),
+                    getOAuthRedirectUri(),
+                  ]);
+                  if (!clientId) {
+                    setError("Google sign-in is not configured. Please contact support.");
+                    return;
                   }
+                  const finalRedirectUri = redirectUri || `${window.location.origin}/callback`;
+                  // Generate a random CSRF state and store it for verification on return
+                  const state = crypto.randomUUID();
+                  sessionStorage.setItem("oauth_state", state);
+                  const params = new URLSearchParams({
+                    client_id: clientId,
+                    redirect_uri: finalRedirectUri,
+                    response_type: "code",
+                    scope: "openid email profile",
+                    access_type: "offline",
+                    prompt: "select_account",
+                    state,
+                  });
+                  window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
                 } catch {
-                  setError("Google sign-in unavailable.");
+                  setError("Google sign-in unavailable. Please try again.");
                 }
               }}
               className="flex w-full items-center justify-center gap-2 border border-border bg-background py-3 text-xs uppercase tracking-[0.25em] text-foreground transition-smooth hover:border-primary hover:text-primary"

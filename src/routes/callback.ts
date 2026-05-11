@@ -38,6 +38,8 @@ export const Route = createFileRoute("/callback")({
         const oauthError = url.searchParams.get("error");
         const oauthErrorDescription = url.searchParams.get("error_description");
         const code = url.searchParams.get("code");
+        // Forwarded back to the client for CSRF verification
+        const state = url.searchParams.get("state");
 
         if (oauthError) {
           const message = oauthErrorDescription?.trim() || oauthError;
@@ -95,6 +97,26 @@ export const Route = createFileRoute("/callback")({
             const message =
               tokenJson.error_description || tokenJson.error || "Token exchange failed.";
             return htmlMessage("Google sign-in failed", message, 400);
+          }
+
+          // Redirect to the login page so the client can establish a session
+          // using the id_token. The hash fragment is never sent to the server,
+          // so it is not logged or visible to server-side code after the redirect.
+          // The state value is forwarded so the client can verify CSRF protection.
+          if (tokenJson.id_token) {
+            const loginUrl = new URL("/login", url.origin);
+            const hashParams = new URLSearchParams();
+            hashParams.set("id_token", tokenJson.id_token);
+            hashParams.set("provider", "google");
+            if (state) hashParams.set("state", state);
+            loginUrl.hash = hashParams.toString();
+            return new Response(null, {
+              status: 302,
+              headers: {
+                Location: loginUrl.toString(),
+                "Cache-Control": "no-store",
+              },
+            });
           }
 
           return htmlMessage(
