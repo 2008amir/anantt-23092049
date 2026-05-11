@@ -7,7 +7,16 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { VitePWA } from "vite-plugin-pwa";
 
+// When deploying on Vercel, disable the Cloudflare adapter and use SPA mode instead
+// so that a static shell HTML is generated and served for all routes.
+const isVercel = process.env.VERCEL === "1";
+
 export default defineConfig({
+  // Skip the Cloudflare Workers plugin on Vercel — it produces an incompatible build format.
+  cloudflare: isVercel ? false : undefined,
+  // Enable SPA mode on Vercel so TanStack Start prerenders a static shell at /_shell.html
+  // that Vercel's CDN can serve for every client-side route.
+  tanstackStart: isVercel ? { spa: { enabled: true } } : undefined,
   vite: {
     plugins: [
       VitePWA({
@@ -30,7 +39,7 @@ export default defineConfig({
         workbox: {
           globPatterns: ["**/*.{js,css,html,svg,png,ico,woff2}"],
           // Don't intercept API/auth/server-fn or webhooks
-          navigateFallback: "/",
+          navigateFallback: "/_shell.html",
           navigateFallbackDenylist: [
             /^\/~oauth/,
             /^\/api\//,
