@@ -1,12 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 function htmlMessage(title: string, details: string, status = 200) {
+  const safeTitle = escapeHtml(title);
+  const safeDetails = escapeHtml(details);
   const body = `<!doctype html>
 <html lang="en">
   <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
   <body style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:24px;line-height:1.5">
-    <h1 style="font-size:20px;margin:0 0 8px">${title}</h1>
-    <p style="margin:0">${details}</p>
+    <h1 style="font-size:20px;margin:0 0 8px">${safeTitle}</h1>
+    <p style="margin:0">${safeDetails}</p>
     <p style="margin-top:16px"><a href="/login">Return to login</a></p>
   </body>
 </html>`;
@@ -65,7 +76,10 @@ export const Route = createFileRoute("/callback")({
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
             body: body.toString(),
           });
-          const tokenJson = (await tokenResponse.json().catch(() => ({}))) as {
+          const tokenJson = (await tokenResponse.json().catch((parseError) => {
+            console.error("[oauth] token response parse error", parseError);
+            return {};
+          })) as {
             access_token?: string;
             id_token?: string;
             error?: string;
