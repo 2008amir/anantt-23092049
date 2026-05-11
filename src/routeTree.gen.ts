@@ -27,6 +27,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrdersIndexRouteImport } from './routes/orders.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AccountIndexRouteImport } from './routes/account.index'
+import { Route as Char126oauthInitiateRouteImport } from './routes/~oauth.initiate'
 import { Route as WebhookFlutterwaveRouteImport } from './routes/webhook.flutterwave'
 import { Route as ProductIdRouteImport } from './routes/product.$id'
 import { Route as OrdersIdRouteImport } from './routes/orders.$id'
@@ -148,6 +149,11 @@ const AccountIndexRoute = AccountIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AccountRoute,
+} as any)
+const Char126oauthInitiateRoute = Char126oauthInitiateRouteImport.update({
+  id: '/~oauth/initiate',
+  path: '/~oauth/initiate',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const WebhookFlutterwaveRoute = WebhookFlutterwaveRouteImport.update({
   id: '/webhook/flutterwave',
@@ -345,6 +351,7 @@ export interface FileRoutesByFullPath {
   '/orders/$id': typeof OrdersIdRoute
   '/product/$id': typeof ProductIdRoute
   '/webhook/flutterwave': typeof WebhookFlutterwaveRoute
+  '/~oauth/initiate': typeof Char126oauthInitiateRoute
   '/account/': typeof AccountIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/orders/': typeof OrdersIndexRoute
@@ -394,6 +401,7 @@ export interface FileRoutesByTo {
   '/orders/$id': typeof OrdersIdRoute
   '/product/$id': typeof ProductIdRoute
   '/webhook/flutterwave': typeof WebhookFlutterwaveRoute
+  '/~oauth/initiate': typeof Char126oauthInitiateRoute
   '/account': typeof AccountIndexRoute
   '/admin': typeof AdminIndexRoute
   '/orders': typeof OrdersIndexRoute
@@ -446,6 +454,7 @@ export interface FileRoutesById {
   '/orders/$id': typeof OrdersIdRoute
   '/product/$id': typeof ProductIdRoute
   '/webhook/flutterwave': typeof WebhookFlutterwaveRoute
+  '/~oauth/initiate': typeof Char126oauthInitiateRoute
   '/account/': typeof AccountIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/orders/': typeof OrdersIndexRoute
@@ -499,6 +508,7 @@ export interface FileRouteTypes {
     | '/orders/$id'
     | '/product/$id'
     | '/webhook/flutterwave'
+    | '/~oauth/initiate'
     | '/account/'
     | '/admin/'
     | '/orders/'
@@ -548,6 +558,7 @@ export interface FileRouteTypes {
     | '/orders/$id'
     | '/product/$id'
     | '/webhook/flutterwave'
+    | '/~oauth/initiate'
     | '/account'
     | '/admin'
     | '/orders'
@@ -599,6 +610,7 @@ export interface FileRouteTypes {
     | '/orders/$id'
     | '/product/$id'
     | '/webhook/flutterwave'
+    | '/~oauth/initiate'
     | '/account/'
     | '/admin/'
     | '/orders/'
@@ -632,6 +644,7 @@ export interface RootRouteChildren {
   OrdersIdRoute: typeof OrdersIdRoute
   ProductIdRoute: typeof ProductIdRoute
   WebhookFlutterwaveRoute: typeof WebhookFlutterwaveRoute
+  Char126oauthInitiateRoute: typeof Char126oauthInitiateRoute
   OrdersIndexRoute: typeof OrdersIndexRoute
   ApiPublicDeviceIdRoute: typeof ApiPublicDeviceIdRoute
   ApiPublicFlutterwaveWebhookRoute: typeof ApiPublicFlutterwaveWebhookRoute
@@ -765,6 +778,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/account/'
       preLoaderRoute: typeof AccountIndexRouteImport
       parentRoute: typeof AccountRoute
+    }
+    '/~oauth/initiate': {
+      id: '/~oauth/initiate'
+      path: '/~oauth/initiate'
+      fullPath: '/~oauth/initiate'
+      preLoaderRoute: typeof Char126oauthInitiateRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/webhook/flutterwave': {
       id: '/webhook/flutterwave'
@@ -1075,6 +1095,7 @@ const rootRouteChildren: RootRouteChildren = {
   OrdersIdRoute: OrdersIdRoute,
   ProductIdRoute: ProductIdRoute,
   WebhookFlutterwaveRoute: WebhookFlutterwaveRoute,
+  Char126oauthInitiateRoute: Char126oauthInitiateRoute,
   OrdersIndexRoute: OrdersIndexRoute,
   ApiPublicDeviceIdRoute: ApiPublicDeviceIdRoute,
   ApiPublicFlutterwaveWebhookRoute: ApiPublicFlutterwaveWebhookRoute,

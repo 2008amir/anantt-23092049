@@ -8,8 +8,21 @@ let cachedKey: string | null = null;
 let keyPromise: Promise<string> | null = null;
 let scriptPromise: Promise<void> | null = null;
 
+function getPublicRecaptchaSiteKey() {
+  return (
+    import.meta.env.VITE_RECAPTCHA_SITE_KEY ??
+    import.meta.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ??
+    ""
+  ).trim();
+}
+
 async function fetchSiteKey(): Promise<string> {
   if (cachedKey) return cachedKey;
+  const publicKey = getPublicRecaptchaSiteKey();
+  if (publicKey) {
+    cachedKey = publicKey;
+    return cachedKey;
+  }
   if (!keyPromise) {
     keyPromise = (async () => {
       const { getRecaptchaSiteKey } = await import("./recaptcha-config.functions");
@@ -71,7 +84,7 @@ export function RecaptchaCheckbox({
         const [, key] = await Promise.all([loadScript(), fetchSiteKey()]);
         if (cancelled || !containerRef.current) return;
         if (!key) {
-          setError("Security check unavailable.");
+          setError("We could not load the security check. Please refresh and try again.");
           return;
         }
         const g = (window as unknown as { grecaptcha?: GrecaptchaV2 }).grecaptcha;
@@ -85,7 +98,8 @@ export function RecaptchaCheckbox({
           "expired-callback": () => onChangeRef.current(null),
         });
       } catch {
-        if (!cancelled) setError("Could not load security check.");
+        if (!cancelled)
+          setError("We could not load the security check. Please refresh and try again.");
       }
     })();
     return () => {
