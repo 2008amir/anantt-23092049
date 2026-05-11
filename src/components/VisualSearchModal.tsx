@@ -20,6 +20,7 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const searchReqRef = useRef(0);
 
   const stopCamera = () => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -27,6 +28,7 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
   };
 
   const reset = () => {
+    searchReqRef.current += 1;
     stopCamera();
     setStage("choose");
     setImageDataUrl(null);
@@ -88,6 +90,7 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
     if (file.size > 6 * 1024 * 1024) {
       setErrorMsg("Image must be under 6MB.");
       setStage("error");
+      e.target.value = "";
       return;
     }
     const reader = new FileReader();
@@ -97,21 +100,26 @@ export function VisualSearchModal({ open, onClose }: { open: boolean; onClose: (
       void runSearch(dataUrl);
     };
     reader.readAsDataURL(file);
+    e.target.value = "";
   };
 
   const runSearch = async (dataUrl?: string) => {
     const img = dataUrl ?? imageDataUrl;
     if (!img) return;
+    const reqId = ++searchReqRef.current;
     setStage("loading");
     try {
       const res = await visualSearch({ data: { imageDataUrl: img } });
+      if (reqId !== searchReqRef.current) return;
       setMatches(res.matches);
       setDescription(res.description);
       const ids = res.matches.map((m) => m.id);
       const fetched = ids.length ? await fetchProductsByIds(ids) : [];
+      if (reqId !== searchReqRef.current) return;
       setProducts(fetched);
       setStage("results");
     } catch (e) {
+      if (reqId !== searchReqRef.current) return;
       console.error(e);
       setErrorMsg(e instanceof Error ? e.message : "Search failed");
       setStage("error");

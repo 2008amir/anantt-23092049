@@ -15,7 +15,7 @@ function localTextMatch(catalog: Product[], q: string): Product[] {
   const tokens = needle.split(/\s+/).filter(Boolean);
   return catalog.filter((p) => {
     const hay = `${p.name} ${p.brand} ${p.category} ${p.description}`.toLowerCase();
-    return tokens.some((t) => hay.includes(t));
+    return tokens.every((t) => hay.includes(t));
   });
 }
 
@@ -76,6 +76,7 @@ function SearchPage() {
   const streamRef = useRef<MediaStream | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const textSearchReqRef = useRef(0);
 
   // Load history on mount: merge localStorage with DB
   useEffect(() => {
@@ -111,6 +112,7 @@ function SearchPage() {
 
   // Auto-run text search if q is in URL
   useEffect(() => {
+    setQuery(q ?? "");
     if (q) void runTextSearch(q, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
@@ -157,33 +159,45 @@ function SearchPage() {
   };
 
   const runTextSearch = async (text: string, addToHistory = true) => {
-    if (!text.trim()) return;
+    const reqId = ++textSearchReqRef.current;
+    const normalized = text.trim();
+    if (!normalized) {
+      setMode("idle");
+      setError(null);
+      setResults([]);
+      setLoading(false);
+      return;
+    }
     setMode("text");
     setLoading(true);
     setError(null);
     setImageDataUrl(null);
     let items: Product[] = [];
     try {
-      const { ids } = await textSearch({ data: { query: text } });
+      const { ids } = await textSearch({ data: { query: normalized } });
       items = ids.length ? await fetchProductsByIds(ids) : [];
     } catch (e) {
       console.error("AI text search failed, falling back to local match", e);
     }
+    if (reqId !== textSearchReqRef.current) return;
     // Fallback: if AI returned nothing (or failed), do a simple local match
     // across the full catalog so users always see relevant pieces when any
     // exist for their query.
     if (items.length === 0) {
       try {
         const all = await fetchProducts();
-        items = localTextMatch(all, text).slice(0, 24);
+        if (reqId !== textSearchReqRef.current) return;
+        items = localTextMatch(all, normalized).slice(0, 24);
       } catch (e) {
         console.error("local fallback failed", e);
+        if (reqId !== textSearchReqRef.current) return;
         setError(e instanceof Error ? e.message : "Search failed");
       }
     }
+    if (reqId !== textSearchReqRef.current) return;
     setResults(items);
-    if (addToHistory) pushHistory(text);
-    if (user) void logInterest({ data: { kind: "search", query: text } }).catch(() => undefined);
+    if (addToHistory) pushHistory(normalized);
+    if (user) void logInterest({ data: { kind: "search", query: normalized } }).catch(() => undefined);
     setLoading(false);
   };
 
