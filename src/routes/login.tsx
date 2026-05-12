@@ -63,6 +63,7 @@ export function Login() {
   const [success, setSuccess] = useState("");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [googleJwt, setGoogleJwt] = useState("");
+  const [showGoogleJwt, setShowGoogleJwt] = useState(false);
 
   // Prefill referral code from ?ref=
   useEffect(() => {
@@ -208,7 +209,8 @@ export function Login() {
               onSuccess={(idToken) => {
                 setError("");
                 setGoogleJwt(idToken);
-                console.info("[auth] Google ID token received", idToken);
+                setShowGoogleJwt(false);
+                console.info("[auth] Google ID token received", { tokenLength: idToken.length });
               }}
               onError={() => {
                 setError("Google sign-in failed. Please try again.");
@@ -219,12 +221,21 @@ export function Login() {
                 <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
                   Google JWT (sample frontend usage)
                 </p>
-                <textarea
-                  readOnly
-                  value={googleJwt}
+                <p
                   data-testid="google-jwt"
-                  className="min-h-20 w-full resize-y border border-border bg-card/40 p-2 text-[11px] text-foreground outline-none"
-                />
+                  className="break-all border border-border bg-card/40 p-2 text-[11px] text-foreground"
+                >
+                  {showGoogleJwt
+                    ? googleJwt
+                    : `${googleJwt.slice(0, 24)}…${googleJwt.slice(-12)}`}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowGoogleJwt((current) => !current)}
+                  className="text-[10px] uppercase tracking-[0.2em] text-primary underline"
+                >
+                  {showGoogleJwt ? "Hide full token" : "Reveal full token"}
+                </button>
                 <p className="text-[11px] text-muted-foreground">
                   You can now send this token to your API for verification if needed.
                 </p>

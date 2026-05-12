@@ -106,7 +106,12 @@ describe("Login route", () => {
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Continue with Google" }));
-    expect(screen.getByTestId("google-jwt")).toHaveValue("google.jwt.token");
-    expect(infoSpy).toHaveBeenCalledWith("[auth] Google ID token received", "google.jwt.token");
+    expect(screen.getByTestId("google-jwt")).toHaveTextContent("google.jwt.token…le.jwt.token");
+    expect(infoSpy).toHaveBeenCalledWith("[auth] Google ID token received", {
+      tokenLength: 16,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Reveal full token" }));
+    expect(screen.getByTestId("google-jwt")).toHaveTextContent("google.jwt.token");
   });
 });

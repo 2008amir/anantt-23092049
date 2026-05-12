@@ -15,7 +15,7 @@ export function GoogleSignInButton({ onSuccess, onError }: GoogleSignInButtonPro
   if (!clientId) {
     return (
       <p className="text-xs text-muted-foreground">
-        Google sign-in is unavailable. Set VITE_GOOGLE_CLIENT_ID (or NEXT_PUBLIC_GOOGLE_CLIENT_ID).
+        Google sign-in is currently unavailable. Please try again later.
       </p>
     );
   }
