@@ -15,9 +15,14 @@ export const Route = createFileRoute("/login")({
   component: Login,
 });
 
-function Login() {
+export function Login() {
   const { user, signIn, signUp } = useStore();
   const navigate = useNavigate();
+  const publicGoogleClientId = (
+    import.meta.env.VITE_GOOGLE_CLIENT_ID ??
+    import.meta.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ??
+    ""
+  ).trim();
 
   // Handle Google OAuth redirect back from /callback (id_token in URL hash)
   useEffect(() => {
@@ -241,33 +246,18 @@ function Login() {
               type="button"
               onClick={async () => {
                 try {
-                  const { getGoogleClientId, getOAuthRedirectUri } = await import(
-                    "@/lib/oauth-config.functions"
-                  );
-                  const [{ clientId }, { redirectUri }] = await Promise.all([
-                    getGoogleClientId(),
-                    getOAuthRedirectUri(),
-                  ]);
-                  if (!clientId) {
-                    setError("Google sign-in is not configured. Please contact support.");
+                  if (!publicGoogleClientId) {
+                    setError("Google sign-in is currently unavailable. Please try again later.");
                     return;
                   }
-                  const finalRedirectUri = redirectUri || `${window.location.origin}/callback`;
-                  // Generate a random CSRF state and store it for verification on return
                   const state = crypto.randomUUID();
                   sessionStorage.setItem("oauth_state", state);
-                  const params = new URLSearchParams({
-                    client_id: clientId,
-                    redirect_uri: finalRedirectUri,
-                    response_type: "code",
-                    scope: "openid email profile",
-                    access_type: "offline",
-                    prompt: "select_account",
-                    state,
-                  });
-                  window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+                  const initiateUrl = new URL("/~oauth/initiate", window.location.origin);
+                  initiateUrl.searchParams.set("provider", "google");
+                  initiateUrl.searchParams.set("state", state);
+                  window.location.assign(initiateUrl.toString());
                 } catch {
-                  setError("Google sign-in unavailable. Please try again.");
+                  setError("Google sign-in could not be started. Please try again.");
                 }
               }}
               className="flex w-full items-center justify-center gap-2 border border-border bg-background py-3 text-xs uppercase tracking-[0.25em] text-foreground transition-smooth hover:border-primary hover:text-primary"
