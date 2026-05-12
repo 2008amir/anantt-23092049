@@ -7,9 +7,7 @@ const signInMock = vi.fn().mockResolvedValue(undefined);
 
 vi.mock("@tanstack/react-router", () => ({
   createFileRoute: () => () => ({}),
-  Link: ({ children, ...props }: { children: ReactNode }) => (
-    <a {...props}>{children}</a>
-  ),
+  Link: ({ children, ...props }: { children: ReactNode }) => <a {...props}>{children}</a>,
   useNavigate: () => navigateMock,
 }));
 
@@ -23,9 +21,6 @@ vi.mock("@/lib/store", () => ({
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
-    auth: {
-      signInWithIdToken: vi.fn().mockResolvedValue({ error: null }),
-    },
     from: vi.fn(() => ({
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockResolvedValue({ data: [] }),
@@ -47,11 +42,7 @@ vi.mock("@/components/PasswordField", () => ({
   }) => (
     <label>
       {label}
-      <input
-        aria-label={label}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      />
+      <input aria-label={label} value={value} onChange={(event) => onChange(event.target.value)} />
     </label>
   ),
   PasswordRequirements: () => null,
@@ -72,6 +63,15 @@ vi.mock("@/lib/recaptcha", () => ({
   resetRecaptchaWidgets: vi.fn(),
 }));
 
+vi.mock("@react-oauth/google", () => ({
+  GoogleOAuthProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
+  GoogleLogin: ({ onSuccess }: { onSuccess: (response: { credential?: string }) => void }) => (
+    <button type="button" onClick={() => onSuccess({ credential: "google.jwt.token" })}>
+      Continue with Google
+    </button>
+  ),
+}));
+
 import { Login } from "../routes/login";
 
 describe("Login route", () => {
@@ -81,15 +81,7 @@ describe("Login route", () => {
   });
 
   it("renders Google and reCAPTCHA widgets, then runs both flows", async () => {
-    const assignMock = vi.fn();
-    Object.defineProperty(window, "location", {
-      configurable: true,
-      value: {
-        ...window.location,
-        assign: assignMock,
-      },
-    });
-    vi.spyOn(globalThis.crypto, "randomUUID").mockReturnValue("state-123");
+    const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
 
     render(<Login />);
 
@@ -114,11 +106,7 @@ describe("Login route", () => {
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Continue with Google" }));
-
-    expect(assignMock).toHaveBeenCalledTimes(1);
-    const redirectUrl = assignMock.mock.calls[0][0];
-    expect(String(redirectUrl)).toContain("/~oauth/initiate");
-    expect(String(redirectUrl)).toContain("provider=google");
-    expect(String(redirectUrl)).toContain("state=state-123");
+    expect(screen.getByTestId("google-jwt")).toHaveValue("google.jwt.token");
+    expect(infoSpy).toHaveBeenCalledWith("[auth] Google ID token received", "google.jwt.token");
   });
 });

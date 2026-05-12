@@ -3,6 +3,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useStore } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { ADMIN_EMAIL } from "@/hooks/use-admin";
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import {
   PasswordField,
   PasswordRequirements,
@@ -16,48 +17,8 @@ export const Route = createFileRoute("/login")({
 });
 
 export function Login() {
-  const { user, signIn, signUp } = useStore();
+  const { user, signIn } = useStore();
   const navigate = useNavigate();
-  const publicGoogleClientId = (
-    import.meta.env.VITE_GOOGLE_CLIENT_ID ??
-    import.meta.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ??
-    ""
-  ).trim();
-
-  // Handle Google OAuth redirect back from /callback (id_token in URL hash)
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const hash = window.location.hash;
-    if (!hash.startsWith("#")) return;
-    const params = new URLSearchParams(hash.slice(1));
-    const idToken = params.get("id_token");
-    const provider = params.get("provider");
-    const returnedState = params.get("state");
-    if (!idToken || provider !== "google") return;
-    // Clear the hash so the token is not left in the browser address bar
-    history.replaceState(null, "", window.location.pathname + window.location.search);
-    // CSRF state verification
-    const storedState = sessionStorage.getItem("oauth_state");
-    sessionStorage.removeItem("oauth_state");
-    if (!storedState || storedState !== returnedState) {
-      setError("Google sign-in failed: invalid session state. Please try again.");
-      return;
-    }
-    setBusy(true);
-    supabase.auth
-      .signInWithIdToken({ provider: "google", token: idToken })
-      .then(({ error }) => {
-        if (error) {
-          setError(
-            error.message.includes("provider is not enabled")
-              ? "Google sign-in is not enabled. Please contact the site administrator."
-              : `Google sign-in failed: ${error.message}`,
-          );
-        }
-      })
-      .catch(() => setError("Google sign-in failed. Please try again."))
-      .finally(() => setBusy(false));
-  }, []);
 
   // Auto-route signed-in users to the right place (admin / deliverer / account)
   useEffect(() => {
@@ -101,6 +62,7 @@ export function Login() {
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState("");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [googleJwt, setGoogleJwt] = useState("");
 
   // Prefill referral code from ?ref=
   useEffect(() => {
@@ -242,34 +204,32 @@ export function Login() {
               <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
               <span className="relative bg-card/50 px-3 text-[10px] uppercase tracking-[0.25em] text-muted-foreground">or</span>
             </div>
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  if (!publicGoogleClientId) {
-                    setError("Google sign-in is currently unavailable. Please try again later.");
-                    return;
-                  }
-                  const state = crypto.randomUUID();
-                  sessionStorage.setItem("oauth_state", state);
-                  const initiateUrl = new URL("/~oauth/initiate", window.location.origin);
-                  initiateUrl.searchParams.set("provider", "google");
-                  initiateUrl.searchParams.set("state", state);
-                  window.location.assign(initiateUrl.toString());
-                } catch {
-                  setError("Google sign-in could not be started. Please try again.");
-                }
+            <GoogleSignInButton
+              onSuccess={(idToken) => {
+                setError("");
+                setGoogleJwt(idToken);
+                console.info("[auth] Google ID token received", idToken);
               }}
-              className="flex w-full items-center justify-center gap-2 border border-border bg-background py-3 text-xs uppercase tracking-[0.25em] text-foreground transition-smooth hover:border-primary hover:text-primary"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
-                <path fill="#4285F4" d="M23 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.2c-.3 1.5-1.1 2.7-2.3 3.6v3h3.7c2.2-2 3.4-4.9 3.4-8.8z"/>
-                <path fill="#34A853" d="M12 24c3.1 0 5.7-1 7.6-2.8l-3.7-3c-1 .7-2.4 1.1-3.9 1.1-3 0-5.6-2-6.5-4.8H1.6v3C3.5 21.6 7.4 24 12 24z"/>
-                <path fill="#FBBC05" d="M5.5 14.5c-.2-.7-.4-1.4-.4-2.5s.2-1.8.4-2.5v-3H1.6C.6 8.4 0 10.1 0 12s.6 3.6 1.6 5.5l3.9-3z"/>
-                <path fill="#EA4335" d="M12 4.8c1.7 0 3.2.6 4.4 1.7l3.3-3.3C17.7 1.2 15.1 0 12 0 7.4 0 3.5 2.4 1.6 6.5l3.9 3C6.4 6.8 9 4.8 12 4.8z"/>
-              </svg>
-              Continue with Google
-            </button>
+              onError={() => {
+                setError("Google sign-in failed. Please try again.");
+              }}
+            />
+            {googleJwt && (
+              <div className="space-y-2 rounded border border-border bg-background p-3 text-left">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                  Google JWT (sample frontend usage)
+                </p>
+                <textarea
+                  readOnly
+                  value={googleJwt}
+                  data-testid="google-jwt"
+                  className="min-h-20 w-full resize-y border border-border bg-card/40 p-2 text-[11px] text-foreground outline-none"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  You can now send this token to your API for verification if needed.
+                </p>
+              </div>
+            )}
           </form>
         )}
 
