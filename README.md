@@ -1,32 +1,22 @@
-# OAuth initiate route notes
+# Frontend-only Google Sign-In
 
-## Route location
+Google login now runs fully in the browser with `@react-oauth/google`.
 
-The Google OAuth start route is implemented as a TanStack file route at:
+## Required environment variable
 
-- `src/routes/~oauth.initiate.ts` → `GET /~oauth/initiate`
+Set one public client ID variable:
 
-## Required environment variables
+- `VITE_GOOGLE_CLIENT_ID` (preferred for Vite)
+- `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (fallback)
 
-Preferred server variables:
+## Where it is implemented
 
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_OAUTH_REDIRECT_URI`
+- `src/components/GoogleSignInButton.tsx`
+- `src/routes/login.tsx`
 
-Supported fallbacks:
+The login page uses Google Identity Services directly in the frontend and receives a Google ID token (JWT) in-browser. A sample usage is included in the UI:
 
-- `CLIENT_ID`
-- `REDIRECT_URI`
-- `OAUTH_REDIRECT_URI`
+- The JWT is displayed after successful Google sign-in.
+- A console log stub is included to show where client-side handling happens.
 
-Client-only public variables used by the login UI:
-
-- `NEXT_PUBLIC_GOOGLE_CLIENT_ID`
-- `VITE_GOOGLE_CLIENT_ID`
-
-## Deployment note (Vercel/serverless)
-
-`/~oauth/initiate` is a server route and must be handled by a server runtime.
-If deploying to Vercel, avoid SPA-only mode for OAuth routes. Use a server adapter/runtime
-(for example Nitro as documented by TanStack Start) so requests to `/~oauth/initiate`
-are executed server-side instead of returning a static fallback.
+No backend OAuth routes are used for Google login.

@@ -32,20 +32,13 @@ export default defineConfig({
           display: "standalone",
           start_url: "/",
           scope: "/",
-          icons: [
-            { src: "/favicon.ico", sizes: "64x64", type: "image/x-icon" },
-          ],
+          icons: [{ src: "/favicon.ico", sizes: "64x64", type: "image/x-icon" }],
         },
         workbox: {
           globPatterns: ["**/*.{js,css,html,svg,png,ico,woff2}"],
-          // Don't intercept API/auth/server-fn or webhooks
+          // Don't intercept API/server-fn or webhooks
           navigateFallback: "/_shell.html",
-          navigateFallbackDenylist: [
-            /^\/~oauth/,
-            /^\/api\//,
-            /^\/_/,
-            /^\/webhook/,
-          ],
+          navigateFallbackDenylist: [/^\/api\//, /^\/_/, /^\/webhook/],
           runtimeCaching: [
             // Product images & remote images: cache-first, long lived
             {
