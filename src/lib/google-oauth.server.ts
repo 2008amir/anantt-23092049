@@ -24,7 +24,7 @@ function escapeHtml(value: string) {
 export function getGoogleOAuthConfig(): GoogleOAuthConfig {
   return {
     clientId: envValue("GOOGLE_CLIENT_ID", "CLIENT_ID"),
-    clientSecret: envValue("CLIENT_SECRET", "GOOGLE_CLIENT_SECRET"),
+    clientSecret: envValue("GOOGLE_CLIENT_SECRET", "CLIENT_SECRET"),
     redirectUri: envValue("GOOGLE_OAUTH_REDIRECT_URI", "REDIRECT_URI", "OAUTH_REDIRECT_URI"),
   };
 }
