@@ -23,20 +23,9 @@ function escapeHtml(value: string) {
 
 export function getGoogleOAuthConfig(): GoogleOAuthConfig {
   return {
-    clientId: envValue(
-      "GOOGLE_CLIENT_ID",
-      "CLIENT_ID",
-      "NEXT_PUBLIC_GOOGLE_CLIENT_ID",
-      "VITE_GOOGLE_CLIENT_ID",
-    ),
+    clientId: envValue("GOOGLE_CLIENT_ID", "CLIENT_ID"),
     clientSecret: envValue("CLIENT_SECRET", "GOOGLE_CLIENT_SECRET"),
-    redirectUri: envValue(
-      "GOOGLE_OAUTH_REDIRECT_URI",
-      "REDIRECT_URI",
-      "OAUTH_REDIRECT_URI",
-      "NEXT_PUBLIC_GOOGLE_OAUTH_REDIRECT_URI",
-      "VITE_GOOGLE_OAUTH_REDIRECT_URI",
-    ),
+    redirectUri: envValue("GOOGLE_OAUTH_REDIRECT_URI", "REDIRECT_URI", "OAUTH_REDIRECT_URI"),
   };
 }
 

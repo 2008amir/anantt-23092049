@@ -39,7 +39,6 @@ describe("/~oauth/initiate route", () => {
     });
 
     expect(response.status).toBe(302);
-    expect(response.status).not.toBe(404);
     const location = response.headers.get("location");
     expect(location).toBeTruthy();
     expect(location).toContain("https://accounts.google.com/o/oauth2/v2/auth");

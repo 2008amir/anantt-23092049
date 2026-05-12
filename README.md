@@ -18,10 +18,11 @@ Supported fallbacks:
 - `CLIENT_ID`
 - `REDIRECT_URI`
 - `OAUTH_REDIRECT_URI`
+
+Client-only public variables used by the login UI:
+
 - `NEXT_PUBLIC_GOOGLE_CLIENT_ID`
 - `VITE_GOOGLE_CLIENT_ID`
-- `NEXT_PUBLIC_GOOGLE_OAUTH_REDIRECT_URI`
-- `VITE_GOOGLE_OAUTH_REDIRECT_URI`
 
 ## Deployment note (Vercel/serverless)
 
