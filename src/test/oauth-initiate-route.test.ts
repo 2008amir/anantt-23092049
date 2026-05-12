@@ -41,11 +41,13 @@ describe("/~oauth/initiate route", () => {
     expect(response.status).toBe(302);
     const location = response.headers.get("location");
     expect(location).toBeTruthy();
-    expect(location).toContain("https://accounts.google.com/o/oauth2/v2/auth");
-    expect(location).toContain("client_id=example-google-client-id");
-    expect(location).toContain(
-      encodeURIComponent("https://app.example.com/oauth/callback"),
+    const oauthUrl = new URL(location!);
+    expect(oauthUrl.origin).toBe("https://accounts.google.com");
+    expect(oauthUrl.pathname).toBe("/o/oauth2/v2/auth");
+    expect(oauthUrl.searchParams.get("client_id")).toBe("example-google-client-id");
+    expect(oauthUrl.searchParams.get("redirect_uri")).toBe(
+      "https://app.example.com/oauth/callback",
     );
-    expect(location).toContain("state=test-state");
+    expect(oauthUrl.searchParams.get("state")).toBe("test-state");
   });
 });
